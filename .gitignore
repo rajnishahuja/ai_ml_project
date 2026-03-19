@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Data (large files - don't commit)
+data/raw/
+data/processed/
+data/faiss_index/
+data/synthetic/*.json
+
+# Model weights (don't commit)
+models/
+*.bin
+*.pt
+*.safetensors
+*.gguf
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+*.key
+
+# Experiment tracking
+wandb/
+
+# Logs
+*.log
+logs/
+
+# HuggingFace training outputs
+checkpoints/
+*.ckpt
+outputs/
+runs/
+
+# Additional data formats
+data/synthetic/
