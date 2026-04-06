@@ -226,7 +226,7 @@ def evaluate_baseline_model(
 
     for example in test_examples:
         context = example["context"]
-        true_type = _infer_clause_type_from_question(example["question"], clause_types)
+        true_type = _infer_clause_type_from_question(example["question"])
         true_answers = example.get("answers", {}).get("text", [])
         true_starts = example.get("answers", {}).get("answer_start", [])
 
