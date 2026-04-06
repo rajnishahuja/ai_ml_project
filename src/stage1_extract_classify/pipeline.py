@@ -27,63 +27,15 @@ from transformers import (
     DefaultDataCollator,
     pipeline,
 )
-from evaluate import load as load_metric
+
+from sklearn.metrics import accuracy_score, f1_score, classification_report
+
+import evaluate
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# CUAD clause types (41 categories from the dataset)
-# ---------------------------------------------------------------------------
-CUAD_CLAUSE_TYPES = [
-    "Document Name",
-    "Parties",
-    "Agreement Date",
-    "Effective Date",
-    "Expiration Date",
-    "Renewal Term",
-    "Notice Period To Terminate Renewal",
-    "Governing Law",
-    "Most Favored Nation",
-    "Non-Compete",
-    "Exclusivity",
-    "No-Solicit Of Customers",
-    "No-Solicit Of Employees",
-    "Non-Disparagement",
-    "Termination For Convenience",
-    "ROFR/ROFO/ROFN",
-    "Change Of Control",
-    "Anti-Assignment",
-    "Revenue/Profit Sharing",
-    "Price Restrictions",
-    "Minimum Commitment",
-    "Volume Restriction",
-    "IP Ownership Assignment",
-    "Joint IP Ownership",
-    "License Grant",
-    "Non-Transferable License",
-    "Affiliate License-Licensor",
-    "Affiliate License-Licensee",
-    "Unlimited/All-You-Can-Eat-License",
-    "Irrevocable Or Perpetual License",
-    "Source Code Escrow",
-    "Post-Termination Services",
-    "Audit Rights",
-    "Uncapped Liability",
-    "Cap On Liability",
-    "Liquidated Damages",
-    "Warranty Duration",
-    "Insurance",
-    "Covenant Not To Sue",
-    "Third Party Beneficiary",
-    "Indemnification",
-]
-
-# CUAD question templates (one per clause type, matching the dataset format)
-CUAD_QUESTION_TEMPLATES = {
-    clause: f"Highlight the parts (if any) of this contract related to \"{clause}\" that should be reviewed by a lawyer. Details: {clause}"
-    for clause in CUAD_CLAUSE_TYPES
-}
+from constants import CUAD_CLAUSE_TYPES, CUAD_QUESTION_TEMPLATES, QUESTION_TO_CLAUSE_TYPE
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -120,13 +72,13 @@ class ExtractionResult:
 # Dataset utilities
 # ---------------------------------------------------------------------------
 
-def load_cuad_dataset(split: str = "train") -> DatasetDict:
+def load_cuad_dataset() -> DatasetDict:
     """
     Load CUAD from HuggingFace in native SQuAD-style QA format.
     CUAD: 510 contracts, 13K annotations, 41 categories. License: CC BY 4.0.
     """
     logger.info("Loading CUAD dataset from HuggingFace…")
-    dataset = load_dataset("theatticusproject/cuad", trust_remote_code=True)
+    dataset = load_dataset("theatticusproject/cuad")
     logger.info(f"CUAD loaded. Splits: {list(dataset.keys())}")
     return dataset
 
@@ -188,12 +140,12 @@ def preprocess_for_qa(examples, tokenizer, max_length=512, doc_stride=128):
         token_start = ctx_start
         while token_start <= ctx_end and offsets[token_start][0] <= char_start:
             token_start += 1
-        start_positions.append(token_start - 1)
+        start_positions.append(max(ctx_start, token_start - 1))
 
         token_end = ctx_end
         while token_end >= ctx_start and offsets[token_end][1] >= char_end:
             token_end -= 1
-        end_positions.append(token_end + 1)
+        end_positions.append(min(ctx_end, token_end + 1)) 
 
     tokenized["start_positions"] = start_positions
     tokenized["end_positions"] = end_positions
@@ -231,6 +183,14 @@ def fine_tune_deberta(
 
     dataset = load_cuad_dataset()
 
+    # CUAD has no native val split — carve 10% off train
+    train_val = dataset["train"].train_test_split(test_size=0.10, seed=42)
+    dataset = DatasetDict({
+        "train":      train_val["train"],
+        "validation": train_val["test"],   # held-out val (~2,200 examples)
+        "test":       dataset["test"],     # never touched until final eval
+    })
+
     logger.info("Preprocessing dataset…")
     fn_kwargs = {"tokenizer": tokenizer, "max_length": max_length, "doc_stride": doc_stride}
     tokenized = dataset.map(
@@ -239,7 +199,9 @@ def fine_tune_deberta(
         batched=True,
         remove_columns=dataset["train"].column_names,
     )
-
+    logger.info(f"Tokenized sizes — train: {len(tokenized['train'])}, "
+            f"val: {len(tokenized['validation'])}, test: {len(tokenized['test'])}")
+    
     training_args = TrainingArguments(
         output_dir=output_dir,
         num_train_epochs=num_train_epochs,
@@ -262,7 +224,7 @@ def fine_tune_deberta(
         model=model,
         args=training_args,
         train_dataset=tokenized["train"],
-        eval_dataset=tokenized["test"],
+        eval_dataset=tokenized["validation"],
         tokenizer=tokenizer,
         data_collator=DefaultDataCollator(),
     )
@@ -312,20 +274,14 @@ class ClauseExtractorClassifier:
         self,
         contract_text: str,
         doc_id: str = "unknown",
-        confidence_threshold: float = 0.01,
+        confidence_threshold: float = 0.2,
     ) -> list[ClauseObject]:
         """
         Run all 41 clause-type queries against the contract.
 
-        Args:
-            contract_text: Raw contract string.
-            doc_id: Identifier for tracking clauses back to source document.
-            confidence_threshold: Minimum score to include a clause.
-                                  CUAD models often produce low scores for
-                                  absent clauses; 0.01 filters noise.
-
-        Returns:
-            List of ClauseObject, sorted by start position.
+        Adds:
+        - Exact + overlap-based deduplication
+        - Keeps highest-confidence span when overlaps occur
         """
         clauses = []
         inputs = [
@@ -340,15 +296,24 @@ class ClauseExtractorClassifier:
             answer_text = result.get("answer", "").strip()
             score = result.get("score", 0.0)
 
-            # Skip absent clauses (empty answer or below threshold)
             if not answer_text or score < confidence_threshold:
                 continue
 
-            # Locate character positions in source text
-            start = contract_text.find(answer_text)
-            end = start + len(answer_text) if start != -1 else -1
+            # Use offsets
+            start = result.get("start", -1)
+            end = result.get("end", -1)
 
-            clause = ClauseObject(
+            if start == -1:
+                start = contract_text.find(answer_text)
+                end = start + len(answer_text) if start != -1 else -1
+                if start == -1:
+                    logger.warning(
+                        f"Could not locate answer text in doc '{doc_id}' "
+                        f"for clause '{clause_type}': '{answer_text[:50]}'"
+                    )
+                    continue
+
+            new_clause = ClauseObject(
                 clause_id=f"{doc_id}_{clause_type.replace(' ', '_')}_{idx:04d}",
                 clause_text=answer_text,
                 clause_type=clause_type,
@@ -357,9 +322,48 @@ class ClauseExtractorClassifier:
                 confidence=round(score, 4),
                 document_id=doc_id,
             )
-            clauses.append(clause)
 
-        # Sort by position in document
+            # ---------------------------
+            # 🔧 Deduplication logic
+            # ---------------------------
+            keep = True
+            to_remove = []
+
+            for i, existing in enumerate(clauses):
+                # Exact duplicate span
+                if (
+                    existing.start_pos == new_clause.start_pos
+                    and existing.end_pos == new_clause.end_pos
+                ):
+                    if new_clause.confidence > existing.confidence:
+                        to_remove.append(i)
+                    else:
+                        keep = False
+                    continue
+
+                # Overlap check
+                overlap = min(existing.end_pos, new_clause.end_pos) - max(existing.start_pos, new_clause.start_pos)
+
+                if overlap > 0:
+                    # If significant overlap (>50%), treat as duplicate
+                    smaller_len = min(
+                        existing.end_pos - existing.start_pos,
+                        new_clause.end_pos - new_clause.start_pos,
+                    )
+                    if smaller_len > 0 and overlap / smaller_len > 0.5:
+                        if new_clause.confidence > existing.confidence:
+                            to_remove.append(i)
+                        else:
+                            keep = False
+
+            # Remove weaker overlapping clauses
+            for idx_to_remove in reversed(to_remove):
+                clauses.pop(idx_to_remove)
+
+            if keep:
+                clauses.append(new_clause)
+
+        # Sort by position
         clauses.sort(key=lambda c: c.start_pos)
         logger.info(f"Extracted {len(clauses)} clauses from {doc_id}")
         return clauses
@@ -417,11 +421,11 @@ def preprocess_contract(file_path: str) -> str:
 # ---------------------------------------------------------------------------
 # Evaluation (two-dimensional, as specified in plan)
 # ---------------------------------------------------------------------------
-
 def evaluate_stage1_2(
     model_path: str,
     test_data_path: Optional[str] = None,
     output_path: str = "./results/stage1_2_eval.json",
+    confidence_threshold: float = 0.2,
 ):
     """
     Evaluate the pipeline on two dimensions from the same model output:
@@ -434,10 +438,7 @@ def evaluate_stage1_2(
 
     Uses HuggingFace evaluate library.
     """
-    from sklearn.metrics import accuracy_score, f1_score, classification_report
-    import numpy as np
-
-    squad_metric = load_metric("squad")
+    squad_metric = evaluate.load("squad")
 
     # Load CUAD test split if no custom test data
     if test_data_path is None:
@@ -458,18 +459,30 @@ def evaluate_stage1_2(
     for example in test_examples:
         result = qa({"question": example["question"], "context": example["context"]})
         pred_text = result.get("answer", "").strip()
+        true_answers = example.get("answers", {}).get("text", [])
 
         # Dimension 1: SQuAD EM / F1
-        predictions.append({"id": example["id"], "prediction_text": pred_text,
-                             "no_answer_probability": 1.0 - result["score"]})
-        references.append({"id": example["id"],
-                           "answers": example["answers"]})
+        predictions.append({
+            "id": example["id"],
+            "prediction_text": pred_text,
+            "no_answer_probability": 1.0 - result["score"],
+        })
+        references.append({
+            "id": example["id"],
+            "answers": example["answers"],
+        })
 
-        # Dimension 2: Clause type classification
+        # Dimension 2: classification — fixed to account for absent clauses
         true_type = _infer_clause_type_from_question(example["question"])
-        pred_type = true_type if pred_text else "NO_CLAUSE"
+
+        true_has_clause = bool(true_answers and true_answers[0].strip())
+        pred_has_clause = bool(pred_text and result["score"] >= confidence_threshold)
+
+        true_type_label = true_type if true_has_clause else "NO_CLAUSE"
+        pred_type = true_type if pred_has_clause else "NO_CLAUSE"
+
+        true_types.append(true_type_label)
         pred_types.append(pred_type)
-        true_types.append(true_type)
 
     # --- Dimension 1 ---
     squad_results = squad_metric.compute(predictions=predictions, references=references)
@@ -491,7 +504,9 @@ def evaluate_stage1_2(
         },
     }
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    parent = os.path.dirname(output_path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2)
 
@@ -499,14 +514,23 @@ def evaluate_stage1_2(
     logger.info(f"Results saved to {output_path}")
     return results
 
-
 def _infer_clause_type_from_question(question: str) -> str:
-    """Extract clause type from a CUAD-style question string."""
-    for clause_type in CUAD_CLAUSE_TYPES:
-        if clause_type.lower() in question.lower():
-            return clause_type
-    return "Unknown"
+    """
+    Infer clause type from a CUAD question string.
+    Uses exact reverse lookup against known question templates first,
+    falls back to substring matching only if no exact match found.
+    """
+    # Exact match — robust against substring ambiguity
+    if question in QUESTION_TO_CLAUSE_TYPE:
+        return QUESTION_TO_CLAUSE_TYPE[question]
 
+    # Fallback — substring match for custom or slightly modified questions
+    question_lower = question.lower()
+    for ct in CUAD_CLAUSE_TYPES:
+        if ct.lower() in question_lower:
+            return ct
+
+    return "Unknown"
 
 # ---------------------------------------------------------------------------
 # Entry point
@@ -532,7 +556,7 @@ if __name__ == "__main__":
     infer_parser.add_argument("--model_path", required=True)
     infer_parser.add_argument("--contract_file", required=True)
     infer_parser.add_argument("--output_file", default="clauses.json")
-    infer_parser.add_argument("--threshold", type=float, default=0.01)
+    infer_parser.add_argument("--threshold", type=float, default=0.2)
     infer_parser.add_argument("--device", type=int, default=-1)
 
     # Evaluate

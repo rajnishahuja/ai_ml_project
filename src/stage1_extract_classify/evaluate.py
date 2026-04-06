@@ -20,17 +20,19 @@ import json
 import logging
 import os
 import argparse
+import string
 from pathlib import Path
+from collections import Counter
 
 import numpy as np
 from datasets import load_dataset
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
-    confusion_matrix,
     classification_report,
 )
 from transformers import AutoModelForQuestionAnswering, AutoTokenizer, pipeline
+from constants import CUAD_CLAUSE_TYPES, QUESTION_TO_CLAUSE_TYPE, BASELINE_CONF_THRESHOLD 
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
@@ -41,7 +43,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(
 # ---------------------------------------------------------------------------
 
 def normalize_answer(s: str) -> str:
-    import string
     s = s.lower().translate(str.maketrans("", "", string.punctuation))
     return " ".join(s.split())
 
@@ -55,37 +56,72 @@ def squad_em_f1(prediction: str, ground_truths: list[str]) -> tuple[float, float
         truth_norm = normalize_answer(truth)
         em = float(pred == truth_norm)
         best_em = max(best_em, em)
+
+        # Token F1 — Counter preserves duplicate tokens unlike set
         p_toks, t_toks = pred.split(), truth_norm.split()
-        common = set(p_toks) & set(t_toks)
-        if common:
-            prec = len(common) / len(p_toks)
-            rec = len(common) / len(t_toks)
-            f1 = 2 * prec * rec / (prec + rec)
-            best_f1 = max(best_f1, f1)
+        common = sum((Counter(p_toks) & Counter(t_toks)).values())
+        if common == 0:
+            continue
+        prec = common / len(p_toks)
+        rec = common / len(t_toks)
+        f1 = 2 * prec * rec / (prec + rec)
+        best_f1 = max(best_f1, f1)
     return best_em, best_f1
 
 
 def span_iou(pred_text: str, context: str, true_start: int, true_end: int) -> float:
     """
-    Span overlap IoU: intersection / union of character spans.
-    Requires locating predicted text in context.
+    Robust Span IoU:
+    - Handles multiple occurrences of predicted text
+    - Picks best overlap with ground truth span
+    - Avoids incorrect .find() behavior
     """
-    pred_start = context.find(pred_text)
-    if pred_start == -1 or not pred_text:
+
+    if not pred_text:
         return 0.0
-    pred_end = pred_start + len(pred_text)
 
-    intersection = max(0, min(pred_end, true_end) - max(pred_start, true_start))
-    union = max(pred_end, true_end) - min(pred_start, true_start)
-    return intersection / union if union > 0 else 0.0
+    # Find ALL occurrences of pred_text in context
+    starts = []
+    start = context.find(pred_text)
 
+    while start != -1:
+        starts.append(start)
+        start = context.find(pred_text, start + 1)
 
-def infer_clause_type(question: str, clause_types: list[str]) -> str:
-    for ct in clause_types:
-        if ct.lower() in question.lower():
+    if not starts:
+        return 0.0
+
+    best_iou = 0.0
+
+    for pred_start in starts:
+        pred_end = pred_start + len(pred_text)
+
+        intersection = max(0, min(pred_end, true_end) - max(pred_start, true_start))
+        union = max(pred_end, true_end) - min(pred_start, true_start)
+
+        if union > 0:
+            iou = intersection / union
+            best_iou = max(best_iou, iou)
+
+    return best_iou
+
+def _infer_clause_type_from_question(question: str) -> str:
+    """
+    Infer clause type from a CUAD question string.
+    Uses exact reverse lookup against known question templates first,
+    falls back to substring matching only if no exact match found.
+    """
+    # Exact match — robust against substring ambiguity
+    if question in QUESTION_TO_CLAUSE_TYPE:
+        return QUESTION_TO_CLAUSE_TYPE[question]
+
+    # Fallback — substring match for custom or slightly modified questions
+    question_lower = question.lower()
+    for ct in CUAD_CLAUSE_TYPES:
+        if ct.lower() in question_lower:
             return ct
-    return "Unknown"
 
+    return "Unknown"
 
 # ---------------------------------------------------------------------------
 # DeBERTa evaluation
@@ -95,6 +131,7 @@ def evaluate_deberta(
     model_path: str,
     test_examples: list[dict],
     clause_types: list[str],
+    confidence_threshold: float = 0.2,
 ) -> dict:
     """Run DeBERTa QA pipeline on test examples and compute metrics."""
     tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -117,23 +154,29 @@ def evaluate_deberta(
         true_answers = example.get("answers", {}).get("text", [])
         true_starts = example.get("answers", {}).get("answer_start", [])
 
-        # Dimension 1
+        # Dimension 1 — Extraction
         em, f1 = squad_em_f1(pred_text, true_answers)
         em_scores.append(em)
         f1_scores.append(f1)
 
         iou = 0.0
-        if true_starts:
+        if true_starts and true_answers:
             true_start = true_starts[0]
             true_end = true_start + len(true_answers[0]) if true_answers else true_start
             iou = span_iou(pred_text, example["context"], true_start, true_end)
         iou_scores.append(iou)
 
-        # Dimension 2
-        true_type = infer_clause_type(example["question"], clause_types)
-        pred_type = true_type if pred_text else "NO_CLAUSE"
+        # Dimension 2 — Classification
+        true_type = _infer_clause_type_from_question(example["question"])
+
+        true_has_clause = bool(true_answers and true_answers[0].strip())
+        pred_has_clause = bool(pred_text and result["score"] >= confidence_threshold)
+
+        true_type_label = true_type if true_has_clause else "NO_CLAUSE"
+        pred_type = true_type if pred_has_clause else "NO_CLAUSE"
+
+        true_types.append(true_type_label)
         pred_types.append(pred_type)
-        true_types.append(true_type)
 
         # Track per-type errors for error analysis
         if true_type in per_type_errors and f1 < 0.5:
@@ -162,8 +205,16 @@ def evaluate_baseline_model(
     clause_types: list[str],
     spacy_model: str = "en_core_web_sm",
 ) -> dict:
-    """Run rule-based baseline on test examples and compute same metrics."""
-    from src.stage1_extract_classify.baseline import RuleBasedExtractor, _squad_em_f1
+    """
+    Run rule-based baseline on test examples and compute same metrics.
+
+    True end-to-end evaluation:
+      - Baseline extracts freely (no peeking)
+      - Picks highest-confidence clause
+      - Applies threshold → can predict NO_CLAUSE
+      - Compared fairly against ground truth
+    """
+    from baseline import RuleBasedExtractor, _squad_em_f1
 
     extractor = RuleBasedExtractor(spacy_model=spacy_model)
 
@@ -172,30 +223,56 @@ def evaluate_baseline_model(
     per_type_errors: dict[str, list] = {ct: [] for ct in clause_types}
 
     logger.info(f"Evaluating baseline on {len(test_examples)} examples…")
+
     for example in test_examples:
         context = example["context"]
-        true_type = infer_clause_type(example["question"], clause_types)
+        true_type = _infer_clause_type_from_question(example["question"], clause_types)
         true_answers = example.get("answers", {}).get("text", [])
         true_starts = example.get("answers", {}).get("answer_start", [])
 
+        # Run baseline freely
         clauses = extractor.extract(context, doc_id=example.get("id", "eval"))
-        matching = [c for c in clauses if c.clause_type == true_type]
-        pred_text = matching[0].clause_text if matching else ""
-        pred_type = true_type if pred_text else "NO_CLAUSE"
 
+        # Take highest confidence clause
+        best_clause = max(clauses, key=lambda c: c.confidence) if clauses else None
+
+        # 🔧 Apply threshold → allow NO_CLAUSE
+        if best_clause and best_clause.confidence >= BASELINE_CONF_THRESHOLD:
+            pred_text = best_clause.clause_text
+            pred_type = best_clause.clause_type
+        else:
+            pred_text = ""
+            pred_type = "NO_CLAUSE"
+
+        # ---------------------------
+        # Extraction metrics
+        # ---------------------------
         em, f1 = _squad_em_f1(pred_text, true_answers)
         em_scores.append(em)
         f1_scores.append(f1)
 
         iou = 0.0
         if true_starts and true_answers:
-            iou = span_iou(pred_text, context, true_starts[0],
-                           true_starts[0] + len(true_answers[0]))
+            iou = span_iou(
+                pred_text,
+                context,
+                true_starts[0],
+                true_starts[0] + len(true_answers[0]),
+            )
         iou_scores.append(iou)
 
-        pred_types.append(pred_type)
-        true_types.append(true_type)
+        # ---------------------------
+        # Classification
+        # ---------------------------
+        true_has_clause = bool(true_answers and true_answers[0].strip())
+        true_type_label = true_type if true_has_clause else "NO_CLAUSE"
 
+        true_types.append(true_type_label)
+        pred_types.append(pred_type)
+
+        # ---------------------------
+        # Error tracking
+        # ---------------------------
         if true_type in per_type_errors and f1 < 0.5:
             per_type_errors[true_type].append({
                 "id": example.get("id", ""),
@@ -346,15 +423,13 @@ if __name__ == "__main__":
     parser.add_argument("--spacy_model", default="en_core_web_sm")
     args = parser.parse_args()
 
-    # Load CUAD test split
     logger.info("Loading CUAD test split…")
-    dataset = load_dataset("theatticusproject/cuad", trust_remote_code=True)
+    from pipeline import load_cuad_dataset
+    dataset = load_cuad_dataset()
     test_examples = list(dataset["test"])
     if args.n_examples:
         test_examples = test_examples[: args.n_examples]
         logger.info(f"Using {args.n_examples} examples for quick evaluation")
-
-    from src.stage1_extract_classify.pipeline import CUAD_CLAUSE_TYPES
 
     # DeBERTa evaluation
     deberta_results = evaluate_deberta(args.model_path, test_examples, CUAD_CLAUSE_TYPES)
@@ -363,7 +438,12 @@ if __name__ == "__main__":
     if not args.skip_baseline:
         baseline_results = evaluate_baseline_model(test_examples, CUAD_CLAUSE_TYPES, args.spacy_model)
     else:
-        baseline_results = {"model": "skipped", "extraction": {}, "classification": {}, "error_analysis": {}}
+        baseline_results = {
+            "model": "skipped",
+            "extraction": {"exact_match_pct": 0.0, "token_f1_pct": 0.0, "span_iou": 0.0},
+            "classification": {"accuracy": 0.0, "macro_f1": 0.0, "per_class_f1": {}},
+            "error_analysis": {"hardest_clause_types": [], "sample_errors_per_type": {}},
+        }
 
     # Combined report
     os.makedirs(args.output_dir, exist_ok=True)
