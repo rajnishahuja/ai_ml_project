@@ -170,7 +170,8 @@ def evaluate_deberta(
         true_type = _infer_clause_type_from_question(example["question"])
 
         true_has_clause = bool(true_answers and true_answers[0].strip())
-        pred_has_clause = bool(pred_text and result["score"] >= confidence_threshold)
+        pred_has_clause = bool(pred_text.strip() and result.get("score", 0.0) >= confidence_threshold
+)
 
         true_type_label = true_type if true_has_clause else "NO_CLAUSE"
         pred_type = true_type if pred_has_clause else "NO_CLAUSE"

@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Optional
 
 import torch
-from datasets import load_dataset, DatasetDict
+from datasets import load_dataset, DatasetDict, Dataset
 from transformers import (
     AutoModelForQuestionAnswering,
     AutoTokenizer,
@@ -72,30 +72,86 @@ class ExtractionResult:
 # Dataset utilities
 # ---------------------------------------------------------------------------
 
-from datasets import load_dataset, DatasetDict
-
 def load_cuad_dataset() -> DatasetDict:
     """
-    Load CUAD safely without triggering full PDF pipeline.
-    Creates train + validation splits manually.
+    Load CUAD from local CUAD_v1.json in SQuAD format.
+
+    JSON path is resolved in this order:
+      1. CUAD_JSON environment variable  (set this in Colab or local)
+      2. /content/CUAD_v1.json           (Colab default after upload)
+      3. ./CUAD_v1.json                  (same directory as script)
+
     """
-    logger.info("Loading CUAD dataset from HuggingFace…")
+    # Resolve path
+    candidates = [
+        os.environ.get("CUAD_JSON", ""),
+        "/content/CUAD_v1.json",
+        "./CUAD_v1.json",
+    ]
+    json_path = next((p for p in candidates if p and Path(p).exists()), None)
 
-    # Load subset for stability (increase later)
-    dataset = load_dataset(
-        "theatticusproject/cuad",
-        split="train"   # 🔥 IMPORTANT
-    )
+    if json_path is None:
+        raise FileNotFoundError(
+            "CUAD_v1.json not found. Options:\n"
+            "  Colab : upload CUAD_v1.json — it lands at /content/CUAD_v1.json\n"
+            "  Local : set env var CUAD_JSON=/path/to/CUAD_v1.json"
+        )
 
-    # Create train/validation split
-    dataset = dataset.train_test_split(test_size=0.1, seed=42)
+    logger.info(f"Loading CUAD dataset from local JSON: {json_path}")
+
+    with open(json_path, encoding="utf-8") as f:
+        raw = json.load(f)
+
+    # Flatten SQuAD structure → rows
+    rows = {"id": [], "question": [], "context": [], "answers": []}
+    skipped = 0
+
+    for doc in raw["data"]:
+        for para in doc["paragraphs"]:
+            context = para["context"]
+            if not context.strip():
+                skipped += 1
+                continue
+            for qa in para["qas"]:
+                if not qa["question"].strip():
+                    skipped += 1
+                    continue
+                rows["id"].append(qa["id"])
+                rows["question"].append(qa["question"].strip())
+                rows["context"].append(context)
+                if qa.get("is_impossible") or not qa["answers"]:
+                    rows["answers"].append({"text": [], "answer_start": []})
+                else:
+                    rows["answers"].append({
+                        "text":         [a["text"]         for a in qa["answers"]],
+                        "answer_start": [a["answer_start"] for a in qa["answers"]],
+                    })
+
+    flat = Dataset.from_dict(rows)
+    logger.info(f"Loaded {len(flat)} QA pairs")
+
+    # Step 1: carve off 10% for test
+    split = flat.train_test_split(test_size=0.10, seed=42)
+    train_val = split["train"]
+    test = split["test"]
+
+    # Step 2: carve off 10% of remaining for val → ~80/10/10
+    split = train_val.train_test_split(test_size=0.111, seed=42)
+    train = split["train"]
+    val = split["test"]
 
     dataset = DatasetDict({
-        "train": dataset["train"],
-        "validation": dataset["test"],
+        "train":      train,
+        "validation": val,
+        "test":       test,
     })
 
-    logger.info(f"CUAD loaded. Splits: {list(dataset.keys())}")
+    logger.info(
+        f"Split — train: {len(train)}  "
+        f"val: {len(val)}  "
+        f"test: {len(test)}"
+    )
+    # Expected: ~16,700 / ~2,100 / ~2,100
     return dataset
 
 
@@ -133,10 +189,17 @@ def preprocess_for_qa(examples, tokenizer, max_length=512, doc_stride=128):
 
         # Locate the sequence (context) tokens
         sequence_ids = tokenized.sequence_ids(i)
-        ctx_start = next(j for j, s in enumerate(sequence_ids) if s == 1)
-        ctx_end = len(sequence_ids) - 1 - next(
-            j for j, s in enumerate(reversed(sequence_ids)) if s == 1
-        )
+
+        try:
+            ctx_start = next(j for j, s in enumerate(sequence_ids) if s == 1)
+            ctx_end = len(sequence_ids) - 1 - next(
+                j for j, s in enumerate(reversed(sequence_ids)) if s == 1
+            )
+        except StopIteration:
+            # No context tokens found → treat as no-answer
+            start_positions.append(0)
+            end_positions.append(0)
+            continue
 
         # No answer → CLS token
         if not answer["answer_start"] or len(answer["answer_start"]) == 0:
@@ -161,7 +224,7 @@ def preprocess_for_qa(examples, tokenizer, max_length=512, doc_stride=128):
         token_end = ctx_end
         while token_end >= ctx_start and offsets[token_end][1] >= char_end:
             token_end -= 1
-        end_positions.append(min(ctx_end, token_end + 1)) 
+        end_positions.append(min(ctx_end, token_end + 1))
 
     tokenized["start_positions"] = start_positions
     tokenized["end_positions"] = end_positions
@@ -174,10 +237,10 @@ def preprocess_for_qa(examples, tokenizer, max_length=512, doc_stride=128):
 
 def fine_tune_deberta(
     model_name: str = "microsoft/deberta-base",
-    output_dir: str = "./models/stage1_2_deberta",
+    output_dir: str = "/content/drive/MyDrive/aiml_project/models/stage1_2_deberta",
     num_train_epochs: int = 3,
-    per_device_train_batch_size: int = 8,
-    per_device_eval_batch_size: int = 8,
+    per_device_train_batch_size: int = 4,
+    per_device_eval_batch_size: int = 4,
     learning_rate: float = 2e-5,
     max_length: int = 512,
     doc_stride: int = 128,
@@ -209,7 +272,7 @@ def fine_tune_deberta(
     )
     logger.info(f"Tokenized sizes — train: {len(tokenized['train'])}, "
             f"val: {len(tokenized['validation'])}, test: {len(tokenized['test'])}")
-    
+
     training_args = TrainingArguments(
         output_dir=output_dir,
         num_train_epochs=num_train_epochs,
@@ -224,8 +287,8 @@ def fine_tune_deberta(
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
         logging_steps=50,
-        report_to="none",  # swap to "wandb" if desired
-        dataloader_num_workers=4,
+        report_to="none",
+        dataloader_num_workers=2,
     )
 
     trainer = Trainer(
@@ -262,18 +325,13 @@ class ClauseExtractorClassifier:
     """
 
     def __init__(self, model_path: str, device: int = -1):
-        """
-        Args:
-            model_path: Path to fine-tuned model dir (or HuggingFace hub name).
-            device: -1 for CPU, 0+ for GPU index.
-        """
         logger.info(f"Loading Stage 1+2 model from: {model_path}")
         self.qa_pipeline = pipeline(
             "question-answering",
             model=model_path,
             tokenizer=model_path,
             device=device,
-            handle_impossible_answer=True,  # returns "" when clause absent
+            handle_impossible_answer=True,
         )
         self.clause_types = CUAD_CLAUSE_TYPES
         self.question_templates = CUAD_QUESTION_TEMPLATES
@@ -286,10 +344,6 @@ class ClauseExtractorClassifier:
     ) -> list[ClauseObject]:
         """
         Run all 41 clause-type queries against the contract.
-
-        Adds:
-        - Exact + overlap-based deduplication
-        - Keeps highest-confidence span when overlaps occur
         """
         clauses = []
         inputs = [
@@ -307,7 +361,6 @@ class ClauseExtractorClassifier:
             if not answer_text or score < confidence_threshold:
                 continue
 
-            # Use offsets
             start = result.get("start", -1)
             end = result.get("end", -1)
 
@@ -331,14 +384,10 @@ class ClauseExtractorClassifier:
                 document_id=doc_id,
             )
 
-            # ---------------------------
-            # 🔧 Deduplication logic
-            # ---------------------------
             keep = True
             to_remove = []
 
             for i, existing in enumerate(clauses):
-                # Exact duplicate span
                 if (
                     existing.start_pos == new_clause.start_pos
                     and existing.end_pos == new_clause.end_pos
@@ -349,11 +398,9 @@ class ClauseExtractorClassifier:
                         keep = False
                     continue
 
-                # Overlap check
                 overlap = min(existing.end_pos, new_clause.end_pos) - max(existing.start_pos, new_clause.start_pos)
 
                 if overlap > 0:
-                    # If significant overlap (>50%), treat as duplicate
                     smaller_len = min(
                         existing.end_pos - existing.start_pos,
                         new_clause.end_pos - new_clause.start_pos,
@@ -364,14 +411,12 @@ class ClauseExtractorClassifier:
                         else:
                             keep = False
 
-            # Remove weaker overlapping clauses
             for idx_to_remove in reversed(to_remove):
                 clauses.pop(idx_to_remove)
 
             if keep:
                 clauses.append(new_clause)
 
-        # Sort by position
         clauses.sort(key=lambda c: c.start_pos)
         logger.info(f"Extracted {len(clauses)} clauses from {doc_id}")
         return clauses
@@ -427,28 +472,17 @@ def preprocess_contract(file_path: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Evaluation (two-dimensional, as specified in plan)
+# Evaluation
 # ---------------------------------------------------------------------------
+
 def evaluate_stage1_2(
     model_path: str,
     test_data_path: Optional[str] = None,
-    output_path: str = "./results/stage1_2_eval.json",
+    output_path: str = "/content/drive/MyDrive/aiml_project/results/stage1_2_eval.json",
     confidence_threshold: float = 0.2,
 ):
-    """
-    Evaluate the pipeline on two dimensions from the same model output:
-
-    Dimension 1 — Extraction Quality:
-        Exact Match (EM) and Token-level F1 (HuggingFace SQuAD metric)
-
-    Dimension 2 — Classification Quality:
-        Accuracy, Macro F1, and per-category analysis
-
-    Uses HuggingFace evaluate library.
-    """
     squad_metric = evaluate.load("squad")
 
-    # Load CUAD test split if no custom test data
     if test_data_path is None:
         dataset = load_cuad_dataset()
         test_examples = dataset["test"]
@@ -469,7 +503,6 @@ def evaluate_stage1_2(
         pred_text = result.get("answer", "").strip()
         true_answers = example.get("answers", {}).get("text", [])
 
-        # Dimension 1: SQuAD EM / F1
         predictions.append({
             "id": example["id"],
             "prediction_text": pred_text,
@@ -480,22 +513,15 @@ def evaluate_stage1_2(
             "answers": example["answers"],
         })
 
-        # Dimension 2: classification — fixed to account for absent clauses
         true_type = _infer_clause_type_from_question(example["question"])
-
         true_has_clause = bool(true_answers and true_answers[0].strip())
         pred_has_clause = bool(pred_text and result["score"] >= confidence_threshold)
-
         true_type_label = true_type if true_has_clause else "NO_CLAUSE"
         pred_type = true_type if pred_has_clause else "NO_CLAUSE"
-
         true_types.append(true_type_label)
         pred_types.append(pred_type)
 
-    # --- Dimension 1 ---
     squad_results = squad_metric.compute(predictions=predictions, references=references)
-
-    # --- Dimension 2 ---
     class_accuracy = accuracy_score(true_types, pred_types)
     class_macro_f1 = f1_score(true_types, pred_types, average="macro", zero_division=0)
     class_report = classification_report(true_types, pred_types, zero_division=0)
@@ -522,23 +548,16 @@ def evaluate_stage1_2(
     logger.info(f"Results saved to {output_path}")
     return results
 
+
 def _infer_clause_type_from_question(question: str) -> str:
-    """
-    Infer clause type from a CUAD question string.
-    Uses exact reverse lookup against known question templates first,
-    falls back to substring matching only if no exact match found.
-    """
-    # Exact match — robust against substring ambiguity
     if question in QUESTION_TO_CLAUSE_TYPE:
         return QUESTION_TO_CLAUSE_TYPE[question]
-
-    # Fallback — substring match for custom or slightly modified questions
     question_lower = question.lower()
     for ct in CUAD_CLAUSE_TYPES:
         if ct.lower() in question_lower:
             return ct
-
     return "Unknown"
+
 
 # ---------------------------------------------------------------------------
 # Entry point
@@ -550,16 +569,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Stage 1+2: Clause Extraction & Classification")
     subparsers = parser.add_subparsers(dest="command")
 
-    # Train
     train_parser = subparsers.add_parser("train", help="Fine-tune DeBERTa on CUAD")
     train_parser.add_argument("--model", default="microsoft/deberta-base")
-    train_parser.add_argument("--output_dir", default="./models/stage1_2_deberta")
+    train_parser.add_argument("--output_dir", default="/content/drive/MyDrive/aiml_project/models/stage1_2_deberta")
     train_parser.add_argument("--epochs", type=int, default=3)
     train_parser.add_argument("--batch_size", type=int, default=8)
     train_parser.add_argument("--lr", type=float, default=2e-5)
     train_parser.add_argument("--no_fp16", action="store_true")
 
-    # Infer
     infer_parser = subparsers.add_parser("infer", help="Run inference on a contract file")
     infer_parser.add_argument("--model_path", required=True)
     infer_parser.add_argument("--contract_file", required=True)
@@ -567,10 +584,9 @@ if __name__ == "__main__":
     infer_parser.add_argument("--threshold", type=float, default=0.2)
     infer_parser.add_argument("--device", type=int, default=-1)
 
-    # Evaluate
     eval_parser = subparsers.add_parser("evaluate", help="Evaluate on CUAD test set")
     eval_parser.add_argument("--model_path", required=True)
-    eval_parser.add_argument("--output_path", default="./results/stage1_2_eval.json")
+    eval_parser.add_argument("--output_path", default="/content/drive/MyDrive/aiml_project/results/stage1_2_eval.json")
 
     args = parser.parse_args()
 
