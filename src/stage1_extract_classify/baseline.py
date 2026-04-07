@@ -6,8 +6,7 @@ Used as non-ML comparison point against DeBERTa pipeline.
 
 From the plan:
     "Rule-based baseline: spaCy NER + regex patterns for section headers
-     and numbering. Professors value seeing how much the ML approach
-     improves over simple heuristics."
+     and numbering."
 
 Install: pip install spacy && python -m spacy download en_core_web_sm
 """
@@ -302,46 +301,72 @@ class RuleBasedExtractor:
         entities = {ent.label_ for ent in doc.ents}
         text_lower = doc.text.lower()
 
-        # ORG boost — only if "parties" keyword already present
-        if "ORG" in entities and "Parties" not in type_scores:
-             if any(kw in text_lower for kw in ("between", "hereinafter", "party")):
-                old_conf, _, _ = type_scores.get("Parties", (0.0, "", None))
-                new_conf = min(old_conf + 0.1, 1.0)
-                type_scores["Parties"] = (new_conf, "spaCy:ORG+keyword", None)
+        # ---------------------------
+        # ORG → Parties
+        # ---------------------------
+        if "ORG" in entities and "Parties" in type_scores:
+            if any(kw in text_lower for kw in ("between", "hereinafter", "party")):
+                old_conf, pat, mat = type_scores["Parties"]
+                type_scores["Parties"] = (
+                    min(old_conf + 0.1, 1.0),
+                    f"{pat}+spaCy:ORG",
+                    mat,
+                )
 
-        # DATE boost — only boost the specific type whose keywords are present
+        # ---------------------------
+        # DATE → multiple clause types
+        # ---------------------------
         if "DATE" in entities:
-            if "Effective Date" not in type_scores:
+
+            if "Effective Date" in type_scores:
                 if any(kw in text_lower for kw in ("effective", "as of", "commencing")):
-                    old_conf, _, _ = type_scores.get("Effective Date", (0.0, "", None))
-                    new_conf = min(old_conf + 0.1, 1.0)
-                    type_scores["Effective Date"] = (new_conf, "spaCy:DATE+effective", None)
+                    old_conf, pat, mat = type_scores["Effective Date"]
+                    type_scores["Effective Date"] = (
+                        min(old_conf + 0.1, 1.0),
+                        f"{pat}+spaCy:DATE",
+                        mat,
+                    )
 
-            if "Expiration Date" not in type_scores:
+            if "Expiration Date" in type_scores:
                 if any(kw in text_lower for kw in ("expir", "terminat", "ends on", "term ends")):
-                    old_conf, _, _ = type_scores.get("Expiration Date", (0.0, "", None))
-                    new_conf = min(old_conf + 0.1, 1.0)
-                    type_scores["Expiration Date"] = (new_conf, "spaCy:DATE+expiry", None)
+                    old_conf, pat, mat = type_scores["Expiration Date"]
+                    type_scores["Expiration Date"] = (
+                        min(old_conf + 0.1, 1.0),
+                        f"{pat}+spaCy:DATE",
+                        mat,
+                    )
 
-            if "Warranty Duration" not in type_scores:
+            if "Warranty Duration" in type_scores:
                 if any(kw in text_lower for kw in ("warrant", "guarantee", "defect")):
-                    old_conf, _, _ = type_scores.get("Warranty Duration", (0.0, "", None))
-                    new_conf = min(old_conf + 0.1, 1.0)
-                    type_scores["Warranty Duration"] = (new_conf, "spaCy:DATE+warranty", None)
+                    old_conf, pat, mat = type_scores["Warranty Duration"]
+                    type_scores["Warranty Duration"] = (
+                        min(old_conf + 0.1, 1.0),
+                        f"{pat}+spaCy:DATE",
+                        mat,
+                    )
 
-        # MONEY boost — only boost the specific type whose keywords are present
+        # ---------------------------
+        # MONEY → financial clauses
+        # ---------------------------
         if "MONEY" in entities:
-            if "Cap On Liability" not in type_scores:
+
+            if "Cap On Liability" in type_scores:
                 if any(kw in text_lower for kw in ("limitation", "cap", "aggregate", "not exceed")):
-                    old_conf, _, _ = type_scores.get("Cap On Liability", (0.0, "", None))
-                    new_conf = min(old_conf + 0.1, 1.0)
-                    type_scores["Cap On Liability"] = (new_conf, "spaCy:MONEY+cap", None)
-                    
-            if "Liquidated Damages" not in type_scores:
+                    old_conf, pat, mat = type_scores["Cap On Liability"]
+                    type_scores["Cap On Liability"] = (
+                        min(old_conf + 0.1, 1.0),
+                        f"{pat}+spaCy:MONEY",
+                        mat,
+                    )
+
+            if "Liquidated Damages" in type_scores:
                 if any(kw in text_lower for kw in ("liquidated", "predetermined", "agreed damages")):
-                    old_conf, _, _ = type_scores.get("Liquidated Damages", (0.0, "", None))
-                    new_conf = min(old_conf + 0.1, 1.0)
-                    type_scores["Liquidated Damages"] = (new_conf, "spaCy:MONEY+liquidated", None)
+                    old_conf, pat, mat = type_scores["Liquidated Damages"]
+                    type_scores["Liquidated Damages"] = (
+                        min(old_conf + 0.1, 1.0),
+                        f"{pat}+spaCy:MONEY",
+                        mat,
+                    )
 
         return type_scores
 
@@ -499,7 +524,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     import sys; sys.path.insert(0, ".")
-    from pipeline import preprocess_contract
+    from .pipeline import preprocess_contract
 
     contract_text = preprocess_contract(args.contract_file)
     extractor = RuleBasedExtractor(spacy_model=args.spacy_model)

@@ -214,7 +214,7 @@ def evaluate_baseline_model(
       - Applies threshold → can predict NO_CLAUSE
       - Compared fairly against ground truth
     """
-    from baseline import RuleBasedExtractor, _squad_em_f1
+    from .baseline import RuleBasedExtractor, _squad_em_f1
 
     extractor = RuleBasedExtractor(spacy_model=spacy_model)
 
@@ -424,7 +424,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logger.info("Loading CUAD test split…")
-    from pipeline import load_cuad_dataset
+    from .pipeline import load_cuad_dataset
     dataset = load_cuad_dataset()
     test_examples = list(dataset["test"])
     if args.n_examples:
