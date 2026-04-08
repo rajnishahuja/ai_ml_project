@@ -1,0 +1,22 @@
+# Stage 3: Risk Detection Agent
+risk_classifier:
+  model_name: microsoft/deberta-base
+  output_dir: models/stage3_risk_deberta
+  learning_rate: 2.0e-5
+  epochs: 5
+  batch_size: 16
+
+embedding_model: sentence-transformers/all-MiniLM-L6-v2
+faiss_index_path: data/faiss_index/clauses.index
+
+explanation_model: mistralai/Mistral-7B-Instruct-v0.3
+quantization: 4bit
+
+agent_max_iterations: 3
+similarity_threshold: 0.75
+similarity_top_k: 5
+
+synthetic_labels:
+  model: Qwen/Qwen2.5-32B-Instruct
+  backup: gemini/openai
+  output_path: data/synthetic/risk_labels.json
