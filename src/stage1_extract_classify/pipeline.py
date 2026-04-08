@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Optional
 
 import torch
-from datasets import load_dataset, DatasetDict, Dataset
+
 from transformers import (
     AutoModelForQuestionAnswering,
     AutoTokenizer,
@@ -26,11 +26,13 @@ from transformers import (
     TrainingArguments,
     DefaultDataCollator,
     pipeline,
+    EarlyStoppingCallback,
 )
 
 from sklearn.metrics import accuracy_score, f1_score, classification_report
 
 import evaluate
+from datasets import load_from_disk
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -68,168 +70,6 @@ class ExtractionResult:
             "clauses": [c.to_dict() if isinstance(c, ClauseObject) else c for c in self.clauses],
         }
 
-# ---------------------------------------------------------------------------
-# Dataset utilities
-# ---------------------------------------------------------------------------
-
-def load_cuad_dataset() -> DatasetDict:
-    """
-    Load CUAD from local CUAD_v1.json in SQuAD format.
-
-    JSON path is resolved in this order:
-      1. CUAD_JSON environment variable  (set this in Colab or local)
-      2. /content/CUAD_v1.json           (Colab default after upload)
-      3. ./CUAD_v1.json                  (same directory as script)
-
-    """
-    # Resolve path
-    candidates = [
-        os.environ.get("CUAD_JSON", ""),
-        "/content/CUAD_v1.json",
-        "./CUAD_v1.json",
-    ]
-    json_path = next((p for p in candidates if p and Path(p).exists()), None)
-
-    if json_path is None:
-        raise FileNotFoundError(
-            "CUAD_v1.json not found. Options:\n"
-            "  Colab : upload CUAD_v1.json — it lands at /content/CUAD_v1.json\n"
-            "  Local : set env var CUAD_JSON=/path/to/CUAD_v1.json"
-        )
-
-    logger.info(f"Loading CUAD dataset from local JSON: {json_path}")
-
-    with open(json_path, encoding="utf-8") as f:
-        raw = json.load(f)
-
-    # Flatten SQuAD structure → rows
-    rows = {"id": [], "question": [], "context": [], "answers": []}
-    skipped = 0
-
-    for doc in raw["data"]:
-        for para in doc["paragraphs"]:
-            context = para["context"]
-            if not context.strip():
-                skipped += 1
-                continue
-            for qa in para["qas"]:
-                if not qa["question"].strip():
-                    skipped += 1
-                    continue
-                rows["id"].append(qa["id"])
-                rows["question"].append(qa["question"].strip())
-                rows["context"].append(context)
-                if qa.get("is_impossible") or not qa["answers"]:
-                    rows["answers"].append({"text": [], "answer_start": []})
-                else:
-                    rows["answers"].append({
-                        "text":         [a["text"]         for a in qa["answers"]],
-                        "answer_start": [a["answer_start"] for a in qa["answers"]],
-                    })
-
-    flat = Dataset.from_dict(rows)
-    logger.info(f"Loaded {len(flat)} QA pairs")
-
-    # Step 1: carve off 10% for test
-    split = flat.train_test_split(test_size=0.10, seed=42)
-    train_val = split["train"]
-    test = split["test"]
-
-    # Step 2: carve off 10% of remaining for val → ~80/10/10
-    split = train_val.train_test_split(test_size=0.111, seed=42)
-    train = split["train"]
-    val = split["test"]
-
-    dataset = DatasetDict({
-        "train":      train,
-        "validation": val,
-        "test":       test,
-    })
-
-    logger.info(
-        f"Split — train: {len(train)}  "
-        f"val: {len(val)}  "
-        f"test: {len(test)}"
-    )
-    # Expected: ~16,700 / ~2,100 / ~2,100
-    return dataset
-
-
-def preprocess_for_qa(examples, tokenizer, max_length=512, doc_stride=128):
-    """
-    Tokenize CUAD examples in SQuAD QA format.
-    Handles long contracts via sliding window (doc_stride).
-
-    Each example: { question, context, answers: {text, answer_start} }
-    Returns tokenized features with start/end position labels.
-    """
-    questions = [q.strip() for q in examples["question"]]
-    contexts = examples["context"]
-
-    tokenized = tokenizer(
-        questions,
-        contexts,
-        max_length=max_length,
-        truncation="only_second",
-        stride=doc_stride,
-        return_overflowing_tokens=True,
-        return_offsets_mapping=True,
-        padding="max_length",
-    )
-
-    sample_map = tokenized.pop("overflow_to_sample_mapping")
-    offset_mapping = tokenized.pop("offset_mapping")
-    answers = examples["answers"]
-
-    start_positions, end_positions = [], []
-
-    for i, offsets in enumerate(offset_mapping):
-        sample_idx = sample_map[i]
-        answer = answers[sample_idx]
-
-        # Locate the sequence (context) tokens
-        sequence_ids = tokenized.sequence_ids(i)
-
-        try:
-            ctx_start = next(j for j, s in enumerate(sequence_ids) if s == 1)
-            ctx_end = len(sequence_ids) - 1 - next(
-                j for j, s in enumerate(reversed(sequence_ids)) if s == 1
-            )
-        except StopIteration:
-            # No context tokens found → treat as no-answer
-            start_positions.append(0)
-            end_positions.append(0)
-            continue
-
-        # No answer → CLS token
-        if not answer["answer_start"] or len(answer["answer_start"]) == 0:
-            start_positions.append(0)
-            end_positions.append(0)
-            continue
-
-        char_start = answer["answer_start"][0]
-        char_end = char_start + len(answer["text"][0])
-
-        # Check if answer is within this window
-        if offsets[ctx_start][0] > char_end or offsets[ctx_end][1] < char_start:
-            start_positions.append(0)
-            end_positions.append(0)
-            continue
-
-        token_start = ctx_start
-        while token_start <= ctx_end and offsets[token_start][0] <= char_start:
-            token_start += 1
-        start_positions.append(max(ctx_start, token_start - 1))
-
-        token_end = ctx_end
-        while token_end >= ctx_start and offsets[token_end][1] >= char_end:
-            token_end -= 1
-        end_positions.append(min(ctx_end, token_end + 1))
-
-    tokenized["start_positions"] = start_positions
-    tokenized["end_positions"] = end_positions
-    return tokenized
-
 
 # ---------------------------------------------------------------------------
 # Training
@@ -237,14 +77,13 @@ def preprocess_for_qa(examples, tokenizer, max_length=512, doc_stride=128):
 
 def fine_tune_deberta(
     model_name: str = "microsoft/deberta-base",
-    output_dir: str = "/content/drive/MyDrive/aiml_project/models/stage1_2_deberta",
+    output_dir: str = "./models/stage1_2_deberta",
     num_train_epochs: int = 3,
-    per_device_train_batch_size: int = 4,
-    per_device_eval_batch_size: int = 4,
+    per_device_train_batch_size: int = 8,
+    per_device_eval_batch_size: int = 8,
     learning_rate: float = 2e-5,
-    max_length: int = 512,
-    doc_stride: int = 128,
     fp16: bool = True,
+    data_path = None,
 ):
     """
     Fine-tune DeBERTa-base on CUAD QA task.
@@ -256,40 +95,42 @@ def fine_tune_deberta(
 
     Training config targets Azure ML compute or A100 backup.
     """
+    if data_path is None:
+        data_path = "/content/drive/MyDrive/aiml_project/tokenized_cuad"
+
+    logger.info(f"Loading preprocessed dataset from: {data_path}")
+    tokenized = load_from_disk(data_path)
+
     logger.info(f"Loading tokenizer and model: {model_name}")
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(data_path + "/tokenizer")
     model = AutoModelForQuestionAnswering.from_pretrained(model_name)
 
-    dataset = load_cuad_dataset()
-
-    logger.info("Preprocessing dataset…")
-    fn_kwargs = {"tokenizer": tokenizer, "max_length": max_length, "doc_stride": doc_stride}
-    tokenized = dataset.map(
-        preprocess_for_qa,
-        fn_kwargs=fn_kwargs,
-        batched=True,
-        remove_columns=dataset["train"].column_names,
-    )
+    
     logger.info(f"Tokenized sizes — train: {len(tokenized['train'])}, "
             f"val: {len(tokenized['validation'])}, test: {len(tokenized['test'])}")
 
     training_args = TrainingArguments(
-        output_dir=output_dir,
-        num_train_epochs=num_train_epochs,
-        per_device_train_batch_size=per_device_train_batch_size,
-        per_device_eval_batch_size=per_device_eval_batch_size,
-        learning_rate=learning_rate,
-        weight_decay=0.01,
-        warmup_ratio=0.1,
-        fp16=fp16 and torch.cuda.is_available(),
-        evaluation_strategy="epoch",
-        save_strategy="epoch",
-        load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
-        logging_steps=50,
-        report_to="none",
-        dataloader_num_workers=2,
-    )
+    output_dir=output_dir,
+    num_train_epochs= num_train_epochs,
+    per_device_train_batch_size=per_device_train_batch_size,   
+    per_device_eval_batch_size=per_device_eval_batch_size,
+    evaluation_strategy="steps",
+    eval_steps=1000,
+    save_strategy="steps",
+    save_steps=1000,
+    save_total_limit=2,
+    logging_steps=100,
+    learning_rate=learning_rate,
+    weight_decay=0.01,
+    warmup_ratio=0.1,
+    fp16=fp16 and torch.cuda.is_available(),
+    load_best_model_at_end=True,
+    metric_for_best_model="eval_loss",
+    greater_is_better=False,
+    report_to="none",
+    dataloader_num_workers=2,
+    gradient_accumulation_steps = 2,
+)
 
     trainer = Trainer(
         model=model,
@@ -298,6 +139,7 @@ def fine_tune_deberta(
         eval_dataset=tokenized["validation"],
         tokenizer=tokenizer,
         data_collator=DefaultDataCollator(),
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
     )
 
     logger.info("Starting fine-tuning…")
@@ -478,13 +320,14 @@ def preprocess_contract(file_path: str) -> str:
 def evaluate_stage1_2(
     model_path: str,
     test_data_path: Optional[str] = None,
-    output_path: str = "/content/drive/MyDrive/aiml_project/results/stage1_2_eval.json",
+    output_path: str = "./results/stage1_2_eval.json",
     confidence_threshold: float = 0.2,
 ):
     squad_metric = evaluate.load("squad")
 
     if test_data_path is None:
-        dataset = load_cuad_dataset()
+        DATA_PATH = "/content/drive/MyDrive/aiml_project/tokenized_cuad"
+        dataset = load_from_disk(DATA_PATH)
         test_examples = dataset["test"]
     else:
         with open(test_data_path) as f:
@@ -571,9 +414,9 @@ if __name__ == "__main__":
 
     train_parser = subparsers.add_parser("train", help="Fine-tune DeBERTa on CUAD")
     train_parser.add_argument("--model", default="microsoft/deberta-base")
-    train_parser.add_argument("--output_dir", default="/content/drive/MyDrive/aiml_project/models/stage1_2_deberta")
+    train_parser.add_argument("--output_dir", default="./models/stage1_2_deberta")
     train_parser.add_argument("--epochs", type=int, default=3)
-    train_parser.add_argument("--batch_size", type=int, default=8)
+    train_parser.add_argument("--batch_size", type=int, default=4)
     train_parser.add_argument("--lr", type=float, default=2e-5)
     train_parser.add_argument("--no_fp16", action="store_true")
 
@@ -586,7 +429,7 @@ if __name__ == "__main__":
 
     eval_parser = subparsers.add_parser("evaluate", help="Evaluate on CUAD test set")
     eval_parser.add_argument("--model_path", required=True)
-    eval_parser.add_argument("--output_path", default="/content/drive/MyDrive/aiml_project/results/stage1_2_eval.json")
+    eval_parser.add_argument("--output_path", default="./results/stage1_2_eval.json")
 
     args = parser.parse_args()
 
