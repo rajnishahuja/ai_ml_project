@@ -6,8 +6,7 @@ Used as non-ML comparison point against DeBERTa pipeline.
 
 From the plan:
     "Rule-based baseline: spaCy NER + regex patterns for section headers
-     and numbering. Professors value seeing how much the ML approach
-     improves over simple heuristics."
+     and numbering."
 
 Install: pip install spacy && python -m spacy download en_core_web_sm
 """
@@ -15,9 +14,15 @@ Install: pip install spacy && python -m spacy download en_core_web_sm
 import re
 import json
 import logging
+import os
+import string
+from collections import Counter
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Optional
+
+from sklearn.metrics import accuracy_score, f1_score
+from constants import CUAD_CLAUSE_TYPES, QUESTION_TO_CLAUSE_TYPE, BASELINE_CONF_THRESHOLD 
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +185,7 @@ class BaselineClause:
     clause_type: str
     start_pos: int
     end_pos: int
-    confidence: float  # fixed heuristic score (1.0 for header match, 0.7 for keyword)
+    confidence: float  # fixed heuristic score (0.90 for header match, 0.70 for keyword)
     matched_pattern: str
     document_id: Optional[str] = None
 
@@ -211,6 +216,7 @@ class RuleBasedExtractor:
                            "Install: pip install spacy && python -m spacy download en_core_web_sm")
             self.nlp = None
 
+        self.spacy_available = self.nlp is not None
         self.patterns = CLAUSE_PATTERNS
 
     def extract(self, contract_text: str, doc_id: str = "baseline_doc") -> list[BaselineClause]:
@@ -220,72 +226,147 @@ class RuleBasedExtractor:
         """
         sections = split_into_sections(contract_text)
         clauses = []
-        seen_types: set[str] = set()
 
         for section in sections:
             section_text = section["text"]
             section_start = section["start"]
 
-            # Score each clause type against this section
-            type_scores: dict[str, tuple[float, str]] = {}
+            # Store: clause_type -> (confidence, pattern, match)
+            type_scores: dict[str, tuple[float, str, object]] = {}
 
             for clause_type, pattern_list in self.patterns.items():
                 for pattern in pattern_list:
                     match = re.search(pattern, section_text)
                     if match:
-                        # Header-level match gets higher confidence
-                        confidence = 0.90 if re.search(pattern, section["header"]) else 0.70
-                        if clause_type not in type_scores or type_scores[clause_type][0] < confidence:
-                            type_scores[clause_type] = (confidence, pattern)
+                        confidence = 0.85 if re.search(pattern, section["header"]) else 0.60
 
-            # Optionally boost with spaCy NER
-            if self.nlp and section_text:
-                doc = self.nlp(section_text[:5000])  # limit for performance
+                        if (
+                            clause_type not in type_scores
+                            or type_scores[clause_type][0] < confidence
+                        ):
+                            # ✅ store match object directly
+                            type_scores[clause_type] = (confidence, pattern, match)
+
+            # spaCy boost
+            if self.spacy_available and section_text:
+                doc = self.nlp(section_text[:5000])
                 type_scores = self._apply_ner_boost(doc, type_scores)
 
-            # Emit one clause per detected type per section
-            for clause_type, (confidence, matched_pattern) in type_scores.items():
-                clause_id = f"{doc_id}_{clause_type.replace(' ', '_')}_{len(clauses):04d}"
-                clauses.append(BaselineClause(
-                    clause_id=clause_id,
-                    clause_text=section_text[:2000],  # truncate for output size
-                    clause_type=clause_type,
-                    start_pos=section_start,
-                    end_pos=section["end"],
-                    confidence=confidence,
-                    matched_pattern=matched_pattern,
-                    document_id=doc_id,
-                ))
-                seen_types.add(clause_type)
+            if not type_scores:
+                continue
+
+            # Pick best type
+            best_type = max(type_scores, key=lambda ct: type_scores[ct][0])
+            best_confidence, best_pattern, best_match = type_scores[best_type]
+
+            # ✅ Use stored match instead of re-searching
+            if best_match:
+                span_start = section_text.rfind("\n", 0, best_match.start())
+                span_start = 0 if span_start == -1 else span_start + 1
+
+                span_end = section_text.find("\n", best_match.end())
+                span_end = len(section_text) if span_end == -1 else span_end
+
+                clause_text = section_text[span_start:span_end].strip()
+                abs_start = section_start + span_start
+                abs_end = section_start + span_end
+            else:
+                # spaCy-only case (no regex match)
+                clause_text = section_text[:500]
+                abs_start = section_start
+                abs_end = section_start + min(500, len(section_text))
+
+            clause_id = f"{doc_id}_{best_type.replace(' ', '_')}_{len(clauses):04d}"
+
+            clauses.append(BaselineClause(
+                clause_id=clause_id,
+                clause_text=clause_text,
+                clause_type=best_type,
+                start_pos=abs_start,
+                end_pos=abs_end,
+                confidence=best_confidence,
+                matched_pattern=best_pattern,
+                document_id=doc_id,
+            ))
 
         clauses.sort(key=lambda c: c.start_pos)
         logger.info(f"[Baseline] Extracted {len(clauses)} clauses from {doc_id}")
         return clauses
 
-    def _apply_ner_boost(
-        self, doc, type_scores: dict
-    ) -> dict:
+    def _apply_ner_boost(self, doc, type_scores: dict) -> dict:
         """
-        Use spaCy NER results to boost confidence for certain clause types.
-        E.g., presence of ORG + DATE entities near 'effective' suggests Effective Date clause.
+        Use spaCy NER to boost confidence only when corroborating
+        keyword evidence already exists. NER confirms, not initiates.
         """
         entities = {ent.label_ for ent in doc.ents}
+        text_lower = doc.text.lower()
 
-        # Party detection: ORG entities suggest Parties clause
-        if "ORG" in entities and "Parties" not in type_scores:
-            type_scores["Parties"] = (0.55, "spaCy:ORG")
+        # ---------------------------
+        # ORG → Parties
+        # ---------------------------
+        if "ORG" in entities and "Parties" in type_scores:
+            if any(kw in text_lower for kw in ("between", "hereinafter", "party")):
+                old_conf, pat, mat = type_scores["Parties"]
+                type_scores["Parties"] = (
+                    min(old_conf + 0.1, 1.0),
+                    f"{pat}+spaCy:ORG",
+                    mat,
+                )
 
-        # Date detection: DATE entities suggest date-related clauses
+        # ---------------------------
+        # DATE → multiple clause types
+        # ---------------------------
         if "DATE" in entities:
-            for clause_type in ("Effective Date", "Expiration Date", "Warranty Duration"):
-                if clause_type not in type_scores:
-                    type_scores[clause_type] = (0.50, "spaCy:DATE")
 
-        # Money entities suggest liability cap or liquidated damages
+            if "Effective Date" in type_scores:
+                if any(kw in text_lower for kw in ("effective", "as of", "commencing")):
+                    old_conf, pat, mat = type_scores["Effective Date"]
+                    type_scores["Effective Date"] = (
+                        min(old_conf + 0.1, 1.0),
+                        f"{pat}+spaCy:DATE",
+                        mat,
+                    )
+
+            if "Expiration Date" in type_scores:
+                if any(kw in text_lower for kw in ("expir", "terminat", "ends on", "term ends")):
+                    old_conf, pat, mat = type_scores["Expiration Date"]
+                    type_scores["Expiration Date"] = (
+                        min(old_conf + 0.1, 1.0),
+                        f"{pat}+spaCy:DATE",
+                        mat,
+                    )
+
+            if "Warranty Duration" in type_scores:
+                if any(kw in text_lower for kw in ("warrant", "guarantee", "defect")):
+                    old_conf, pat, mat = type_scores["Warranty Duration"]
+                    type_scores["Warranty Duration"] = (
+                        min(old_conf + 0.1, 1.0),
+                        f"{pat}+spaCy:DATE",
+                        mat,
+                    )
+
+        # ---------------------------
+        # MONEY → financial clauses
+        # ---------------------------
         if "MONEY" in entities:
-            for clause_type in ("Cap On Liability", "Liquidated Damages"):
-                if clause_type not in type_scores:
-                    type_scores[clause_type] = (0.50, "spaCy:MONEY")
+
+            if "Cap On Liability" in type_scores:
+                if any(kw in text_lower for kw in ("limitation", "cap", "aggregate", "not exceed")):
+                    old_conf, pat, mat = type_scores["Cap On Liability"]
+                    type_scores["Cap On Liability"] = (
+                        min(old_conf + 0.1, 1.0),
+                        f"{pat}+spaCy:MONEY",
+                        mat,
+                    )
+
+            if "Liquidated Damages" in type_scores:
+                if any(kw in text_lower for kw in ("liquidated", "predetermined", "agreed damages")):
+                    old_conf, pat, mat = type_scores["Liquidated Damages"]
+                    type_scores["Liquidated Damages"] = (
+                        min(old_conf + 0.1, 1.0),
+                        f"{pat}+spaCy:MONEY",
+                        mat,
+                    )
 
         return type_scores
 
@@ -301,13 +382,13 @@ def evaluate_baseline(
 ) -> dict:
     """
     Evaluate rule-based baseline on CUAD test examples.
-    Computes same two-dimensional metrics as DeBERTa pipeline for direct comparison.
 
-    test_examples: list of { id, question, context, answers: {text, answer_start} }
+    True end-to-end evaluation:
+      - Baseline extracts freely (no peeking at true_type)
+      - Picks highest-confidence clause
+      - Applies threshold → can predict NO_CLAUSE
+      - Compared fairly against ground truth
     """
-    from sklearn.metrics import accuracy_score, f1_score, classification_report
-    import os
-
     exact_matches, f1_scores = [], []
     pred_types, true_types = [], []
 
@@ -316,26 +397,39 @@ def evaluate_baseline(
         true_type = _infer_clause_type_from_question(example["question"])
         true_answers = example.get("answers", {}).get("text", [])
 
-        # Run baseline on this context
+        # Run baseline freely
         clauses = extractor.extract(context, doc_id=example["id"])
-        matching = [c for c in clauses if c.clause_type == true_type]
 
-        if matching:
-            pred_text = matching[0].clause_text
-            pred_type = true_type
+        # Take highest confidence clause
+        best_clause = max(clauses, key=lambda c: c.confidence) if clauses else None
+
+        # 🔧 Apply threshold → allow NO_CLAUSE prediction
+        if best_clause and best_clause.confidence >= BASELINE_CONF_THRESHOLD:
+            pred_text = best_clause.clause_text
+            pred_type = best_clause.clause_type
         else:
             pred_text = ""
             pred_type = "NO_CLAUSE"
 
-        # Dimension 1: token-level F1 and exact match
+        # ---------------------------
+        # Dimension 1: Extraction
+        # ---------------------------
         em, f1 = _squad_em_f1(pred_text, true_answers)
         exact_matches.append(em)
         f1_scores.append(f1)
 
-        # Dimension 2: classification
-        pred_types.append(pred_type)
-        true_types.append(true_type)
+        # ---------------------------
+        # Dimension 2: Classification
+        # ---------------------------
+        true_has_clause = bool(true_answers and true_answers[0].strip())
+        true_type_label = true_type if true_has_clause else "NO_CLAUSE"
 
+        true_types.append(true_type_label)
+        pred_types.append(pred_type)
+
+    # ---------------------------
+    # Final metrics
+    # ---------------------------
     results = {
         "model": "rule_based_baseline",
         "extraction": {
@@ -344,30 +438,44 @@ def evaluate_baseline(
         },
         "classification": {
             "accuracy": round(accuracy_score(true_types, pred_types), 4),
-            "macro_f1": round(f1_score(true_types, pred_types, average="macro", zero_division=0), 4),
+            "macro_f1": round(
+                f1_score(true_types, pred_types, average="macro", zero_division=0), 4
+            ),
         },
     }
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    # Save results
+    parent = os.path.dirname(output_path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2)
 
     logger.info(f"Baseline evaluation results:\n{json.dumps(results, indent=2)}")
     return results
 
-
 def _infer_clause_type_from_question(question: str) -> str:
-    """Infer clause type from a CUAD-style question string."""
-    from src.stage1_extract_classify.pipeline import CUAD_CLAUSE_TYPES
-    for clause_type in CUAD_CLAUSE_TYPES:
-        if clause_type.lower() in question.lower():
-            return clause_type
+    """
+    Infer clause type from a CUAD question string.
+    Uses exact reverse lookup against known question templates first,
+    falls back to substring matching only if no exact match found.
+    """
+    # Exact match — robust against substring ambiguity
+    if question in QUESTION_TO_CLAUSE_TYPE:
+        return QUESTION_TO_CLAUSE_TYPE[question]
+
+    # Fallback — substring match for custom or slightly modified questions
+    question_lower = question.lower()
+    for ct in CUAD_CLAUSE_TYPES:
+        if ct.lower() in question_lower:
+            return ct
+
     return "Unknown"
 
 
 def _normalize_answer(s: str) -> str:
     """Lowercase, remove punctuation and extra whitespace."""
-    import string
     s = s.lower()
     s = s.translate(str.maketrans("", "", string.punctuation))
     return " ".join(s.split())
@@ -388,14 +496,14 @@ def _squad_em_f1(prediction: str, ground_truths: list[str]) -> tuple[float, floa
         em = float(pred_norm == truth_norm)
         best_em = max(best_em, em)
 
-        # Token F1
+        # Token F1 — Counter preserves duplicate tokens unlike set
         pred_tokens = pred_norm.split()
         truth_tokens = truth_norm.split()
-        common = set(pred_tokens) & set(truth_tokens)
-        if not common:
+        common = sum((Counter(pred_tokens) & Counter(truth_tokens)).values())
+        if common == 0:
             continue
-        precision = len(common) / len(pred_tokens)
-        recall = len(common) / len(truth_tokens)
+        precision = common / len(pred_tokens)
+        recall = common / len(truth_tokens)
         f1 = 2 * precision * recall / (precision + recall)
         best_f1 = max(best_f1, f1)
 
@@ -415,7 +523,8 @@ if __name__ == "__main__":
     parser.add_argument("--spacy_model", default="en_core_web_sm")
     args = parser.parse_args()
 
-    from src.stage1_extract_classify.pipeline import preprocess_contract
+    import sys; sys.path.insert(0, ".")
+    from .pipeline import preprocess_contract
 
     contract_text = preprocess_contract(args.contract_file)
     extractor = RuleBasedExtractor(spacy_model=args.spacy_model)
