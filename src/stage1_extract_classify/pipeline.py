@@ -32,12 +32,11 @@ from transformers import (
 from sklearn.metrics import accuracy_score, f1_score, classification_report
 
 import evaluate
-from datasets import load_from_disk
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
 
-from constants import CUAD_CLAUSE_TYPES, CUAD_QUESTION_TEMPLATES, QUESTION_TO_CLAUSE_TYPE
+from constants import CUAD_CLAUSE_TYPES, CUAD_QUESTION_TEMPLATES, QUESTION_TO_CLAUSE_TYPE, load_cuad_dataset
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -79,8 +78,8 @@ def fine_tune_deberta(
     model_name: str = "microsoft/deberta-base",
     output_dir: str = "./models/stage1_2_deberta",
     num_train_epochs: int = 3,
-    per_device_train_batch_size: int = 8,
-    per_device_eval_batch_size: int = 8,
+    per_device_train_batch_size: int = 16,
+    per_device_eval_batch_size: int = 32,
     learning_rate: float = 2e-5,
     fp16: bool = False,
     data_path = None,
@@ -99,7 +98,7 @@ def fine_tune_deberta(
         data_path = "/content/drive/MyDrive/aiml_project/tokenized_cuad"
 
     logger.info(f"Loading preprocessed dataset from: {data_path}")
-    tokenized = load_from_disk(data_path)
+    tokenized = load_cuad_dataset(data_path)
 
     logger.info(f"Loading tokenizer and model: {model_name}")
     tokenizer = AutoTokenizer.from_pretrained(data_path + "/tokenizer")
@@ -115,20 +114,20 @@ def fine_tune_deberta(
     per_device_train_batch_size=per_device_train_batch_size,   
     per_device_eval_batch_size=per_device_eval_batch_size,
     eval_strategy="steps",
-    eval_steps=1000,
+    eval_steps=200,
     save_strategy="steps",
-    save_steps=1000,
+    save_steps=200,
     save_total_limit=2,
     logging_steps=100,
     learning_rate=learning_rate,
     weight_decay=0.01,
     warmup_ratio=0.1,
-    fp16=fp16 and torch.cuda.is_available(),
+    fp16=None,
     load_best_model_at_end=True,
     metric_for_best_model="eval_loss",
     greater_is_better=False,
     report_to="none",
-    dataloader_num_workers=2,
+    dataloader_num_workers=0,
     gradient_accumulation_steps = 2,
 )
 

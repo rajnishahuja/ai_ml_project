@@ -25,14 +25,13 @@ from pathlib import Path
 from collections import Counter
 
 import numpy as np
-from datasets import load_dataset
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
     classification_report,
 )
 from transformers import AutoModelForQuestionAnswering, AutoTokenizer, pipeline
-from constants import CUAD_CLAUSE_TYPES, QUESTION_TO_CLAUSE_TYPE, BASELINE_CONF_THRESHOLD 
+from constants import CUAD_CLAUSE_TYPES, QUESTION_TO_CLAUSE_TYPE, BASELINE_CONF_THRESHOLD, load_cuad_dataset
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
@@ -132,6 +131,7 @@ def evaluate_deberta(
     test_examples: list[dict],
     clause_types: list[str],
     confidence_threshold: float = 0.2,
+    output_path: str = "./results/deberta_eval.json",
 ) -> dict:
     """Run DeBERTa QA pipeline on test examples and compute metrics."""
     tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -148,8 +148,17 @@ def evaluate_deberta(
     per_type_errors: dict[str, list] = {ct: [] for ct in clause_types}
 
     logger.info(f"Evaluating DeBERTa on {len(test_examples)} examples…")
-    for example in test_examples:
-        result = qa({"question": example["question"], "context": example["context"]})
+
+    # Build all inputs upfront
+    inputs = [
+        {"question": ex["question"], "context": ex["context"]}
+        for ex in test_examples
+    ]
+
+    # Run in one batched call
+    results = qa(inputs, batch_size=32)
+
+    for example, result in zip(test_examples, results):
         pred_text = result.get("answer", "").strip()
         true_answers = example.get("answers", {}).get("text", [])
         true_starts = example.get("answers", {}).get("answer_start", [])
@@ -162,7 +171,7 @@ def evaluate_deberta(
         iou = 0.0
         if true_starts and true_answers:
             true_start = true_starts[0]
-            true_end = true_start + len(true_answers[0]) if true_answers else true_start
+            true_end = true_start + len(true_answers[0])
             iou = span_iou(pred_text, example["context"], true_start, true_end)
         iou_scores.append(iou)
 
@@ -170,8 +179,7 @@ def evaluate_deberta(
         true_type = _infer_clause_type_from_question(example["question"])
 
         true_has_clause = bool(true_answers and true_answers[0].strip())
-        pred_has_clause = bool(pred_text.strip() and result.get("score", 0.0) >= confidence_threshold
-)
+        pred_has_clause = bool(pred_text.strip() and result.get("score", 0.0) >= confidence_threshold)
 
         true_type_label = true_type if true_has_clause else "NO_CLAUSE"
         pred_type = true_type if pred_has_clause else "NO_CLAUSE"
@@ -187,8 +195,8 @@ def evaluate_deberta(
                 "pred": pred_text,
                 "f1": round(f1, 3),
             })
-
-    return _compile_results(
+        
+    result = _compile_results(
         "deberta_base",
         em_scores, f1_scores, iou_scores,
         true_types, pred_types,
@@ -196,6 +204,13 @@ def evaluate_deberta(
         clause_types,
     )
 
+    # Save individual results
+    os.makedirs(os.path.dirname(output_path), exist_ok=True) if os.path.dirname(output_path) else None
+    with open(output_path, "w") as f:
+        json.dump(result, f, indent=2)
+    logger.info(f"DeBERTa results:\n{json.dumps(result['extraction'], indent=2)}")
+    logger.info(f"Saved to {output_path}")
+    return result
 
 # ---------------------------------------------------------------------------
 # Baseline evaluation
@@ -205,6 +220,7 @@ def evaluate_baseline_model(
     test_examples: list[dict],
     clause_types: list[str],
     spacy_model: str = "en_core_web_sm",
+    output_path: str = "./results/baseline_eval.json",
 ) -> dict:
     """
     Run rule-based baseline on test examples and compute same metrics.
@@ -215,7 +231,7 @@ def evaluate_baseline_model(
       - Applies threshold → can predict NO_CLAUSE
       - Compared fairly against ground truth
     """
-    from .baseline import RuleBasedExtractor, _squad_em_f1
+    from baseline import RuleBasedExtractor
 
     extractor = RuleBasedExtractor(spacy_model=spacy_model)
 
@@ -235,7 +251,8 @@ def evaluate_baseline_model(
         clauses = extractor.extract(context, doc_id=example.get("id", "eval"))
 
         # Take highest confidence clause
-        best_clause = max(clauses, key=lambda c: c.confidence) if clauses else None
+        type_clauses = [c for c in clauses if c.clause_type == true_type]
+        best_clause = max(type_clauses, key=lambda c: c.confidence) if type_clauses else None
 
         # 🔧 Apply threshold → allow NO_CLAUSE
         if best_clause and best_clause.confidence >= BASELINE_CONF_THRESHOLD:
@@ -248,7 +265,7 @@ def evaluate_baseline_model(
         # ---------------------------
         # Extraction metrics
         # ---------------------------
-        em, f1 = _squad_em_f1(pred_text, true_answers)
+        em, f1 = squad_em_f1(pred_text, true_answers)
         em_scores.append(em)
         f1_scores.append(f1)
 
@@ -282,13 +299,20 @@ def evaluate_baseline_model(
                 "f1": round(f1, 3),
             })
 
-    return _compile_results(
+    result = _compile_results(
         "rule_based_baseline",
         em_scores, f1_scores, iou_scores,
         true_types, pred_types,
         per_type_errors,
         clause_types,
     )
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True) if os.path.dirname(output_path) else None
+    with open(output_path, "w") as f:
+        json.dump(result, f, indent=2)
+    logger.info(f"Baseline results:\n{json.dumps(result['extraction'], indent=2)}")
+    logger.info(f"Saved to {output_path}")
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -394,7 +418,9 @@ def generate_comparison_report(
     report_text = "\n".join(report_lines)
     print(report_text)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    parent = os.path.dirname(output_path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
     report_file = output_path.replace(".json", "_summary.txt")
     with open(report_file, "w") as f:
         f.write(report_text)
@@ -425,7 +451,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logger.info("Loading CUAD test split…")
-    from .pipeline import load_cuad_dataset
+    
     dataset = load_cuad_dataset()
     test_examples = list(dataset["test"])
     if args.n_examples:
@@ -433,11 +459,13 @@ if __name__ == "__main__":
         logger.info(f"Using {args.n_examples} examples for quick evaluation")
 
     # DeBERTa evaluation
-    deberta_results = evaluate_deberta(args.model_path, test_examples, CUAD_CLAUSE_TYPES)
+    deberta_results = evaluate_deberta(args.model_path, test_examples, CUAD_CLAUSE_TYPES,
+                                       output_path=os.path.join(args.output_dir, "deberta_eval.json"),)
 
     # Baseline evaluation
     if not args.skip_baseline:
-        baseline_results = evaluate_baseline_model(test_examples, CUAD_CLAUSE_TYPES, args.spacy_model)
+        baseline_results = evaluate_baseline_model(test_examples, CUAD_CLAUSE_TYPES, args.spacy_model,
+                                                   output_path=os.path.join(args.output_dir, "baseline_eval.json"))
     else:
         baseline_results = {
             "model": "skipped",

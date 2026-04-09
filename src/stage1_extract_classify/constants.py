@@ -57,3 +57,43 @@ QUESTION_TO_CLAUSE_TYPE = {
 }
 
 BASELINE_CONF_THRESHOLD = 0.6
+
+import os
+from datasets import load_from_disk
+import logging
+logger = logging.getLogger(__name__)
+
+
+def get_data_path(override: str = None) -> str:
+    """
+    Resolve dataset path based on environment.
+    Priority: explicit override > env var > auto-detected platform default.
+    """
+    if override:
+        return override
+
+    if env_path := os.environ.get("CUAD_DATA_PATH"):
+        return env_path
+
+    # Kaggle — datasets are mounted under /kaggle/
+    if os.path.exists("/kaggle/working"):
+        return "/kaggle/input/tokenized-cuad/tokenized_cuad"
+
+    # Colab — typically mounted from Drive
+    if os.path.exists("/content/drive"):
+        return "/content/drive/MyDrive/aiml_project/tokenized_cuad"
+
+    # Local fallback
+    return "./data/tokenized_cuad"
+
+
+def load_cuad_dataset(data_path: str = None):
+    path = get_data_path(data_path)
+    if not os.path.exists(path):
+        raise FileNotFoundError(
+            f"Dataset not found at: {path}\n"
+            f"Set CUAD_DATA_PATH env var or pass data_path explicitly.\n"
+            f"Example: load_cuad_dataset('/your/actual/path')"
+        )
+    logger.info(f"Loading dataset from: {path}")
+    return load_from_disk(path)

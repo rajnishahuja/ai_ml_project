@@ -63,9 +63,6 @@ CLAUSE_PATTERNS: dict[str, list[str]] = {
         r"(?i)\b(grant(?:s)?\s+(?:a\s+)?(?:non[\s-]?exclusive\s+)?licen(?:se|ce)|licen(?:se|ce)\s+grant)\b",
         r"(?i)^[\d.]+\s*licen",
     ],
-    "IP Ownership Assignment": [
-        r"(?i)\b(intellectual\s+property\s+(?:ownership|assignment|rights)|assign(?:s|ment)\s+of\s+(?:all\s+)?(?:IP|intellectual\s+property))\b",
-    ],
     "Warranty Duration": [
         r"(?i)\b(warrant(?:y|ies|s)\s+(?:period|duration|term)|warrants?\s+for\s+a\s+period)\b",
         r"(?i)^[\d.]+\s*warrant",
@@ -112,6 +109,60 @@ CLAUSE_PATTERNS: dict[str, list[str]] = {
     ],
     "Expiration Date": [
         r"(?i)\b(expir(?:ation|e[sd]?)\s+(?:date|on)|term(?:ination)?\s+date|ends?\s+on)\b",
+    ],
+    "Affiliate License-Licensor": [
+        r"(?i)\b(affiliate\s+licen(?:se|ce)|licen(?:se|ce)\s+to\s+affiliates?)\b",
+    ],
+    "Affiliate License-Licensee": [
+        r"(?i)\b(licensee\s+affiliates?|sublicen(?:se|ce)\s+to\s+affiliates?)\b",
+    ],
+    "Non-Disparagement": [
+        r"(?i)\b(non[\s-]?disparagement|disparage|defame|derogatory\s+statements?)\b",
+    ],
+    "Covenant Not To Sue": [
+        r"(?i)\b(covenant\s+not\s+to\s+sue|release\s+of\s+claims?|waiver\s+of\s+claims?)\b",
+    ],
+    "Third Party Beneficiary": [
+        r"(?i)\b(third[\s-]?party\s+beneficiar(?:y|ies)|no\s+third[\s-]?party\s+rights?)\b",
+    ],
+    "Minimum Commitment": [
+        r"(?i)\b(minimum\s+(?:purchase|order|commitment|volume)|purchase\s+obligation)\b",
+    ],
+    "Volume Restriction": [
+        r"(?i)\b(volume\s+(?:restriction|limit|cap)|maximum\s+(?:volume|quantity|units?))\b",
+    ],
+    "IP Ownership Assignment": [
+        r"(?i)\b(work[\s-]?for[\s-]?hire|assign(?:s|ment)\s+of\s+(?:all\s+)?(?:IP|intellectual\s+property))\b",
+    ],
+    "Joint IP Ownership": [
+        r"(?i)\b(joint(?:ly)?\s+own(?:ed)?|co[\s-]?own(?:ership)?|jointly\s+developed)\b",
+    ],
+    "Price Restrictions": [
+        r"(?i)\b(price\s+(?:restriction|floor|ceiling|control)|most\s+favou?red\s+(?:nation|customer))\b",
+    ],
+    "Rofr/Rofo/Rofn": [
+        r"(?i)\b(right\s+of\s+first\s+(refusal|offer|negotiation)|ROFR|ROFO|ROFN)\b",
+    ],
+    "Source Code Escrow": [
+        r"(?i)\b(source\s+code\s+escrow|escrow\s+agent|escrow\s+agreement)\b",
+    ],
+    "Post-Agreement Restrictions": [
+        r"(?i)\b(post[\s-]?(?:termination|agreement|contract)\s+(?:restriction|obligation)|surviving\s+(?:clause|obligation|provision))\b",
+    ],
+    "Unlimited/All-You-Can-Eat-License": [
+        r"(?i)\b(unlimited\s+(?:licen(?:se|ce)|use|access)|all[\s-]?you[\s-]?can[\s-]?(?:eat|use)|enterprise[\s-]?wide\s+licen(?:se|ce))\b",
+    ],
+    "Irrevocable Or Perpetual License": [
+        r"(?i)\b(irrevocable\s+licen(?:se|ce)|perpetual\s+licen(?:se|ce)|non[\s-]?terminable\s+licen(?:se|ce))\b",
+    ],
+    "Revenue/Profit Sharing": [
+        r"(?i)\b(revenue\s+shar(?:ing|e)|profit\s+shar(?:ing|e)|royalt(?:y|ies)|revenue\s+split)\b",
+    ],
+    "Sublicense": [
+        r"(?i)\b(sublicen(?:se|ce|sing)|right\s+to\s+sublicen(?:se|ce))\b",
+    ],
+    "Non-Transferable License": [
+        r"(?i)\b(non[\s-]?transferable|not\s+transferable|may\s+not\s+transfer\s+(?:this\s+)?licen(?:se|ce))\b",
     ],
 }
 
@@ -370,91 +421,6 @@ class RuleBasedExtractor:
 
         return type_scores
 
-
-# ---------------------------------------------------------------------------
-# Evaluation helpers shared with main pipeline evaluation
-# ---------------------------------------------------------------------------
-
-def evaluate_baseline(
-    extractor: RuleBasedExtractor,
-    test_examples: list[dict],
-    output_path: str = "./results/baseline_eval.json",
-) -> dict:
-    """
-    Evaluate rule-based baseline on CUAD test examples.
-
-    True end-to-end evaluation:
-      - Baseline extracts freely (no peeking at true_type)
-      - Picks highest-confidence clause
-      - Applies threshold → can predict NO_CLAUSE
-      - Compared fairly against ground truth
-    """
-    exact_matches, f1_scores = [], []
-    pred_types, true_types = [], []
-
-    for example in test_examples:
-        context = example["context"]
-        true_type = _infer_clause_type_from_question(example["question"])
-        true_answers = example.get("answers", {}).get("text", [])
-
-        # Run baseline freely
-        clauses = extractor.extract(context, doc_id=example["id"])
-
-        # Take highest confidence clause
-        best_clause = max(clauses, key=lambda c: c.confidence) if clauses else None
-
-        # 🔧 Apply threshold → allow NO_CLAUSE prediction
-        if best_clause and best_clause.confidence >= BASELINE_CONF_THRESHOLD:
-            pred_text = best_clause.clause_text
-            pred_type = best_clause.clause_type
-        else:
-            pred_text = ""
-            pred_type = "NO_CLAUSE"
-
-        # ---------------------------
-        # Dimension 1: Extraction
-        # ---------------------------
-        em, f1 = _squad_em_f1(pred_text, true_answers)
-        exact_matches.append(em)
-        f1_scores.append(f1)
-
-        # ---------------------------
-        # Dimension 2: Classification
-        # ---------------------------
-        true_has_clause = bool(true_answers and true_answers[0].strip())
-        true_type_label = true_type if true_has_clause else "NO_CLAUSE"
-
-        true_types.append(true_type_label)
-        pred_types.append(pred_type)
-
-    # ---------------------------
-    # Final metrics
-    # ---------------------------
-    results = {
-        "model": "rule_based_baseline",
-        "extraction": {
-            "exact_match": round(sum(exact_matches) / len(exact_matches) * 100, 2),
-            "f1": round(sum(f1_scores) / len(f1_scores) * 100, 2),
-        },
-        "classification": {
-            "accuracy": round(accuracy_score(true_types, pred_types), 4),
-            "macro_f1": round(
-                f1_score(true_types, pred_types, average="macro", zero_division=0), 4
-            ),
-        },
-    }
-
-    # Save results
-    parent = os.path.dirname(output_path)
-    if parent:
-        os.makedirs(parent, exist_ok=True)
-
-    with open(output_path, "w") as f:
-        json.dump(results, f, indent=2)
-
-    logger.info(f"Baseline evaluation results:\n{json.dumps(results, indent=2)}")
-    return results
-
 def _infer_clause_type_from_question(question: str) -> str:
     """
     Infer clause type from a CUAD question string.
@@ -524,7 +490,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     import sys; sys.path.insert(0, ".")
-    from .pipeline import preprocess_contract
+    from pipeline import preprocess_contract
 
     contract_text = preprocess_contract(args.contract_file)
     extractor = RuleBasedExtractor(spacy_model=args.spacy_model)
