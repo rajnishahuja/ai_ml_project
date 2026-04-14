@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Optional
 
 import torch
-from datasets import load_dataset, DatasetDict
+
 from transformers import (
     AutoModelForQuestionAnswering,
     AutoTokenizer,
@@ -26,64 +26,17 @@ from transformers import (
     TrainingArguments,
     DefaultDataCollator,
     pipeline,
+    EarlyStoppingCallback,
 )
-from evaluate import load as load_metric
+
+from sklearn.metrics import accuracy_score, f1_score, classification_report
+
+import evaluate
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# CUAD clause types (41 categories from the dataset)
-# ---------------------------------------------------------------------------
-CUAD_CLAUSE_TYPES = [
-    "Document Name",
-    "Parties",
-    "Agreement Date",
-    "Effective Date",
-    "Expiration Date",
-    "Renewal Term",
-    "Notice Period To Terminate Renewal",
-    "Governing Law",
-    "Most Favored Nation",
-    "Non-Compete",
-    "Exclusivity",
-    "No-Solicit Of Customers",
-    "No-Solicit Of Employees",
-    "Non-Disparagement",
-    "Termination For Convenience",
-    "ROFR/ROFO/ROFN",
-    "Change Of Control",
-    "Anti-Assignment",
-    "Revenue/Profit Sharing",
-    "Price Restrictions",
-    "Minimum Commitment",
-    "Volume Restriction",
-    "IP Ownership Assignment",
-    "Joint IP Ownership",
-    "License Grant",
-    "Non-Transferable License",
-    "Affiliate License-Licensor",
-    "Affiliate License-Licensee",
-    "Unlimited/All-You-Can-Eat-License",
-    "Irrevocable Or Perpetual License",
-    "Source Code Escrow",
-    "Post-Termination Services",
-    "Audit Rights",
-    "Uncapped Liability",
-    "Cap On Liability",
-    "Liquidated Damages",
-    "Warranty Duration",
-    "Insurance",
-    "Covenant Not To Sue",
-    "Third Party Beneficiary",
-    "Indemnification",
-]
-
-# CUAD question templates (one per clause type, matching the dataset format)
-CUAD_QUESTION_TEMPLATES = {
-    clause: f"Highlight the parts (if any) of this contract related to \"{clause}\" that should be reviewed by a lawyer. Details: {clause}"
-    for clause in CUAD_CLAUSE_TYPES
-}
+from constants import CUAD_CLAUSE_TYPES, CUAD_QUESTION_TEMPLATES, QUESTION_TO_CLAUSE_TYPE, load_cuad_dataset
 
 # ---------------------------------------------------------------------------
 # Data structures
@@ -116,89 +69,6 @@ class ExtractionResult:
             "clauses": [c.to_dict() if isinstance(c, ClauseObject) else c for c in self.clauses],
         }
 
-# ---------------------------------------------------------------------------
-# Dataset utilities
-# ---------------------------------------------------------------------------
-
-def load_cuad_dataset(split: str = "train") -> DatasetDict:
-    """
-    Load CUAD from HuggingFace in native SQuAD-style QA format.
-    CUAD: 510 contracts, 13K annotations, 41 categories. License: CC BY 4.0.
-    """
-    logger.info("Loading CUAD dataset from HuggingFace…")
-    dataset = load_dataset("theatticusproject/cuad", trust_remote_code=True)
-    logger.info(f"CUAD loaded. Splits: {list(dataset.keys())}")
-    return dataset
-
-
-def preprocess_for_qa(examples, tokenizer, max_length=512, doc_stride=128):
-    """
-    Tokenize CUAD examples in SQuAD QA format.
-    Handles long contracts via sliding window (doc_stride).
-
-    Each example: { question, context, answers: {text, answer_start} }
-    Returns tokenized features with start/end position labels.
-    """
-    questions = [q.strip() for q in examples["question"]]
-    contexts = examples["context"]
-
-    tokenized = tokenizer(
-        questions,
-        contexts,
-        max_length=max_length,
-        truncation="only_second",
-        stride=doc_stride,
-        return_overflowing_tokens=True,
-        return_offsets_mapping=True,
-        padding="max_length",
-    )
-
-    sample_map = tokenized.pop("overflow_to_sample_mapping")
-    offset_mapping = tokenized.pop("offset_mapping")
-    answers = examples["answers"]
-
-    start_positions, end_positions = [], []
-
-    for i, offsets in enumerate(offset_mapping):
-        sample_idx = sample_map[i]
-        answer = answers[sample_idx]
-
-        # Locate the sequence (context) tokens
-        sequence_ids = tokenized.sequence_ids(i)
-        ctx_start = next(j for j, s in enumerate(sequence_ids) if s == 1)
-        ctx_end = len(sequence_ids) - 1 - next(
-            j for j, s in enumerate(reversed(sequence_ids)) if s == 1
-        )
-
-        # No answer → CLS token
-        if not answer["answer_start"] or len(answer["answer_start"]) == 0:
-            start_positions.append(0)
-            end_positions.append(0)
-            continue
-
-        char_start = answer["answer_start"][0]
-        char_end = char_start + len(answer["text"][0])
-
-        # Check if answer is within this window
-        if offsets[ctx_start][0] > char_end or offsets[ctx_end][1] < char_start:
-            start_positions.append(0)
-            end_positions.append(0)
-            continue
-
-        token_start = ctx_start
-        while token_start <= ctx_end and offsets[token_start][0] <= char_start:
-            token_start += 1
-        start_positions.append(token_start - 1)
-
-        token_end = ctx_end
-        while token_end >= ctx_start and offsets[token_end][1] >= char_end:
-            token_end -= 1
-        end_positions.append(token_end + 1)
-
-    tokenized["start_positions"] = start_positions
-    tokenized["end_positions"] = end_positions
-    return tokenized
-
 
 # ---------------------------------------------------------------------------
 # Training
@@ -208,12 +78,11 @@ def fine_tune_deberta(
     model_name: str = "microsoft/deberta-base",
     output_dir: str = "./models/stage1_2_deberta",
     num_train_epochs: int = 3,
-    per_device_train_batch_size: int = 8,
-    per_device_eval_batch_size: int = 8,
+    per_device_train_batch_size: int = 16,
+    per_device_eval_batch_size: int = 32,
     learning_rate: float = 2e-5,
-    max_length: int = 512,
-    doc_stride: int = 128,
-    fp16: bool = True,
+    fp16: bool = False,
+    data_path = None,
 ):
     """
     Fine-tune DeBERTa-base on CUAD QA task.
@@ -225,46 +94,50 @@ def fine_tune_deberta(
 
     Training config targets Azure ML compute or A100 backup.
     """
+    if data_path is None:
+        data_path = "/content/drive/MyDrive/aiml_project/tokenized_cuad"
+
+    logger.info(f"Loading preprocessed dataset from: {data_path}")
+    tokenized = load_cuad_dataset(data_path)
+
     logger.info(f"Loading tokenizer and model: {model_name}")
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(data_path + "/tokenizer")
     model = AutoModelForQuestionAnswering.from_pretrained(model_name)
 
-    dataset = load_cuad_dataset()
-
-    logger.info("Preprocessing dataset…")
-    fn_kwargs = {"tokenizer": tokenizer, "max_length": max_length, "doc_stride": doc_stride}
-    tokenized = dataset.map(
-        preprocess_for_qa,
-        fn_kwargs=fn_kwargs,
-        batched=True,
-        remove_columns=dataset["train"].column_names,
-    )
+    
+    logger.info(f"Tokenized sizes — train: {len(tokenized['train'])}, "
+            f"val: {len(tokenized['validation'])}, test: {len(tokenized['test'])}")
 
     training_args = TrainingArguments(
-        output_dir=output_dir,
-        num_train_epochs=num_train_epochs,
-        per_device_train_batch_size=per_device_train_batch_size,
-        per_device_eval_batch_size=per_device_eval_batch_size,
-        learning_rate=learning_rate,
-        weight_decay=0.01,
-        warmup_ratio=0.1,
-        fp16=fp16 and torch.cuda.is_available(),
-        evaluation_strategy="epoch",
-        save_strategy="epoch",
-        load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
-        logging_steps=50,
-        report_to="none",  # swap to "wandb" if desired
-        dataloader_num_workers=4,
-    )
+    output_dir=output_dir,
+    num_train_epochs= num_train_epochs,
+    per_device_train_batch_size=per_device_train_batch_size,   
+    per_device_eval_batch_size=per_device_eval_batch_size,
+    eval_strategy="steps",
+    eval_steps=200,
+    save_strategy="steps",
+    save_steps=200,
+    save_total_limit=2,
+    logging_steps=100,
+    learning_rate=learning_rate,
+    weight_decay=0.01,
+    warmup_steps=2300,
+    fp16=None,
+    load_best_model_at_end=True,
+    metric_for_best_model="eval_loss",
+    greater_is_better=False,
+    report_to="none",
+    dataloader_num_workers=0,
+    gradient_accumulation_steps = 2,
+)
 
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=tokenized["train"],
-        eval_dataset=tokenized["test"],
-        tokenizer=tokenizer,
-        data_collator=DefaultDataCollator(),
+        eval_dataset=tokenized["validation"],
+        processing_class=tokenizer,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=2)],
     )
 
     logger.info("Starting fine-tuning…")
@@ -292,18 +165,13 @@ class ClauseExtractorClassifier:
     """
 
     def __init__(self, model_path: str, device: int = -1):
-        """
-        Args:
-            model_path: Path to fine-tuned model dir (or HuggingFace hub name).
-            device: -1 for CPU, 0+ for GPU index.
-        """
         logger.info(f"Loading Stage 1+2 model from: {model_path}")
         self.qa_pipeline = pipeline(
             "question-answering",
             model=model_path,
             tokenizer=model_path,
             device=device,
-            handle_impossible_answer=True,  # returns "" when clause absent
+            handle_impossible_answer=True,
         )
         self.clause_types = CUAD_CLAUSE_TYPES
         self.question_templates = CUAD_QUESTION_TEMPLATES
@@ -312,20 +180,10 @@ class ClauseExtractorClassifier:
         self,
         contract_text: str,
         doc_id: str = "unknown",
-        confidence_threshold: float = 0.01,
+        confidence_threshold: float = 0.2,
     ) -> list[ClauseObject]:
         """
         Run all 41 clause-type queries against the contract.
-
-        Args:
-            contract_text: Raw contract string.
-            doc_id: Identifier for tracking clauses back to source document.
-            confidence_threshold: Minimum score to include a clause.
-                                  CUAD models often produce low scores for
-                                  absent clauses; 0.01 filters noise.
-
-        Returns:
-            List of ClauseObject, sorted by start position.
         """
         clauses = []
         inputs = [
@@ -340,15 +198,23 @@ class ClauseExtractorClassifier:
             answer_text = result.get("answer", "").strip()
             score = result.get("score", 0.0)
 
-            # Skip absent clauses (empty answer or below threshold)
             if not answer_text or score < confidence_threshold:
                 continue
 
-            # Locate character positions in source text
-            start = contract_text.find(answer_text)
-            end = start + len(answer_text) if start != -1 else -1
+            start = result.get("start", -1)
+            end = result.get("end", -1)
 
-            clause = ClauseObject(
+            if start == -1:
+                start = contract_text.find(answer_text)
+                end = start + len(answer_text) if start != -1 else -1
+                if start == -1:
+                    logger.warning(
+                        f"Could not locate answer text in doc '{doc_id}' "
+                        f"for clause '{clause_type}': '{answer_text[:50]}'"
+                    )
+                    continue
+
+            new_clause = ClauseObject(
                 clause_id=f"{doc_id}_{clause_type.replace(' ', '_')}_{idx:04d}",
                 clause_text=answer_text,
                 clause_type=clause_type,
@@ -357,9 +223,40 @@ class ClauseExtractorClassifier:
                 confidence=round(score, 4),
                 document_id=doc_id,
             )
-            clauses.append(clause)
 
-        # Sort by position in document
+            keep = True
+            to_remove = []
+
+            for i, existing in enumerate(clauses):
+                if (
+                    existing.start_pos == new_clause.start_pos
+                    and existing.end_pos == new_clause.end_pos
+                ):
+                    if new_clause.confidence > existing.confidence:
+                        to_remove.append(i)
+                    else:
+                        keep = False
+                    continue
+
+                overlap = min(existing.end_pos, new_clause.end_pos) - max(existing.start_pos, new_clause.start_pos)
+
+                if overlap > 0:
+                    smaller_len = min(
+                        existing.end_pos - existing.start_pos,
+                        new_clause.end_pos - new_clause.start_pos,
+                    )
+                    if smaller_len > 0 and overlap / smaller_len > 0.5:
+                        if new_clause.confidence > existing.confidence:
+                            to_remove.append(i)
+                        else:
+                            keep = False
+
+            for idx_to_remove in reversed(to_remove):
+                clauses.pop(idx_to_remove)
+
+            if keep:
+                clauses.append(new_clause)
+
         clauses.sort(key=lambda c: c.start_pos)
         logger.info(f"Extracted {len(clauses)} clauses from {doc_id}")
         return clauses
@@ -415,33 +312,20 @@ def preprocess_contract(file_path: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Evaluation (two-dimensional, as specified in plan)
+# Evaluation
 # ---------------------------------------------------------------------------
 
 def evaluate_stage1_2(
     model_path: str,
     test_data_path: Optional[str] = None,
     output_path: str = "./results/stage1_2_eval.json",
+    confidence_threshold: float = 0.2,
 ):
-    """
-    Evaluate the pipeline on two dimensions from the same model output:
+    squad_metric = evaluate.load("squad")
 
-    Dimension 1 — Extraction Quality:
-        Exact Match (EM) and Token-level F1 (HuggingFace SQuAD metric)
-
-    Dimension 2 — Classification Quality:
-        Accuracy, Macro F1, and per-category analysis
-
-    Uses HuggingFace evaluate library.
-    """
-    from sklearn.metrics import accuracy_score, f1_score, classification_report
-    import numpy as np
-
-    squad_metric = load_metric("squad")
-
-    # Load CUAD test split if no custom test data
     if test_data_path is None:
-        dataset = load_cuad_dataset()
+        DATA_PATH = "/content/drive/MyDrive/aiml_project/tokenized_cuad"
+        dataset = load_from_disk(DATA_PATH)
         test_examples = dataset["test"]
     else:
         with open(test_data_path) as f:
@@ -458,23 +342,27 @@ def evaluate_stage1_2(
     for example in test_examples:
         result = qa({"question": example["question"], "context": example["context"]})
         pred_text = result.get("answer", "").strip()
+        true_answers = example.get("answers", {}).get("text", [])
 
-        # Dimension 1: SQuAD EM / F1
-        predictions.append({"id": example["id"], "prediction_text": pred_text,
-                             "no_answer_probability": 1.0 - result["score"]})
-        references.append({"id": example["id"],
-                           "answers": example["answers"]})
+        predictions.append({
+            "id": example["id"],
+            "prediction_text": pred_text,
+            "no_answer_probability": 1.0 - result["score"],
+        })
+        references.append({
+            "id": example["id"],
+            "answers": example["answers"],
+        })
 
-        # Dimension 2: Clause type classification
         true_type = _infer_clause_type_from_question(example["question"])
-        pred_type = true_type if pred_text else "NO_CLAUSE"
+        true_has_clause = bool(true_answers and true_answers[0].strip())
+        pred_has_clause = bool(pred_text and result["score"] >= confidence_threshold)
+        true_type_label = true_type if true_has_clause else "NO_CLAUSE"
+        pred_type = true_type if pred_has_clause else "NO_CLAUSE"
+        true_types.append(true_type_label)
         pred_types.append(pred_type)
-        true_types.append(true_type)
 
-    # --- Dimension 1 ---
     squad_results = squad_metric.compute(predictions=predictions, references=references)
-
-    # --- Dimension 2 ---
     class_accuracy = accuracy_score(true_types, pred_types)
     class_macro_f1 = f1_score(true_types, pred_types, average="macro", zero_division=0)
     class_report = classification_report(true_types, pred_types, zero_division=0)
@@ -491,7 +379,9 @@ def evaluate_stage1_2(
         },
     }
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    parent = os.path.dirname(output_path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2)
 
@@ -501,10 +391,12 @@ def evaluate_stage1_2(
 
 
 def _infer_clause_type_from_question(question: str) -> str:
-    """Extract clause type from a CUAD-style question string."""
-    for clause_type in CUAD_CLAUSE_TYPES:
-        if clause_type.lower() in question.lower():
-            return clause_type
+    if question in QUESTION_TO_CLAUSE_TYPE:
+        return QUESTION_TO_CLAUSE_TYPE[question]
+    question_lower = question.lower()
+    for ct in CUAD_CLAUSE_TYPES:
+        if ct.lower() in question_lower:
+            return ct
     return "Unknown"
 
 
@@ -518,24 +410,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Stage 1+2: Clause Extraction & Classification")
     subparsers = parser.add_subparsers(dest="command")
 
-    # Train
     train_parser = subparsers.add_parser("train", help="Fine-tune DeBERTa on CUAD")
     train_parser.add_argument("--model", default="microsoft/deberta-base")
     train_parser.add_argument("--output_dir", default="./models/stage1_2_deberta")
+    train_parser.add_argument("--data_path", type=str, default=None, help="Path to tokenized dataset")
     train_parser.add_argument("--epochs", type=int, default=3)
-    train_parser.add_argument("--batch_size", type=int, default=8)
+    train_parser.add_argument("--batch_size", type=int, default=4)
     train_parser.add_argument("--lr", type=float, default=2e-5)
     train_parser.add_argument("--no_fp16", action="store_true")
 
-    # Infer
     infer_parser = subparsers.add_parser("infer", help="Run inference on a contract file")
     infer_parser.add_argument("--model_path", required=True)
     infer_parser.add_argument("--contract_file", required=True)
     infer_parser.add_argument("--output_file", default="clauses.json")
-    infer_parser.add_argument("--threshold", type=float, default=0.01)
+    infer_parser.add_argument("--threshold", type=float, default=0.2)
     infer_parser.add_argument("--device", type=int, default=-1)
 
-    # Evaluate
     eval_parser = subparsers.add_parser("evaluate", help="Evaluate on CUAD test set")
     eval_parser.add_argument("--model_path", required=True)
     eval_parser.add_argument("--output_path", default="./results/stage1_2_eval.json")
@@ -546,6 +436,7 @@ if __name__ == "__main__":
         fine_tune_deberta(
             model_name=args.model,
             output_dir=args.output_dir,
+            data_path=args.data_path,
             num_train_epochs=args.epochs,
             per_device_train_batch_size=args.batch_size,
             learning_rate=args.lr,
