@@ -22,15 +22,15 @@
 
 | ID | Task | Description | Assignable to | Depends on | Status |
 |----|------|-------------|---------------|-----------|--------|
-| T0.1 | Create `configs/stage1_config.yaml` | Model name, max_seq_length, stride, batch_size, learning_rate, epochs, output_dir | Member A | — | not started |
-| T0.2 | Create `configs/stage3_config.yaml` | Risk classifier path, embedding model, FAISS path, Mistral quantization config, agent max_iterations, similarity_threshold | Member B | — | not started |
-| T0.3 | Create `configs/stage4_config.yaml` | FLAN-T5 model path, prompt templates, risk thresholds, report output format | Member C | — | not started |
-| T0.4 | Implement `src/common/preprocessing.py` | PDF (PyMuPDF), DOCX (python-docx), plain text loader, text cleaning. Single `extract_text(file_path) → str` entry point. Extract and generalize `preprocess_contract()` from existing `pipeline.py`. | Member A | — | not started |
-| T0.5 | Implement `src/common/data_loader.py` | `load_cuad_dataset()`, `format_for_qa()` (SQuAD-style), `split_dataset()`. Consolidate from existing `pipeline.py`. | Member B | — | not started |
-| T0.6 | Implement `src/common/utils.py` | Config loader (`load_config(yaml_path) → dict`), logging setup helper, JSON serialization for dataclasses, shared metric helpers (`normalize_answer`, `squad_em_f1`, `span_iou`). Removes duplication between `baseline.py` and `evaluate.py`. | Member C | — | not started |
+| T0.1 | Create `configs/stage1_config.yaml` | Model name, max_seq_length, stride, batch_size, learning_rate, epochs, output_dir | Member A | — | ✅ done |
+| T0.2 | Create `configs/stage3_config.yaml` | Risk classifier path, embedding model, FAISS path, Mistral quantization config, agent max_iterations, similarity_threshold | Member B | — | ✅ done |
+| T0.3 | Create `configs/stage4_config.yaml` | FLAN-T5 model path, prompt templates, risk thresholds, report output format | Member C | — | ✅ done |
+| T0.4 | Implement `src/common/preprocessing.py` | PDF (PyMuPDF), DOCX (python-docx), plain text loader, text cleaning. Single `extract_text(file_path) → str` entry point. **Deferred** — not needed for CUAD training/eval; only for production inference with real contract files. | Member A | — | deferred |
+| T0.5 | Implement `src/common/data_loader.py` | `load_cuad_dataset()` from `theatticusproject/cuad-qa` (already flat QA format with train/test split), `preprocess_for_qa()` for tokenization with sliding window. **Simplified** — `flatten_to_qa_examples()` and `split_dataset()` no longer needed since HF dataset is pre-flattened and pre-split. | Member B | — | in progress |
+| T0.6 | Implement `src/common/utils.py` | Config loader (`load_config(yaml_path) → dict`), logging setup helper, JSON serialization for dataclasses, shared metric helpers (`normalize_answer`, `squad_em_f1`, `span_iou`). Removes duplication between `baseline.py` and `evaluate.py`. | Member C | — | ✅ done |
 | T0.7 | Reconcile requirements files | Resolve version conflicts between `requirements.txt` (transformers 4.36, pymupdf) and `requirements_stage1_2.txt` (transformers 4.40, pdfplumber). Produce one consolidated file. | Member D | — | not started |
-| T0.8 | Create `scripts/download_cuad.py` | Downloads CUAD from HuggingFace, saves to `data/raw/`, verifies integrity | Member D | — | not started |
-| T0.9 | Define shared data contracts | Dataclasses for `ClauseObject` (Stage 1+2 output), `RiskAssessedClause` (Stage 3 output), `RiskReport` (Stage 4 output). Must match JSON schemas in `ARCHITECTURE.md` exactly. Place in `src/common/schema.py`. | Member D | — | not started |
+| T0.8 | Create `scripts/download_cuad.py` | Downloads CUAD from HuggingFace, saves to `data/raw/`, verifies integrity. **May not be needed** — `load_dataset()` handles download/caching automatically. | Member D | — | not started |
+| T0.9 | Define shared data contracts | Dataclasses for `ClauseObject` (Stage 1+2 output), `RiskAssessedClause` (Stage 3 output), `RiskReport` (Stage 4 output). Must match JSON schemas in `ARCHITECTURE.md` exactly. Place in `src/common/schema.py`. | Member D | — | ✅ done |
 
 > **T0.9 must be reviewed and agreed by all 4 members before any stage implementation begins.**
 
