@@ -1,0 +1,439 @@
+{
+  "status": "success",
+  "filename": "EmbarkComInc_19991008_S-1A_EX-10.10_6487661_EX-10.10_Co-Branding%20Agreement.pdf",
+  "document_id": "841f713a-1a2d-4958-b1f7-38b3c62acd1d",
+  "faiss_sync_status": "Complete",
+  "extracted_clauses": [
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Document_Name_0000",
+      "clause_text": "CO-BRANDING AGREEMENT\nThis Co-Branding Agreement",
+      "clause_type": "Document Name",
+      "start_pos": 189,
+      "end_pos": 237,
+      "confidence": 0.9943,
+      "confidence_logit": 10.3194
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Agreement_Date_0002",
+      "clause_text": "June 8, 1999",
+      "clause_type": "Agreement Date",
+      "start_pos": 269,
+      "end_pos": 282,
+      "confidence": 0.9973,
+      "confidence_logit": 11.825
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Parties_0001",
+      "clause_text": "Snap Technologies, Inc.",
+      "clause_type": "Parties",
+      "start_pos": 306,
+      "end_pos": 330,
+      "confidence": 0.9581,
+      "confidence_logit": 6.2575
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Irrevocable_Or_Perpe_0029",
+      "clause_text": "Subject to Section 2.4 [APPROVAL OF TRADEMARK USAGE], Sponsor hereby grants Snap a\nnon-exclusive, revocable nontransferable, royalty-free, worldwide license to:\n(a) use, reproduce, publish, perform and display the Sponsor Marks and\nSponsor Brand Features on the Co-Branded Pages; (b) link to the Sponsor Web\nSite from the Co-Branded Pages and/or the Snap Web Site that contains the\nCo-Branded Pages and (c) use, reproduce, publish, perform, and display the",
+      "clause_type": "Irrevocable Or Perpetual License",
+      "start_pos": 6527,
+      "end_pos": 6984,
+      "confidence": 0.9943,
+      "confidence_logit": 10.339
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_License_Grant_0024",
+      "clause_text": "Subject to Section 2.4 [APPROVAL OF TRADEMARK USAGE], Snap hereby grants Sponsor a\nnon-exclusive, nontransferable, royalty-free, worldwide license to (a) use,\nreproduce, publish, perform and display the Snap Marks and Snap Brand\nFeatures on the Sponsor Web Site in connection with the logo link\ncontemplated by Section 2.l, and in connection with its promotional and\nmarketing activities contemplated by Section 2.5 [PROMOTION OF SNAP SERVICES] and (b) use, reproduce,\npublish, perform and display the Snap Content on the Sponsor Web Site or\nother Sponsor properties as mutually agreed by the parties.",
+      "clause_type": "License Grant",
+      "start_pos": 7193,
+      "end_pos": 7795,
+      "confidence": 0.9984,
+      "confidence_logit": 12.9009
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Exclusivity_0010",
+      "clause_text": "During the Term, Snap will not grant any\nthird party any right to sponsor any products or services in the Exclusive\nCategory on or through the Snap Web Site.",
+      "clause_type": "Exclusivity",
+      "start_pos": 8811,
+      "end_pos": 8969,
+      "confidence": 0.9973,
+      "confidence_logit": 11.8157
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Unlimited/All-You-Ca_0028",
+      "clause_text": "Furthermore, Sponsor\nacknowledges that any use of Snap end user data shall be limited to the extent\nallowed by and subject to Snap's agreement with such end users; provided,\nhowever, that Snap represents and warrants that such agreements with its end\nusers will not increase Sponsor's duties or decrease its rights, nor reduce\nSnaps obligation to Sponsor hereunder without Sponsor's prior written\npermission.",
+      "clause_type": "Unlimited/All-You-Can-Eat-License",
+      "start_pos": 10143,
+      "end_pos": 10552,
+      "confidence": 0.9443,
+      "confidence_logit": 5.6602
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Revenue/Profit_Shari_0018",
+      "clause_text": "Upon execution of this Agreement, Sponsor will pay\nSnap the amounts set forth on Exhibit A as the \"Up-Front Fee\" in consideration\nof Snap's development and integration of travel-related content for use on the\nCo-Branded Pages and/or the Sponsor Web Site.",
+      "clause_type": "Revenue/Profit Sharing",
+      "start_pos": 10612,
+      "end_pos": 10867,
+      "confidence": 0.9279,
+      "confidence_logit": 5.11
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Expiration_Date_0004",
+      "clause_text": "The Term shall commence on the date of this Agreement and,\nunless earlier terminated or extended as provided below, shall end as of\nDecember 31, 2000.",
+      "clause_type": "Expiration Date",
+      "start_pos": 11501,
+      "end_pos": 11652,
+      "confidence": 0.9979,
+      "confidence_logit": 12.3633
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Termination_For_Conv_0014",
+      "clause_text": "Either party may terminate the Term upon not less\nthan sixty (60) days prior written notice to the other party of any breach\nhereof by such other party.",
+      "clause_type": "Termination For Convenience",
+      "start_pos": 11669,
+      "end_pos": 11822,
+      "confidence": 0.9985,
+      "confidence_logit": 12.9609
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_ROFR/ROFO/ROFN_0015",
+      "clause_text": "In the event of termination or expiration\nof this Agreement for other than a material breach of this Agreement by\nSponsor, upon notice from Sponsor delivered to Snap at least forty-five (45)\ndays prior to such expiration or termination, Snap shall negotiate in good\nfaith an agreement providing Sponsor with sponsorship rights similar to those\ndescribed herein on terms and conditions to be mutually agreed upon by the\nparties.",
+      "clause_type": "ROFR/ROFO/ROFN",
+      "start_pos": 12618,
+      "end_pos": 13046,
+      "confidence": 0.9951,
+      "confidence_logit": 10.6174
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Uncapped_Liability_0033",
+      "clause_text": "IGENCE AND STRICT LIABILITY), WARRANTY OR OTHERWISE, RELATING TO\nANY INDIRECT, CONSEQUENTIAL OR EXEMPLARY DAMAGES, IN EACH CASE, ARISING OUT OF\nOR IN CONNECTION WITH THIS AGREEMENT (INCLUDING ANY BREACH HEREOF) OR ANY OF THE\nTRANSACTIONS CONTEMPLATED HEREBY.",
+      "clause_type": "Uncapped Liability",
+      "start_pos": 16993,
+      "end_pos": 17251,
+      "confidence": 0.9946,
+      "confidence_logit": 10.4394
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Liquidated_Damages_0035",
+      "clause_text": "Therefore, in the event of a breach of this Section 8.1 [CONFIDENTIALITY",
+      "clause_type": "Liquidated Damages",
+      "start_pos": 19899,
+      "end_pos": 19971,
+      "confidence": 0.9249,
+      "confidence_logit": 5.0226
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Anti-Assignment_0017",
+      "clause_text": "Neither party may assign this Agreement or any of its\nrights or delegate any of its duties under this Agreement without the prior\nwritten consent of the other party, not to be unreasonably withheld; except that\neither party may, without the other party's consent, assign this Agreement or\nany of its rights or delegate any of its duties under this Agreement: (a) to any\ncorporate affiliate of such party; or (b) to any purchaser of all or\nsubstantially all of such party's assets or to any successor by way of merger,\nconsolidation or similar transaction.",
+      "clause_type": "Anti-Assignment",
+      "start_pos": 21376,
+      "end_pos": 21932,
+      "confidence": 0.9982,
+      "confidence_logit": 12.591
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Governing_Law_0007",
+      "clause_text": "This Agreement shall be governed by,\nand construed in accordance with, the laws of the State of California without\nreference to its choice of law rules.",
+      "clause_type": "Governing Law",
+      "start_pos": 22132,
+      "end_pos": 22285,
+      "confidence": 0.9993,
+      "confidence_logit": 14.4878
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Minimum_Commitment_0020",
+      "clause_text": "Sponsor agrees that users who connect from the Snap site shall be at least\none click away from any page which mentions the",
+      "clause_type": "Minimum Commitment",
+      "start_pos": 29053,
+      "end_pos": 29176,
+      "confidence": 0.9953,
+      "confidence_logit": 10.7312
+    }
+  ],
+  "risk_assessed_clauses": [
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Document_Name_0000",
+      "clause_text": "CO-BRANDING AGREEMENT\nThis Co-Branding Agreement",
+      "clause_type": "Document Name",
+      "start_pos": 189,
+      "end_pos": 237,
+      "confidence": 0.9943,
+      "confidence_logit": 10.3194,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Agreement_Date_0002",
+      "clause_text": "June 8, 1999",
+      "clause_type": "Agreement Date",
+      "start_pos": 269,
+      "end_pos": 282,
+      "confidence": 0.9973,
+      "confidence_logit": 11.825,
+      "risk_level": "MEDIUM",
+      "risk_reason": "[MOCK] Liability cap may be insufficient relative to contract value.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Parties_0001",
+      "clause_text": "Snap Technologies, Inc.",
+      "clause_type": "Parties",
+      "start_pos": 306,
+      "end_pos": 330,
+      "confidence": 0.9581,
+      "confidence_logit": 6.2575,
+      "risk_level": "LOW",
+      "risk_reason": "[MOCK] Standard boilerplate with minor ambiguity in termination notice period.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Irrevocable_Or_Perpe_0029",
+      "clause_text": "Subject to Section 2.4 [APPROVAL OF TRADEMARK USAGE], Sponsor hereby grants Snap a\nnon-exclusive, revocable nontransferable, royalty-free, worldwide license to:\n(a) use, reproduce, publish, perform and display the Sponsor Marks and\nSponsor Brand Features on the Co-Branded Pages; (b) link to the Sponsor Web\nSite from the Co-Branded Pages and/or the Snap Web Site that contains the\nCo-Branded Pages and (c) use, reproduce, publish, perform, and display the",
+      "clause_type": "Irrevocable Or Perpetual License",
+      "start_pos": 6527,
+      "end_pos": 6984,
+      "confidence": 0.9943,
+      "confidence_logit": 10.339,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_License_Grant_0024",
+      "clause_text": "Subject to Section 2.4 [APPROVAL OF TRADEMARK USAGE], Snap hereby grants Sponsor a\nnon-exclusive, nontransferable, royalty-free, worldwide license to (a) use,\nreproduce, publish, perform and display the Snap Marks and Snap Brand\nFeatures on the Sponsor Web Site in connection with the logo link\ncontemplated by Section 2.l, and in connection with its promotional and\nmarketing activities contemplated by Section 2.5 [PROMOTION OF SNAP SERVICES] and (b) use, reproduce,\npublish, perform and display the Snap Content on the Sponsor Web Site or\nother Sponsor properties as mutually agreed by the parties.",
+      "clause_type": "License Grant",
+      "start_pos": 7193,
+      "end_pos": 7795,
+      "confidence": 0.9984,
+      "confidence_logit": 12.9009,
+      "risk_level": "MEDIUM",
+      "risk_reason": "[MOCK] Liability cap may be insufficient relative to contract value.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Exclusivity_0010",
+      "clause_text": "During the Term, Snap will not grant any\nthird party any right to sponsor any products or services in the Exclusive\nCategory on or through the Snap Web Site.",
+      "clause_type": "Exclusivity",
+      "start_pos": 8811,
+      "end_pos": 8969,
+      "confidence": 0.9973,
+      "confidence_logit": 11.8157,
+      "risk_level": "LOW",
+      "risk_reason": "[MOCK] Standard boilerplate with minor ambiguity in termination notice period.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Unlimited/All-You-Ca_0028",
+      "clause_text": "Furthermore, Sponsor\nacknowledges that any use of Snap end user data shall be limited to the extent\nallowed by and subject to Snap's agreement with such end users; provided,\nhowever, that Snap represents and warrants that such agreements with its end\nusers will not increase Sponsor's duties or decrease its rights, nor reduce\nSnaps obligation to Sponsor hereunder without Sponsor's prior written\npermission.",
+      "clause_type": "Unlimited/All-You-Can-Eat-License",
+      "start_pos": 10143,
+      "end_pos": 10552,
+      "confidence": 0.9443,
+      "confidence_logit": 5.6602,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Revenue/Profit_Shari_0018",
+      "clause_text": "Upon execution of this Agreement, Sponsor will pay\nSnap the amounts set forth on Exhibit A as the \"Up-Front Fee\" in consideration\nof Snap's development and integration of travel-related content for use on the\nCo-Branded Pages and/or the Sponsor Web Site.",
+      "clause_type": "Revenue/Profit Sharing",
+      "start_pos": 10612,
+      "end_pos": 10867,
+      "confidence": 0.9279,
+      "confidence_logit": 5.11,
+      "risk_level": "MEDIUM",
+      "risk_reason": "[MOCK] Liability cap may be insufficient relative to contract value.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Expiration_Date_0004",
+      "clause_text": "The Term shall commence on the date of this Agreement and,\nunless earlier terminated or extended as provided below, shall end as of\nDecember 31, 2000.",
+      "clause_type": "Expiration Date",
+      "start_pos": 11501,
+      "end_pos": 11652,
+      "confidence": 0.9979,
+      "confidence_logit": 12.3633,
+      "risk_level": "LOW",
+      "risk_reason": "[MOCK] Standard boilerplate with minor ambiguity in termination notice period.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Termination_For_Conv_0014",
+      "clause_text": "Either party may terminate the Term upon not less\nthan sixty (60) days prior written notice to the other party of any breach\nhereof by such other party.",
+      "clause_type": "Termination For Convenience",
+      "start_pos": 11669,
+      "end_pos": 11822,
+      "confidence": 0.9985,
+      "confidence_logit": 12.9609,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_ROFR/ROFO/ROFN_0015",
+      "clause_text": "In the event of termination or expiration\nof this Agreement for other than a material breach of this Agreement by\nSponsor, upon notice from Sponsor delivered to Snap at least forty-five (45)\ndays prior to such expiration or termination, Snap shall negotiate in good\nfaith an agreement providing Sponsor with sponsorship rights similar to those\ndescribed herein on terms and conditions to be mutually agreed upon by the\nparties.",
+      "clause_type": "ROFR/ROFO/ROFN",
+      "start_pos": 12618,
+      "end_pos": 13046,
+      "confidence": 0.9951,
+      "confidence_logit": 10.6174,
+      "risk_level": "MEDIUM",
+      "risk_reason": "[MOCK] Liability cap may be insufficient relative to contract value.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Uncapped_Liability_0033",
+      "clause_text": "IGENCE AND STRICT LIABILITY), WARRANTY OR OTHERWISE, RELATING TO\nANY INDIRECT, CONSEQUENTIAL OR EXEMPLARY DAMAGES, IN EACH CASE, ARISING OUT OF\nOR IN CONNECTION WITH THIS AGREEMENT (INCLUDING ANY BREACH HEREOF) OR ANY OF THE\nTRANSACTIONS CONTEMPLATED HEREBY.",
+      "clause_type": "Uncapped Liability",
+      "start_pos": 16993,
+      "end_pos": 17251,
+      "confidence": 0.9946,
+      "confidence_logit": 10.4394,
+      "risk_level": "LOW",
+      "risk_reason": "[MOCK] Standard boilerplate with minor ambiguity in termination notice period.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Liquidated_Damages_0035",
+      "clause_text": "Therefore, in the event of a breach of this Section 8.1 [CONFIDENTIALITY",
+      "clause_type": "Liquidated Damages",
+      "start_pos": 19899,
+      "end_pos": 19971,
+      "confidence": 0.9249,
+      "confidence_logit": 5.0226,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Anti-Assignment_0017",
+      "clause_text": "Neither party may assign this Agreement or any of its\nrights or delegate any of its duties under this Agreement without the prior\nwritten consent of the other party, not to be unreasonably withheld; except that\neither party may, without the other party's consent, assign this Agreement or\nany of its rights or delegate any of its duties under this Agreement: (a) to any\ncorporate affiliate of such party; or (b) to any purchaser of all or\nsubstantially all of such party's assets or to any successor by way of merger,\nconsolidation or similar transaction.",
+      "clause_type": "Anti-Assignment",
+      "start_pos": 21376,
+      "end_pos": 21932,
+      "confidence": 0.9982,
+      "confidence_logit": 12.591,
+      "risk_level": "MEDIUM",
+      "risk_reason": "[MOCK] Liability cap may be insufficient relative to contract value.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Governing_Law_0007",
+      "clause_text": "This Agreement shall be governed by,\nand construed in accordance with, the laws of the State of California without\nreference to its choice of law rules.",
+      "clause_type": "Governing Law",
+      "start_pos": 22132,
+      "end_pos": 22285,
+      "confidence": 0.9993,
+      "confidence_logit": 14.4878,
+      "risk_level": "LOW",
+      "risk_reason": "[MOCK] Standard boilerplate with minor ambiguity in termination notice period.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "841f713a-1a2d-4958-b_9c172f_Minimum_Commitment_0020",
+      "clause_text": "Sponsor agrees that users who connect from the Snap site shall be at least\none click away from any page which mentions the",
+      "clause_type": "Minimum Commitment",
+      "start_pos": 29053,
+      "end_pos": 29176,
+      "confidence": 0.9953,
+      "confidence_logit": 10.7312,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    }
+  ],
+  "final_report": {
+    "summary": "This contract contains 16 assessed clause(s). 6 HIGH, 5 MEDIUM, 5 LOW risk.",
+    "high_risk": [
+      {
+        "clause_id": "841f713a-1a2d-4958-b_9c172f_Document_Name_0000",
+        "clause_type": "Document Name",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      },
+      {
+        "clause_id": "841f713a-1a2d-4958-b_9c172f_Irrevocable_Or_Perpe_0029",
+        "clause_type": "Irrevocable Or Perpetual License",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      },
+      {
+        "clause_id": "841f713a-1a2d-4958-b_9c172f_Unlimited/All-You-Ca_0028",
+        "clause_type": "Unlimited/All-You-Can-Eat-License",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      },
+      {
+        "clause_id": "841f713a-1a2d-4958-b_9c172f_Termination_For_Conv_0014",
+        "clause_type": "Termination For Convenience",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      },
+      {
+        "clause_id": "841f713a-1a2d-4958-b_9c172f_Liquidated_Damages_0035",
+        "clause_type": "Liquidated Damages",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      },
+      {
+        "clause_id": "841f713a-1a2d-4958-b_9c172f_Minimum_Commitment_0020",
+        "clause_type": "Minimum Commitment",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      }
+    ],
+    "medium_risk": [
+      {
+        "clause_id": "841f713a-1a2d-4958-b_9c172f_Agreement_Date_0002",
+        "clause_type": "Agreement Date",
+        "explanation": "[MOCK] Liability cap may be insufficient relative to contract value.",
+        "recommendation": "Review and clarify scope."
+      },
+      {
+        "clause_id": "841f713a-1a2d-4958-b_9c172f_License_Grant_0024",
+        "clause_type": "License Grant",
+        "explanation": "[MOCK] Liability cap may be insufficient relative to contract value.",
+        "recommendation": "Review and clarify scope."
+      },
+      {
+        "clause_id": "841f713a-1a2d-4958-b_9c172f_Revenue/Profit_Shari_0018",
+        "clause_type": "Revenue/Profit Sharing",
+        "explanation": "[MOCK] Liability cap may be insufficient relative to contract value.",
+        "recommendation": "Review and clarify scope."
+      },
+      {
+        "clause_id": "841f713a-1a2d-4958-b_9c172f_ROFR/ROFO/ROFN_0015",
+        "clause_type": "ROFR/ROFO/ROFN",
+        "explanation": "[MOCK] Liability cap may be insufficient relative to contract value.",
+        "recommendation": "Review and clarify scope."
+      },
+      {
+        "clause_id": "841f713a-1a2d-4958-b_9c172f_Anti-Assignment_0017",
+        "clause_type": "Anti-Assignment",
+        "explanation": "[MOCK] Liability cap may be insufficient relative to contract value.",
+        "recommendation": "Review and clarify scope."
+      }
+    ],
+    "low_risk_summary": "5 clause(s) assessed as standard / low risk.",
+    "missing_protections": [],
+    "overall_risk_score": 20,
+    "total_clauses": 16
+  }
+}

@@ -115,6 +115,14 @@ Before running, ensure the following are installed and ready:
 
 ---
 
+## 📦 Sample Data Included
+
+This repository intentionally includes pre-generated artifacts so that code reviewers and developers can test the API components without needing to run a from-scratch extraction:
+- **Pre-built FAISS Index** (`data/faiss_index/`): Contains fully vectorized document chunks. You can immediately call the `GET /api/v1/documents/` endpoints to explore the RAG indexing logic without needing to upload and embed a new contract!
+- **Sample JSON Outputs** (`data/output/`): Contains the raw JSON responses generated from a full End-to-End pipeline run, useful for UI frontend integration and schema reference.
+
+---
+
 ## 🚀 Getting Started
 
 ### 1. Clone and Install
@@ -248,6 +256,11 @@ uv run python src/workflow/graph.py
 - **Cumulative** — new PDFs are **appended** to the existing global index; data from previous sessions is preserved
 - **Safe** — every chunk is tagged with its UUID, so multi-tenant retrieval is always isolated
 - **Reset** — delete `data/faiss_index/` to wipe all stored vectors; the system rebuilds on the next upload
+
+### Inference Optimizations (Stage 1)
+- **Hardware-Agnostic & Crash-Proof**: The `ClauseExtractorClassifier` dynamically detects `cuda` (NVIDIA), `mps` (Apple Silicon), or `cpu`, delegating inference to the native hardware accelerators automatically.
+- **Automated Mixed Precision**: Leverages PyTorch's `autocast` using `bfloat16`. This avoids the infamous DeBERTa `float16` attention mask overflow crash while simultaneously halving GPU VRAM requirements and doubling tensor speeds.
+- **Micro-Batched Tokenization**: Translates sequential inference loops into highly concurrent batches of 32 sequences, intelligently piecing predictions back together using Hugging Face's `overflow_to_sample_mapping`.
 
 ### Mock Stages (Pending Implementation)
 - **Node C** (Risk Classifier): Currently cycles HIGH/MEDIUM/LOW for all clauses. Wire a trained DeBERTa sequence classifier here.

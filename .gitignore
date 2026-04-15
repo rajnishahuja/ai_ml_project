@@ -76,13 +76,6 @@ logs/
 stage1_2_deberta/
 
 # ============================================================
-# Vector Database (FAISS)
-# The FAISS index is ephemeral and rebuilt from uploads.
-# ============================================================
-*.faiss
-data/faiss_index/
-
-# ============================================================
 # Data Directories
 # Track folder structure via .gitkeep, ignore actual content
 # ============================================================
@@ -94,9 +87,6 @@ data/processed/*
 
 data/synthetic/*
 !data/synthetic/.gitkeep
-
-data/output/*
-!data/output/.gitkeep
 
 # ============================================================
 # Build / Distribution
@@ -110,7 +100,7 @@ build/
 # ============================================================
 # Misc Output & Temp Files
 # ============================================================
-outputs/
+
 tmp/
 temp/
 *.tmp

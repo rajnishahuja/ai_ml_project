@@ -4,7 +4,7 @@ Contains the schema and question templates required for DeBERTa span extraction.
 """
 
 # ---------------------------------------------------------------------------
-# CUAD clause types (The 41 categories the model is trained to identify)
+# CUAD clause types (41 categories from the dataset)
 # ---------------------------------------------------------------------------
 CUAD_CLAUSE_TYPES = [
     "Document Name",
@@ -50,10 +50,6 @@ CUAD_CLAUSE_TYPES = [
     "Indemnification",
 ]
 
-# ---------------------------------------------------------------------------
-# Question Templates
-# CRITICAL: These must match the training prompts exactly.
-# ---------------------------------------------------------------------------
 CUAD_QUESTION_TEMPLATES = {
     "Document Name": 'Highlight the parts (if any) of this contract related to "Document Name" that should be reviewed by a lawyer. Details: The name of the contract',
     "Parties": 'Highlight the parts (if any) of this contract related to "Parties" that should be reviewed by a lawyer. Details: The two or more parties who signed the contract',
@@ -76,7 +72,7 @@ CUAD_QUESTION_TEMPLATES = {
     "Revenue/Profit Sharing": 'Highlight the parts (if any) of this contract related to "Revenue/Profit Sharing" that should be reviewed by a lawyer. Details: Is one party required to share revenue or profit with the counterparty for any technology, goods, or services?',
     "Price Restrictions": 'Highlight the parts (if any) of this contract related to "Price Restrictions" that should be reviewed by a lawyer. Details: Is there a restriction on the ability of a party to raise or reduce prices of technology, goods, or services provided?',
     "Minimum Commitment": 'Highlight the parts (if any) of this contract related to "Minimum Commitment" that should be reviewed by a lawyer. Details: Is there a minimum order size or minimum amount or units per-time period that one party must buy from the counterparty under the contract?',
-    "Volume Restriction": 'Highlight the parts (if any) of this contract related to "Volume Restriction" that should be reviewed by a lawyer. Details: Is there a fee increase or consent requirement, etc. if one party is above a certain threshold of volume/units sold or produced?',
+    "Volume Restriction": 'Highlight the parts (if any) of this contract related to "Volume Restriction" that should be reviewed by a lawyer. Details: Is there a fee increase or consent requirement, etc. if one party is above a certain threshold of volume/units sold or produced? if one party’s use of the product/services exceeds certain threshold?',
     "IP Ownership Assignment": 'Highlight the parts (if any) of this contract related to "IP Ownership Assignment" that should be reviewed by a lawyer. Details: Does intellectual property created by one party automatically get assigned/transferred to the counterparty?',
     "Joint IP Ownership": 'Highlight the parts (if any) of this contract related to "Joint IP Ownership" that should be reviewed by a lawyer. Details: Is there any clause providing for joint or shared ownership of intellectual property between the parties to the contract?',
     "License Grant": 'Highlight the parts (if any) of this contract related to "License Grant" that should be reviewed by a lawyer. Details: Does the contract contain a license granted by one party to its counterparty?',
@@ -97,9 +93,62 @@ CUAD_QUESTION_TEMPLATES = {
     "Third Party Beneficiary": 'Highlight the parts (if any) of this contract related to "Third Party Beneficiary" that should be reviewed by a lawyer. Details: Is there a non-contracting party who is a beneficiary to some or all of the clauses in the contract and therefore can enforce its rights against a contracting party?',
     "Indemnification": 'Highlight the parts (if any) of this contract related to "Indemnification" that should be reviewed by a lawyer. Details: Does one party to the contract agree to indemnify the counterparty for losses suffered or incurred by the counterparty, including as a result of the counterparty\'s own actions?',
 }
+# add a reverse lookup dict
+QUESTION_TO_CLAUSE_TYPE = {
+    v: k for k, v in CUAD_QUESTION_TEMPLATES.items()
+}
 
-# Reverse lookup for internal logic
-QUESTION_TO_CLAUSE_TYPE = {v: k for k, v in CUAD_QUESTION_TEMPLATES.items()}
-
-# Logic threshold
 BASELINE_CONF_THRESHOLD = 0.6
+
+import os
+import hashlib
+import logging
+
+# ML TRAINING DEPENDENCIES (Commented out to protect FastAPI production environment)
+# from datasets import load_from_disk
+
+logger = logging.getLogger(__name__)
+
+def get_data_path(override: str = None) -> str:
+    """
+    Resolve dataset path based on environment.
+    Priority: explicit override > env var > auto-detected platform default.
+    """
+    if override:
+        return override
+
+    if env_path := os.environ.get("CUAD_DATA_PATH"):
+        return env_path
+
+    # Kaggle — datasets are mounted under /kaggle/
+    if os.path.exists("/kaggle/working"):
+        return "/kaggle/input/tokenized-cuad/tokenized_cuad"
+
+    # Colab — typically mounted from Drive
+    if os.path.exists("/content/drive"):
+        return "/content/drive/MyDrive/aiml_project/tokenized_cuad"
+
+    # Local fallback
+    return "./data/tokenized_cuad"
+
+
+def load_cuad_dataset(data_path: str = None):
+    path = get_data_path(data_path)
+    if not os.path.exists(path):
+        raise FileNotFoundError(
+            f"Dataset not found at: {path}\n"
+            f"Set CUAD_DATA_PATH env var or pass data_path explicitly.\n"
+            f"Example: load_cuad_dataset('/your/actual/path')"
+        )
+    logger.info(f"Loading dataset from: {path}")
+    
+    # Needs the dataset import above to be uncommented to work!
+    # return load_from_disk(path)
+    raise NotImplementedError("Uncomment 'from datasets import load_from_disk' at the top of constants.py to use this locally.")
+
+def _make_clause_id(doc_id: str, clause_type: str, counter: int) -> str:
+    # Truncate doc_id to 20 chars + short hash for uniqueness
+    short_id = doc_id[:20].replace(" ", "_")
+    doc_hash = hashlib.md5(doc_id.encode()).hexdigest()[:6]
+    clause_slug = clause_type.replace(" ", "_")[:20]
+    return f"{short_id}_{doc_hash}_{clause_slug}_{counter:04d}"
