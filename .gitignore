@@ -13,9 +13,13 @@ env/
 
 # Data (large files - don't commit)
 data/raw/
-data/processed/
+data/processed/*
 data/faiss_index/
-data/synthetic/*.json
+data/synthetic/*
+
+# Key pipeline artifacts — travel with git
+!data/processed/all_positive_spans.json
+!data/synthetic/gold_set.json
 
 # Model weights (don't commit)
 models/
@@ -35,6 +39,10 @@ models/
 .DS_Store
 Thumbs.db
 
+# Windows / OneDrive sync artifacts (alternate data streams, sync GUIDs)
+*:Zone.Identifier
+*:[0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F]-*
+
 # Secrets
 .env
 *.key
@@ -52,5 +60,3 @@ checkpoints/
 outputs/
 runs/
 
-# Additional data formats
-data/synthetic/
