@@ -37,6 +37,48 @@ Contract PDF/Text
 └─────────────────────────────┘
 ```
 
+## Stage 3 Design Options (To Be Decided — Post DeBERTa Training)
+
+> **Immediate priority**: Train DeBERTa risk classifier first. Evaluate accuracy. Stage 3 agent design follows.
+> **Project goal**: Learn agentic RAG — the chosen design should exercise agent tool-calling and reasoning, not just a static pipeline.
+
+### Option A — Static LangGraph Pipeline (deterministic)
+LangGraph orchestrates fixed sequential steps. Predictable, auditable, good for academic defense.
+```
+Clause + METADATA
+    → RAG (FAISS top-5 similar clauses)
+    → Contract Search (cross-referenced clause types)
+    → DeBERTa (risk_level + confidence)
+    → Mistral (explanation using clause + risk_level + RAG + METADATA)
+    → output
+```
+- Pro: reproducible, easy to debug, every step auditable
+- Con: no dynamic reasoning — DeBERTa's label is always final regardless of confidence
+- METADATA injected into Mistral's explanation context (not DeBERTa's input)
+
+### Option B — Reasoning Model as Brain (agentic) ← preferred direction
+A reasoning model (Mistral/Qwen) controls all tools autonomously via LangGraph tool nodes.
+DeBERTa is exposed as a tool the agent calls to get a calibrated classification signal.
+```
+Clause + METADATA
+    → Reasoning Model decides tool calls:
+        - RAG tool (retrieve similar clauses)
+        - Contract Search tool (cross-references)
+        - DeBERTa tool (specialist classifier — always called for final verdict)
+    → Reasoning Model synthesizes: DeBERTa label + context + METADATA
+    → final risk_level + explanation
+```
+- Pro: agent exercises multi-hop reasoning; METADATA naturally informs label interpretation;
+  low-confidence DeBERTa scores can be escalated or cross-checked dynamically
+- Con: non-deterministic, higher latency, more complex to debug
+- DeBERTa remains the authoritative classification signal — reasoning model qualifies, not overrides
+
+### Key Shared Decision (both options)
+- **DeBERTa input**: clause_text + clause_type only (trained on these features)
+- **METADATA** (parties, agreement type, dates): flows to reasoning/explanation model, not DeBERTa
+- **Confidence threshold**: if DeBERTa confidence < 0.6, flag clause for human review
+- **Training first**: evaluate DeBERTa accuracy before committing to agent complexity
+
 ## Directory Structure
 
 ```
