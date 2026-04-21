@@ -112,6 +112,47 @@ The same clause text can be LOW or HIGH depending on who signed:
 **Recommendation**: Run Option 1 first as baseline. If accuracy is limited by signing-party ambiguity,
 evaluate Option 2 (cleaner training signal) vs Option 3 (no retraining, more flexible).
 
+## Labeling Review Learnings (Discuss After DeBERTa Baseline)
+
+These patterns emerged from manual review of 239 HIGH↔LOW flip cases and should inform
+model design, RAG strategy, and agent reasoning.
+
+### 1. Signing Party Ambiguity is the #1 Label Driver
+81% of Rajnish's 60 rows were LOW — not because the clauses were genuinely low risk,
+but because the signing party turned out to be the *recipient* of rights, not the grantor.
+Both Qwen and Gemini reasoned correctly about clause text but assumed different parties.
+**Implication**: A model trained on clause text alone will have a hard accuracy ceiling on
+IP Ownership, License Grant, and Affiliate License clause types specifically.
+
+### 2. Cross-Contract Clause Interaction Changes Labels
+Several clauses were correctly assessed only after reading *other clauses* in the same contract:
+- MR-095 (IP assistance clause): looked HIGH alone, but other clauses showed IP already
+  assigned elsewhere — this was just administrative paperwork → LOW
+- MR-234 (1-copy software restriction): looked restrictive alone, but full production license
+  existed in another clause — test/backup restriction was supplemental → LOW
+**Implication**: RAG retrieval should include *same-contract* clause context, not just
+similar clauses from other contracts. The contract search tool in Stage 3 is critical.
+
+### 3. Clause Type Labels Are Noisy at the Boundary
+- Volume Restriction includes supply guarantees, image size limits, content duration caps —
+  not just purchase minimums. Same clause type, very different risk patterns.
+- Non-Transferable License ranges from LOW (standard distribution) to MEDIUM (M&A constraint)
+  depending on deal context (affiliate carve-outs, term length, corporate structure).
+**Implication**: clause_type alone is a weak feature. The RAG examples need to be diverse
+within each type — DeBERTa must learn intra-type variation, not just type-level patterns.
+
+### 4. Mutual vs One-Sided is a Strong Signal
+For Uncapped Liability: mutual consequential damage exclusions are almost always LOW.
+One-sided caps (only one party's liability limited) trend MEDIUM-HIGH.
+**Implication**: "mutual" / "either party" / "both parties" keywords are strong LOW signals
+for liability clause types. Worth checking if DeBERTa learns this or needs explicit feature.
+
+### 5. Context-Dependent Clauses Need Confidence Flagging
+Some clauses were genuinely ambiguous even with METADATA (MR-094 truncated GSK clause,
+MR-093 spin-off restructuring). These warrant MEDIUM and low DeBERTa confidence scores.
+**Implication**: confidence threshold + human review escalation path is not optional —
+it's needed for a reliable production system.
+
 ## Directory Structure
 
 ```
