@@ -79,6 +79,39 @@ Clause + METADATA
 - **Confidence threshold**: if DeBERTa confidence < 0.6, flag clause for human review
 - **Training first**: evaluate DeBERTa accuracy before committing to agent complexity
 
+## Open Design Question — METADATA in DeBERTa Training (Discuss After Labeling)
+
+> **Context**: During manual label review, we found that many HIGH↔LOW flips between Qwen and Gemini
+> are caused entirely by not knowing who the signing party is — both models reason correctly about the
+> clause text but assume different parties. Without METADATA, DeBERTa faces the same ambiguity.
+
+### The problem
+The same clause text can be LOW or HIGH depending on who signed:
+- "Vendor grants AT&T perpetual irrevocable license" → HIGH if Vendor signs, LOW if AT&T signs
+- No amount of fine-tuning on clause text alone resolves this
+
+### Three options to evaluate after DeBERTa baseline:
+
+**Option 1 — clause_type only (current plan, baseline)**
+`[CLS] clause_type [SEP] clause_text [SEP]`
+- Partial signal — clause type hints at risk direction but doesn't resolve signing party
+- Establishes baseline accuracy ceiling
+
+**Option 2 — Add party role tag at training + inference time**
+`[CLS] signing_party_role=licensor [SEP] clause_type [SEP] clause_text [SEP]`
+- Stage 1+2 extracts METADATA (Parties field) and infers role (licensor/licensee, vendor/customer)
+- DeBERTa trained with role tag → directly resolves signing party ambiguity
+- Requires role inference logic from contract METADATA
+
+**Option 3 — Reasoning model resolves METADATA ambiguity (Option B architecture)**
+- DeBERTa classifies on text alone, will be uncertain on party-dependent cases
+- Low-confidence predictions escalated to reasoning model
+- Reasoning model uses METADATA to confirm or override DeBERTa's label
+- No retraining needed — handles ambiguity at inference time
+
+**Recommendation**: Run Option 1 first as baseline. If accuracy is limited by signing-party ambiguity,
+evaluate Option 2 (cleaner training signal) vs Option 3 (no retraining, more flexible).
+
 ## Directory Structure
 
 ```
