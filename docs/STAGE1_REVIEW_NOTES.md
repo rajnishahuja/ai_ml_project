@@ -24,21 +24,30 @@
 **Suggested**: `predict.py` should import from `constants.py` when implemented.  
 **Files**: `constants.py`, `predict.py:16-31`
 
-## 4. Dataset approach — open discussion
+## 4. Dataset approach — resolved
 
-**Current**: `preprocess_cuad.py` uses local `CUAD_v1.json` with custom flattening and 1:1 pos/neg balancing.  
-**Alternative**: `src/common/data_loader.py` uses `theatticusproject/cuad-qa` (pre-flattened, pre-split from HuggingFace).  
-**Questions**:
-- How much did the 1:1 balancing improve accuracy vs unbalanced?
-- Can the balancing logic be applied to `cuad-qa` as well if needed?
-- Should we standardize on one dataset source?
+**Decision**: Stick with `CUAD_v1.json` from the official CUAD GitHub repo. The `theatticusproject/cuad-qa` HuggingFace dataset uses the same underlying data but has compatibility issues with newer `datasets` library versions (deprecated loading script). No advantage to switching.
 
-## 5. Pipeline refactoring (T1.1–T1.3)
+## 5. Data leakage in train/val/test split — high priority
+
+**Current**: `preprocess_cuad.py:86` splits at the QA-pair level using `train_test_split()`. This scatters clauses from the same contract across train, val, and test sets. Since all 41 QA pairs for a contract share the same context, the model sees the same contract text during training and evaluation.  
+**Impact**: Eval metrics are inflated — the model memorizes contract-specific patterns, not generalizable clause extraction. Real-world performance on unseen contracts will be lower than reported.  
+**Fix**: Split at the **contract level** (group by `title` field) using `sklearn.model_selection.GroupShuffleSplit`. All QA pairs from one contract stay in the same split.  
+**Files**: `preprocess_cuad.py:86-94`
+
+## 6. Pipeline refactoring (T1.1-T1.3)
 
 **Current**: `pipeline.py` remains monolithic (463 lines). `model.py`, `train.py`, `predict.py` are stubs.  
 **Planned**: T1.1 (model.py), T1.2 (train.py), T1.3 (predict.py) — extract from pipeline.py.  
 **Status**: Not started. Need to coordinate who picks these up.
 
+## 7. Classification accuracy is misleading — high priority
+
+**Current**: `evaluate.py` infers the predicted clause type as `pred_type = true_type if pred_text else "NO_CLAUSE"`. The clause type always comes from the question (it's part of the input, not a model output), so any non-empty answer is automatically counted as a correct type prediction.  
+**Impact**: Classification accuracy in the current reports is effectively measuring "did the model return *some* answer" — not "did it classify the clause correctly". A model that returns the same boilerplate on every query would look good on this metric.  
+**Fix**: Reframe the classification metric as **clause presence vs absence per type** (binary: did the model correctly predict that this clause type exists / doesn't exist in this contract). Report per-type precision/recall/F1 instead of a pooled accuracy number.  
+**Files**: `evaluate.py` (classification block)
+
 ---
 
-*Created 2026-04-14 during architecture review.*
+*Created 2026-04-14 during architecture review. Item #7 added 2026-04-23.*

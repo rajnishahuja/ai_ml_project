@@ -20,10 +20,10 @@ Contract PDF/Text
               │
               ▼
 ┌─────────────────────────────┐
-│  Stage 3: Risk Detection    │  LangGraph agent
-│  Agent with RAG             │  DeBERTa-base (risk classifier)
-│  Tools: FAISS retrieval,    │  Mistral-7B-Instruct (explanations)
-│         contract search     │  all-MiniLM-L6-v2 (embeddings)
+│  Stage 3: Risk Detection    │  Hybrid Confidence-Gated
+│  DeBERTa → Agent (low-conf) │  DeBERTa-base (risk classifier)
+│  Tools: precedent_search,   │  Mistral-7B-Instruct (agent + explanations)
+│         contract_search     │  all-MiniLM-L6-v2 (embeddings)
 │  Output: risk-assessed      │  FAISS vector store
 │          clause objects     │
 └─────────────┬───────────────┘
@@ -335,6 +335,92 @@ MR-093 spin-off restructuring). These warrant MEDIUM and low DeBERTa confidence 
 **Implication**: confidence threshold + human review escalation path is not optional —
 it's needed for a reliable production system.
 
+## Stage 3 Training Data Pipeline
+
+> **Decided 2026-04-18, merged 2026-04-23.** Canonical source: `data/review/master_label_review.csv`.
+> Full labeling history + disagreement analysis: `docs/STAGE3_LABEL_COMPARISON.md`.
+
+Risk labels were produced through a multi-labeler + human-review pipeline on the 6,702 positive
+spans output by Stage 1+2.
+
+1. **Metadata routing.** 2,292 spans belonging to the 5 metadata clause types (Document Name,
+   Parties, Agreement Date, Effective Date, Expiration Date) were auto-assigned
+   `final_label="METADATA"` and never sent to labelers — they route to the Stage 4 report
+   header, not the risk classifier.
+2. **Primary labeling pass (4,410 risk-relevant spans).** Qwen-30B (non-reasoning, local
+   llama-server, temp=0) and Gemini 2.5 Flash (Google API, JSON mode, temp=0) each labeled
+   every risk-relevant span independently.
+3. **Reconciliation by disagreement type.** Where the two labelers agreed, the label was taken
+   as-is (AGREED, 2,735). Disagreements were routed by severity:
+   - **Extreme HIGH↔LOW flips (239 rows)** → 4 human reviewers (~60 rows each by whole clause
+     type) filled `final_label` manually. 4 rows turned out to be truncated fragments and
+     were re-flagged as ERROR (final count: 235 labeled MANUAL_REVIEW).
+   - **Boundary disagreements on focus types (87 rows)** — MEDIUM↔HIGH or LOW↔MEDIUM on
+     Uncapped Liability, Liquidated Damages, and Irrevocable/Perpetual License → Gemini 2.5 Pro
+     tiebreaker (GEMINI_PRO_REVIEW).
+   - **Remaining adjacent disagreements (1,327 rows)** → kept as soft-label probability
+     vectors instead of collapsing to a single hard label (SOFT_LABEL).
+
+The `category` column records which path each row took.
+
+### Row Categories
+
+| Category | Rows | `final_label` source | Training role |
+|---|---|---|---|
+| METADATA | 2,292 | Pre-filled `"METADATA"` | **Excluded** — routes to Stage 4 report header |
+| AGREED | 2,735 | Qwen == Gemini → pre-filled | **Hard label** (CrossEntropyLoss) |
+| MANUAL_REVIEW | 235 | 4 human reviewers (~60 rows each) filled extreme HIGH↔LOW flips | **Hard label** (CrossEntropyLoss) |
+| GEMINI_PRO_REVIEW | 87 | Gemini 2.5 Pro tiebreaker on focus-type non-flip disagreements | **Hard label** (CrossEntropyLoss) |
+| SOFT_LABEL | 1,327 | Probability vector computed from Qwen + Gemini at train time | **Soft label** (KLDivLoss) |
+| ERROR | 26 | Labeling errors (22) + manual-review fragments (4: MR-015, MR-170, MR-173, MR-175) | **Dropped** |
+
+**Effective training set**: **4,384 rows** = 3,057 hard + 1,327 soft.
+Hard-label class mix: LOW ≈ 48%, MEDIUM ≈ 24%, HIGH ≈ 18% (remainder excluded via METADATA/ERROR).
+
+### SOFT_LABEL Construction
+
+Adjacent disagreements (LOW↔MEDIUM or MEDIUM↔HIGH — never extreme HIGH↔LOW flips, which went
+to human review instead) are encoded as probability distributions rather than collapsed to a
+single hard label. This preserves labeler uncertainty on genuinely borderline cases.
+
+```
+Qwen=MEDIUM, Gemini=LOW   → [LOW=0.5, MEDIUM=0.5, HIGH=0.0]
+Qwen=LOW,    Gemini=MEDIUM → [LOW=0.5, MEDIUM=0.5, HIGH=0.0]
+Qwen=MEDIUM, Gemini=HIGH  → [LOW=0.0, MEDIUM=0.5, HIGH=0.5]
+Qwen=HIGH,   Gemini=MEDIUM → [LOW=0.0, MEDIUM=0.5, HIGH=0.5]
+```
+
+**Confidence-weighted variant** (available, opt-in): use `qwen_confidence` / `gemini_confidence`
+columns to weight each labeler's vote instead of 50/50. Default v1 keeps uniform 50/50 weights
+because Qwen's `conf=0.0` artifact (11.5% of its rows) would distort weighted vectors.
+
+### Loss Function Branching
+
+DeBERTa trains on mixed batches where each row carries either a hard class index or a 3-way
+probability vector. Per-example loss branches on the row's source:
+
+- **Hard label rows** (AGREED + MANUAL_REVIEW + GEMINI_PRO_REVIEW, n=3,057)
+  → `CrossEntropyLoss(logits, class_idx)`
+- **Soft label rows** (SOFT_LABEL, n=1,327)
+  → `KLDivLoss(log_softmax(logits), soft_prob_vector)`
+
+The batch loss is the mean over both branches. Sharp boundaries are learned where all labelers
+agreed; calibration is preserved on the borderline LOW/MEDIUM and MEDIUM/HIGH cases where both
+labels are defensible.
+
+### Row Provenance (columns in `master_label_review.csv`)
+
+| Column | Purpose |
+|---|---|
+| `row_num`, `review_id` | Stable identifiers. Original assignment ranges: METADATA 1–2292, AGREED 2293–5027, MANUAL_REVIEW 5028–5266, GEMINI_PRO_REVIEW 5267–5353, SOFT_LABEL 5354–6680, ERROR 6681–6702. Note: 4 MANUAL_REVIEW rows (MR-015, MR-170, MR-173, MR-175) were re-flagged to ERROR post-review and keep their original row_nums — always filter by `category`, not row_num range |
+| `category` | One of 6 above — drives training-time routing (hard / soft / exclude) |
+| `final_label` | Hard label, or `"METADATA"` / `"ERROR"` |
+| `reviewer` | Human name, `"Gemini-2.5-Pro"`, or empty for auto-agreed rows |
+| `qwen_label`, `gemini_label`, `copilot_label` | Original labeler outputs, preserved for audit |
+| `qwen_confidence`, `gemini_confidence` | Used by the confidence-weighted soft-label variant |
+| `qwen_reason`, `gemini_reason` | Per-labeler rationale (human-readable, for review UI + debugging) |
+| `notes` | Reviewer-added comments, fragment flags |
+
 ## Directory Structure
 
 ```
@@ -383,8 +469,9 @@ AIML_project/
 │       └── evaluate.py          ← ROUGE + optional human eval
 ├── data/
 │   ├── raw/                     ← Downloaded CUAD dataset files
-│   ├── processed/               ← Preprocessed/formatted data
-│   ├── synthetic/               ← LLM-generated risk labels
+│   ├── processed/               ← Preprocessed data; `all_positive_spans.json` (6,702 spans)
+│   ├── synthetic/               ← Raw LLM labeler outputs (Qwen, Gemini Flash, Gemini Pro)
+│   ├── review/                  ← `master_label_review.csv` (canonical merged labels, 6,702 rows)
 │   └── faiss_index/             ← Built FAISS vector index
 ├── notebooks/
 │   ├── 01_cuad_exploration.ipynb      ← Dataset exploration and stats
@@ -464,28 +551,16 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
     ],
     "cross_references": ["contract_001_Cap_On_Liability_0034"],
     "confidence": 0.88,
+    "overridden": true,
     "agent_trace": [
-      {"tool": "faiss_retrieval", "result_count": 5},
+      {"tool": "precedent_search", "result_count": 5},
       {"tool": "contract_search", "related_clauses": 2}
     ]
   }
 ]
 ```
 
-> `risk_explanation` is generated by Mistral-7B-Instruct. `agent_trace` records which tools the LangGraph agent invoked for this clause (useful for debugging and ablation).
-
-### Synthetic Risk Labels (Training Data for Stage 3)
-```json
-{
-  "clause_text": "Contractor shall indemnify Company against all claims...",
-  "clause_type": "Indemnification",
-  "risk_level": "HIGH",
-  "risk_reason": "One-sided indemnification covering counterparty negligence",
-  "labeled_by": "qwen-32b"
-}
-```
-
-> Generated by prompting Qwen-32B (primary) or Gemini/OpenAI (backup) on each CUAD clause. Stored in `data/synthetic/risk_labels.json`. Validated via notebooks before use.
+> `risk_explanation` is generated by Mistral-7B-Instruct. `agent_trace` records which tools the LangGraph agent invoked for this clause (populated only on the low-confidence path; high-confidence path emits `[]`). `overridden` is `true` when the agent's `final_label` differs from DeBERTa's preliminary label. See the **Stage 3 Training Data Pipeline** section below for how these labels are produced and the **Stage 3 Architecture — Hybrid Confidence-Gated** section above for inference flow.
 
 ### Stage 4 Output (Final Report)
 ```json
@@ -531,23 +606,26 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
 | Model | Stage | HuggingFace ID | Purpose | VRAM |
 |-------|-------|---------------|--------|------|
 | DeBERTa-base | 1+2 | `microsoft/deberta-base` | QA extraction + classification | ~2 GB (train ~8 GB) |
-| DeBERTa-base | 3 | `microsoft/deberta-base` | Risk classification (fine-tuned on synthetic labels) | ~2 GB (train ~8 GB) |
-| Mistral-7B-Instruct | 3 | `mistralai/Mistral-7B-Instruct-v0.3` | Risk explanation generation (4-bit quantized) | ~5 GB |
+| DeBERTa-base | 3 | `microsoft/deberta-base` | Risk classification (fine-tuned on merged labels from `master_label_review.csv` — 3,057 hard + 1,327 soft) | ~2 GB (train ~8 GB) |
+| Mistral-7B-Instruct | 3 | `mistralai/Mistral-7B-Instruct-v0.3` | Risk explanation (high-conf path) + reasoning agent with tools (low-conf path), 4-bit quantized | ~5 GB |
 | all-MiniLM-L6-v2 | 3 | `sentence-transformers/all-MiniLM-L6-v2` | Clause embeddings for FAISS | ~0.5 GB |
 | FLAN-T5-base | 4 | `google/flan-t5-base` | Report explanation generation | ~1 GB |
-| Qwen-32B-Instruct | 3 (data prep) | `Qwen/Qwen2.5-32B-Instruct` | Synthetic risk label generation (primary) | API or ~20 GB (4-bit) |
+| Qwen-30B (non-reasoning) | 3 (data prep, done) | `mavenir-generic1-30b-q4_k_xl` (local llama-server on A100, temp=0) | Primary labeler — 4,410 risk-relevant spans | ~20 GB (4-bit) |
+| Gemini 2.5 Flash | 3 (data prep, done) | `gemini-2.5-flash` (Google API, JSON mode, temp=0) | Primary labeler — 4,410 risk-relevant spans (independent of Qwen) | API |
+| Gemini 2.5 Pro | 3 (data prep, done) | `gemini-2.5-pro` (Google API) | Boundary-disagreement tiebreaker — 87 focus-type MEDIUM↔HIGH / LOW↔MEDIUM cases | API |
 | spaCy en_core_web_sm | 1+2 | N/A (pip) | Baseline comparison | negligible |
 
 ## Key Datasets
 
 | Dataset | Source | Format | Usage |
 |---------|--------|--------|-------|
-| CUAD (SQuAD format) | `huggingface: kenlevine/CUAD` | Nested JSON: `ds[0]['data'][i]['paragraphs'][0]['qas']` | Primary dataset for extraction, classification, and risk base |
-| Synthetic risk labels | Generated via Qwen-32B (primary), Gemini/OpenAI (backup) | JSON: `data/synthetic/risk_labels.json` | Risk level labels (LOW/MEDIUM/HIGH + reason) for CUAD clauses |
+| CUAD QA | `theatticusproject/cuad-qa` (HuggingFace) | Pre-flattened QA rows; train: 22,450 / test: 4,182 | Stage 1+2 extraction + classification training |
+| Stage 1+2 output (positive spans) | `data/processed/all_positive_spans.json` | JSON list, 6,702 spans across 510 contracts × 41 types | Source pool for Stage 3 risk labeling |
+| Merged risk labels | `data/review/master_label_review.csv` | 6,702 rows, 6 categories — see **Stage 3 Training Data Pipeline** | Stage 3 risk classifier training labels |
 
-**CUAD details:** 510 legal contracts, 41 clause types per contract, ~20,910 QA pairs total. Each QA pair has a question ("Highlight the parts related to X..."), the full contract text as context, and an answer span (or empty if clause absent). ~60-70% of QA pairs have empty answers. License: CC BY 4.0.
+**CUAD details:** 510 legal contracts, 41 clause types per contract, ~20,910 QA pairs total. Each QA pair has a question ("Highlight the parts related to X..."), the full contract text as context, and an answer span (or empty if clause absent). ~67.9% of QA pairs have empty answers. Of the 32.1% positive spans (6,702), 5 metadata types (2,292 spans) route to the Stage 4 report header — leaving **4,410 risk-relevant spans** for the classifier. License: CC BY 4.0. See `docs/dataset_insights.md` for the per-type breakdown.
 
-**Note:** `theatticusproject/cuad` on HuggingFace serves raw PDFs (requires pdfplumber). Use `kenlevine/CUAD` for the SQuAD-format JSON used for training.
+**Note:** `theatticusproject/cuad-qa` is pre-flattened and pre-split — no flatten/split step needed. Do **not** use the raw `theatticusproject/cuad` (PDFs) or `kenlevine/CUAD` (nested SQuAD JSON) variants. See `src/common/data_loader.py`.
 
 ## Config File Schemas
 
@@ -561,7 +639,7 @@ learning_rate: 2.0e-5
 epochs: 3
 output_dir: models/stage1_2_deberta
 confidence_threshold: 0.01
-dataset: kenlevine/CUAD
+dataset: theatticusproject/cuad-qa
 fp16: true
 ```
 
@@ -575,15 +653,17 @@ risk_classifier:
   batch_size: 16
 embedding_model: sentence-transformers/all-MiniLM-L6-v2
 faiss_index_path: data/faiss_index/clauses.index
-explanation_model: mistralai/Mistral-7B-Instruct-v0.3
+agent_model: mistralai/Mistral-7B-Instruct-v0.3   # same instance used for explanation + agent
 quantization: 4bit
-agent_max_iterations: 3
-similarity_threshold: 0.75
-similarity_top_k: 5
-synthetic_labels:
-  model: Qwen/Qwen2.5-32B-Instruct
-  backup: gemini/openai
-  output_path: data/synthetic/risk_labels.json
+confidence_threshold: 0.6          # DeBERTa confidence gate for high-conf vs low-conf path
+agent_max_iterations: 5            # low-conf path only; tool-calling loop cap
+similarity_top_k_high_conf: 3      # precedent_search k on high-conf path (explanation context)
+similarity_top_k_low_conf: 5       # precedent_search k on low-conf path (agent reasoning)
+training_labels_path: data/review/master_label_review.csv   # canonical source of truth
+raw_label_passes:                  # pre-merge labeler outputs (preserved for audit, not used at train time)
+  qwen: data/synthetic/synthetic_risk_labels_qwen.json
+  gemini_flash: data/synthetic/synthetic_risk_labels_gemini.json
+  gemini_pro_focus_87: data/synthetic/synthetic_risk_labels_gemini_pro.json
 ```
 
 ### `configs/stage4_config.yaml`
@@ -600,7 +680,7 @@ max_explanation_length: 200
 
 1. **Classification evaluation is misleading in existing code.** The current `evaluate.py` infers `pred_type = true_type if pred_text else "NO_CLAUSE"`. This means any non-empty answer is counted as correctly classifying the clause type (since the type is derived from the question, not the model). This inflates classification accuracy. The proper evaluation should measure whether the model correctly identifies clause presence vs absence per type.
 
-2. **CUAD class imbalance.** ~60-70% of QA pairs have empty answers (clause absent). Models may learn to predict empty spans by default. Training should handle this imbalance (e.g., balanced sampling or adjusted loss).
+2. **CUAD class imbalance.** ~67.9% of QA pairs have empty answers (clause absent). Models may learn to predict empty spans by default. Training should handle this imbalance (e.g., balanced sampling or adjusted loss). See `docs/dataset_insights.md` for per-clause-type positive rates.
 
 3. **Long contracts exceed 512 tokens.** CUAD contracts average 10K-50K characters. The sliding window approach (`doc_stride=128`) handles this but means one clause may span multiple windows. Post-processing must deduplicate overlapping predictions.
 
