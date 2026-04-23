@@ -68,7 +68,7 @@ A DeBERTa-QA model trained on CUAD will learn to reproduce these exactly when th
 **Fix (suggested)**: Add a post-prediction filter in Stage 1 `predict.py` / `evaluate.py`. If the predicted span is shorter than N characters (~15) **and** the DeBERTa start/end logits are below a confidence floor, reject it (treat as `NO_CLAUSE` or flag for review). Valid short answers like "South Dakota" for Governing Law should still pass if model confidence is high. Threshold tunable per clause type.
 
 **Files**: `src/stage1_extract_classify/predict.py`, `src/stage1_extract_classify/evaluate.py`  
-**Discovered**: 2026-04-23 during Stage 3 data sanity pass; see `docs/STAGE3_TRAINING_NOTES.md` §4 "Fragment clauses".
+**Discovered**: 2026-04-23 during Stage 3 data sanity pass; see `docs/STAGE3_TRAINING_NOTES.md` §5 "Fragment clauses".
 
 ---
 

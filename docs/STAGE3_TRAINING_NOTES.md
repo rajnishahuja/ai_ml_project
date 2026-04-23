@@ -26,28 +26,49 @@ Source: `data/processed/training_dataset.json` via `scripts/build_training_datas
 
 ---
 
-## 2. Clause length distribution
+## 2. Model choice: DeBERTa-v3-base
 
-Measured with `microsoft/deberta-base` tokenizer, combined input
+Chose `microsoft/deberta-v3-base` over `microsoft/deberta-base` for the Stage 3 risk
+classifier. Rationale:
+
+- **Stronger pretraining**: v3 uses ELECTRA-style replaced-token-detection instead of v1's
+  masked-language-modeling. Published benchmarks show v3 consistently ahead on downstream
+  classification tasks at the same parameter count.
+- **Same VRAM**: both are 12-layer 768-hidden ~86M-param models. No infra cost.
+- **More efficient tokenizer on legal text**: v3 uses a SentencePiece vocab of 128k vs v1's
+  BPE vocab of 50k. Legal terms that v1 fragments into multiple subwords tend to be single
+  tokens in v3, shortening the input sequence.
+
+Stage 1+2 (Anushka's extraction model) stays on `deberta-base` — already trained, not
+worth swapping mid-stream.
+
+## 3. Clause length distribution
+
+Measured with the `microsoft/deberta-v3-base` tokenizer, combined input
 `tokenizer(clause_type, clause_text)` → `[CLS] clause_type [SEP] clause_text [SEP]`.
 
 | Percentile | Tokens |
 |---|---|
-| Mean | 87 |
-| Median | 68 |
-| p75 | 106 |
-| p90 | 159 |
-| p95 | 206 |
-| p99 | 358 |
-| Max | 1,181 |
+| Mean | 72 |
+| Median | 57 |
+| p75 | 88 |
+| p90 | 133 |
+| p95 | 168 |
+| p99 | 292 |
+| Max | 657 |
 
-**Only 18 rows (0.41%) exceed 512 tokens.** `max_length=512` with right-side truncation is
-more than sufficient — no chunking / head+tail strategy needed. `max_length=256` would still
-cover 97.3% and is a viable speed optimization if GPU time becomes a bottleneck.
+**Only 5 rows (0.11%) exceed 512 tokens, 0 exceed 768.** `max_length=512` with right-side
+truncation is comfortably sufficient — no chunking / head+tail strategy needed.
+`max_length=256` would still cover 98.5% and is a viable speed optimization if GPU time
+becomes a bottleneck.
+
+For reference, the same measurement with deberta-base tokenizer (what we would have used
+on the rejected option) gave mean=87, p99=358, max=1,181, with 18 rows (0.41%) over 512.
+v3's tokenizer is ~15–20% more efficient on this corpus.
 
 ---
 
-## 3. Train/val/test split
+## 4. Train/val/test split
 
 **Strategy**: `StratifiedGroupKFold` — group by `contract` (zero leakage), stratify by
 `clause_type` (ensures every type is represented in every split). 80/10/10 target.
@@ -121,7 +142,7 @@ for n<10. These are not failures of the classifier; they're hard limits of the d
 
 ---
 
-## 4. Data quality findings
+## 5. Data quality findings
 
 ### Fragment clauses (9 rows, removed)
 
@@ -175,7 +196,7 @@ removing it throws away real signal.
 
 ---
 
-## 5. Soft-label construction
+## 6. Soft-label construction
 
 Confidence-weighted probability vectors for adjacent (LOW↔MEDIUM or MEDIUM↔HIGH)
 disagreements between Qwen and Gemini. Qwen's `conf=0.0` artifact (11.7% of its rows)
@@ -188,7 +209,7 @@ via `--no_conf_weight` for ablation.
 
 ---
 
-## 6. Reproducibility
+## 7. Reproducibility
 
 All prep is deterministic given the inputs:
 - `data/review/master_label_review.csv` → `scripts/build_training_dataset.py` →
@@ -201,7 +222,7 @@ in the script default, so no arguments needed.
 
 ---
 
-## 7. Still open (before training code)
+## 8. Still open (before training code)
 
 See `memory/project_stage3_training_checklist.md` for the live list. As of 2026-04-23,
 Section A (data prep) is complete. Section B (model & tokenizer), Section C (loss & signal

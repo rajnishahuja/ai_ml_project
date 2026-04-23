@@ -21,7 +21,7 @@ Contract PDF/Text
               ▼
 ┌─────────────────────────────┐
 │  Stage 3: Risk Detection    │  Hybrid Confidence-Gated
-│  DeBERTa → Agent (low-conf) │  DeBERTa-base (risk classifier)
+│  DeBERTa → Agent (low-conf) │  DeBERTa-v3-base (risk classifier)
 │  Tools: precedent_search,   │  Mistral-7B-Instruct (agent + explanations)
 │         contract_search     │  all-MiniLM-L6-v2 (embeddings)
 │  Output: risk-assessed      │  FAISS vector store
@@ -649,7 +649,7 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
 | Model | Stage | HuggingFace ID | Purpose | VRAM |
 |-------|-------|---------------|--------|------|
 | DeBERTa-base | 1+2 | `microsoft/deberta-base` | QA extraction + classification | ~2 GB (train ~8 GB) |
-| DeBERTa-base | 3 | `microsoft/deberta-base` | Risk classification (fine-tuned on merged labels from `master_label_review.csv` — 3,057 hard + 1,327 soft) | ~2 GB (train ~8 GB) |
+| DeBERTa-v3-base | 3 | `microsoft/deberta-v3-base` | Risk classification (fine-tuned on merged labels from `master_label_review.csv` — 3,048 hard + 1,327 soft). Chose v3 over base: ELECTRA-style pretraining → stronger downstream performance, same VRAM; SentencePiece 128k vocab is more efficient on legal text (p99 292 tokens vs 358 with base). | ~2 GB (train ~8 GB) |
 | Mistral-7B-Instruct | 3 | `mistralai/Mistral-7B-Instruct-v0.3` | Risk explanation (high-conf path) + reasoning agent with tools (low-conf path), 4-bit quantized | ~5 GB |
 | all-MiniLM-L6-v2 | 3 | `sentence-transformers/all-MiniLM-L6-v2` | Clause embeddings for FAISS | ~0.5 GB |
 | FLAN-T5-base | 4 | `google/flan-t5-base` | Report explanation generation | ~1 GB |
@@ -689,8 +689,8 @@ fp16: true
 ### `configs/stage3_config.yaml`
 ```yaml
 risk_classifier:
-  model_name: microsoft/deberta-base
-  output_dir: models/stage3_risk_deberta
+  model_name: microsoft/deberta-v3-base
+  output_dir: models/stage3_risk_deberta_v3
   learning_rate: 2.0e-5
   epochs: 5
   batch_size: 16

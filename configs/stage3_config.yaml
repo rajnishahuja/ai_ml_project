@@ -1,10 +1,13 @@
 # Stage 3: Risk Detection Agent
 risk_classifier:
-  model_name: microsoft/deberta-base
-  output_dir: models/stage3_risk_deberta
+  model_name: microsoft/deberta-v3-base
+  output_dir: models/stage3_risk_deberta_v3
   learning_rate: 2.0e-5
   epochs: 5
   batch_size: 16
+  max_length: 512                                # 99.9% of clauses fit; 5 rows truncated
+  training_data_path: data/processed/training_dataset.json
+  splits_path:        data/processed/splits.json
 
 embedding_model: sentence-transformers/all-MiniLM-L6-v2
 faiss_index_path: data/faiss_index/clauses.index
