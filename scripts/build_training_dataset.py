@@ -3,17 +3,24 @@ build_training_dataset.py
 =========================
 Builds the merged training dataset from master_label_review.csv.
 
-Categories included:
-  AGREED (2,735)          → hard label, one-hot soft vector
-  GEMINI_PRO_REVIEW (87)  → hard label from final_label, one-hot soft vector
-  SOFT_LABEL (1,327)      → confidence-weighted probability vector, no hard label
+Categories included (3,057 hard + 1,327 soft = 4,384 effective training rows):
+  AGREED (2,735)           → hard label (qwen == gemini), one-hot soft vector
+  MANUAL_REVIEW (235)      → hard label from human-filled final_label (4 fragments
+                             were re-flagged to ERROR during merge 2026-04-23)
+  GEMINI_PRO_REVIEW (87)   → hard label from Gemini 2.5 Pro's final_label
+  SOFT_LABEL (1,327)       → probability vector from qwen+gemini outputs, no hard label
 
 Categories excluded:
-  METADATA (2,292)        → routes to report header, not risk-labeled
-  MANUAL_REVIEW (239)     → pending human review, merged later
-  ERROR (22)              → dropped
+  METADATA (2,292)         → routes to report header, not risk-labeled
+  ERROR (26)               → dropped (22 original labeling errors + 4 MANUAL_REVIEW fragments)
 
 Label encoding: LOW=0, MEDIUM=1, HIGH=2
+
+Soft-label weighting (for SOFT_LABEL rows):
+  Default: confidence-weighted (qwen_confidence / gemini_confidence). Qwen's conf=0.0
+  artifact (11.5% of its rows) is floored to 0.5 since the label is valid but the
+  score is a known model quirk, not genuine uncertainty.
+  --no_conf_weight flag falls back to uniform 50/50 weights.
 
 Output: data/processed/training_dataset.json
 
@@ -87,7 +94,7 @@ def build(use_conf_weight: bool = True) -> list[dict]:
     for r in rows:
         cat = r["category"]
 
-        if cat in ("METADATA", "MANUAL_REVIEW", "ERROR"):
+        if cat in ("METADATA", "ERROR"):
             skipped[cat] += 1
             continue
 
@@ -111,11 +118,11 @@ def build(use_conf_weight: bool = True) -> list[dict]:
                 "confidence": round(conf, 4),
             })
 
-        elif cat == "GEMINI_PRO_REVIEW":
+        elif cat in ("MANUAL_REVIEW", "GEMINI_PRO_REVIEW"):
             label = r["final_label"]
             if label not in LABEL_TO_INT:
-                logger.warning(f"Skipping {r['review_id']} — missing final_label")
-                skipped["GEMINI_PRO_REVIEW_missing"] += 1
+                logger.warning(f"Skipping {r['review_id']} ({cat}) — final_label={label!r}")
+                skipped[f"{cat}_missing"] += 1
                 continue
             dataset.append({**base,
                 "label":      label,

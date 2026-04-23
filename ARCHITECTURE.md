@@ -375,7 +375,9 @@ The `category` column records which path each row took.
 | ERROR | 26 | Labeling errors (22) + manual-review fragments (4: MR-015, MR-170, MR-173, MR-175) | **Dropped** |
 
 **Effective training set**: **4,384 rows** = 3,057 hard + 1,327 soft.
-Hard-label class mix: LOW ≈ 48%, MEDIUM ≈ 24%, HIGH ≈ 18% (remainder excluded via METADATA/ERROR).
+Hard-label class mix: LOW 44.4% (1,358), MEDIUM 32.3% (987), HIGH 23.3% (712).
+Effective mix (hard + soft mass, 4,384): LOW 40.9%, MEDIUM 37.7%, HIGH 21.5%.
+Mild imbalance (~2:1 majority:minority) — handle with class weights in CE, not resampling.
 
 ### SOFT_LABEL Construction
 
@@ -390,9 +392,50 @@ Qwen=MEDIUM, Gemini=HIGH  → [LOW=0.0, MEDIUM=0.5, HIGH=0.5]
 Qwen=HIGH,   Gemini=MEDIUM → [LOW=0.0, MEDIUM=0.5, HIGH=0.5]
 ```
 
-**Confidence-weighted variant** (available, opt-in): use `qwen_confidence` / `gemini_confidence`
-columns to weight each labeler's vote instead of 50/50. Default v1 keeps uniform 50/50 weights
-because Qwen's `conf=0.0` artifact (11.5% of its rows) would distort weighted vectors.
+**Confidence weighting (default).** Each labeler's vote is scaled by its self-reported
+confidence rather than given a flat 0.5:
+
+```
+w_q = qwen_conf / (qwen_conf + gemini_conf)
+w_g = gemini_conf / (qwen_conf + gemini_conf)
+vec[qwen_label]   += w_q
+vec[gemini_label] += w_g
+```
+
+Workaround for Qwen's `conf=0.0` artifact (11.7% of its rows — labels are valid, score is
+a known model-output quirk, not genuine uncertainty): floor `qwen_conf` to `0.5` before
+weighting, so the label isn't silently dropped. See `scripts/build_training_dataset.py`
+for the implementation. A `--no_conf_weight` flag falls back to uniform 0.5/0.5 if we
+ever want to ablate.
+
+### Known Issue — Qwen `conf=0.0` Artifact (investigated 2026-04-23)
+
+515 of Qwen's 4,410 output rows (11.7%) carry `confidence=0.0` despite containing
+coherent, well-reasoned `risk_level` and `risk_reason` fields. Root-cause analysis:
+
+- **Bimodal distribution**: values cluster at `0.0`, `0.6–0.9`, and `0.9–1.0` — there are
+  **zero** rows in the `0.01–0.30` range. 0.0 is a discrete failure mode, not the bottom
+  of a continuous scale.
+- **Clause-type concentration**: heavily weighted toward verbose clause types where
+  reasoning is long — Non-Transferable License (42%), Affiliate License-Licensee (36%),
+  Irrevocable/Perpetual License (27%), License Grant (27%), ROFR (19%). Short / simple
+  clause types are barely affected.
+
+**Likely cause**: JSON output truncation or field-recovery fallback in the llama-server
+pipeline. Qwen emits `risk_reason` before `confidence`; when reasoning is long the
+response is cut off at `max_tokens` with `confidence` missing, and the post-processor
+defaults the absent field to 0.0.
+
+**Mitigations for any future labeling run**:
+1. Increase `max_tokens` generously (reasoning is the longest field).
+2. Reorder the JSON schema so `confidence` emits *before* `risk_reason`.
+3. Use a strict JSON grammar file with llama-server (grammar-constrained decoding)
+   so truncation produces a parse error rather than a silently-defaulted field.
+
+**Current mitigation**: the floor-to-0.5 workaround above. Labels are preserved; only
+the vote-weight signal is neutralized on affected rows. Not regenerating — the
+reconciliation pipeline (AGREED / SOFT_LABEL / MANUAL_REVIEW assignments + already-done
+human reviews) would be invalidated for marginal benefit on ~5% of the training signal.
 
 ### Loss Function Branching
 
