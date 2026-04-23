@@ -11,19 +11,36 @@
 | Total clause categories | 41 |
 | **Total QA pairs** | **20,910** |
 | **Positive clauses (clause present)** | **6,702 (32.1%)** |
+| &nbsp;&nbsp;&nbsp;↳ Metadata clauses (5 types) | 2,292 |
+| &nbsp;&nbsp;&nbsp;↳ **Risk-relevant clauses (36 types)** | **4,410** |
 | **Negative clauses (clause absent)** | **14,208 (67.9%)** |
 
-> Each document is evaluated against all 41 clause types, producing one QA pair per (document, clause type) combination.
+> Each document is evaluated against all 41 clause types, producing one QA pair per (document, clause type) combination. The 41 types are **QA questions**, not clauses per document.
+>
+> **Metadata carve-out**: 5 clause types (`Document Name`, `Parties`, `Agreement Date`, `Effective Date`, `Expiration Date`) are structural metadata, not risk-bearing clauses — they route to the Stage 4 report header and are excluded from risk labeling. The remaining **36 clause types → 4,410 positive spans** form our actual risk-classification training pool.
 
 ---
 
 ## 2. Clauses Per Document
+
+### All positive spans (metadata + risk-relevant)
 
 | Metric | Value |
 |---|---|
 | Average | 13.14 |
 | Maximum | 32 — `ENERGOUSCORP_03_16_2017 Strategic Alliance Agreement` |
 | Minimum | 2 — `PelicanDeliversInc_20200211 Development Agreement` |
+
+### Risk-relevant clauses only (excludes 5 metadata types)
+
+| Metric | Value |
+|---|---|
+| Average | **9.28** |
+| Maximum | 27 — `ENERGOUSCORP_03_16_2017 Strategic Alliance Agreement` |
+| Minimum | 1 (several contracts) |
+| Documents with ≥1 risk-relevant clause | 475 / 510 |
+
+> **Why this matters for Stage 3 design**: A typical contract carries ~9 risk-relevant clauses (not 41). All clauses from a contract fit comfortably in any reasoning model's context window — which is why the `contract_search` tool can be a simple structured lookup rather than hierarchical/vectorless navigation.
 
 ---
 

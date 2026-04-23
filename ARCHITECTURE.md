@@ -37,49 +37,229 @@ Contract PDF/Text
 └─────────────────────────────┘
 ```
 
-## Stage 3 Design Options (To Be Decided — Post DeBERTa Training)
+## Stage 3 Architecture — Hybrid Confidence-Gated (Decided 2026-04-23)
 
-> **Immediate priority**: Train DeBERTa risk classifier first. Evaluate accuracy. Stage 3 agent design follows.
-> **Project goal**: Learn agentic RAG — the chosen design should exercise agent tool-calling and reasoning, not just a static pipeline.
+> **Decision**: Hybrid Confidence-Gated architecture. DeBERTa classifies every clause; high-confidence predictions ship directly through a single explanation LLM call; low-confidence predictions escalate to a reasoning agent with tool access that can override DeBERTa's label.
+>
+> **Project goal satisfied**: exercises agentic RAG on the escalated path (~30–40% of clauses expected), while keeping the easy cases cheap and deterministic.
 
-### Option A — Static LangGraph Pipeline (deterministic)
-LangGraph orchestrates fixed sequential steps. Predictable, auditable, good for academic defense.
+### Why This Choice
+
+- **Practical efficiency** — the majority of clauses are expected to be high-confidence; no need to pay agent latency/tokens for easy cases
+- **Exercises agentic RAG** — low-confidence path is a full tool-calling loop (precedent_search + contract_search), satisfies the learning goal
+- **Addresses known label ambiguity** — signing-party direction was the #1 driver in manual review (81% of flips). The low-confidence escalation is exactly where METADATA + tools resolve this
+- **Clean academic framing** — "specialist when confident, generalist when uncertain"
+- **Cost-aware** — agent loop runs only on a minority of clauses
+
+### High-Level Flow
+
 ```
-Clause + METADATA
-    → RAG (FAISS top-5 similar clauses)
-    → Contract Search (cross-referenced clause types)
-    → DeBERTa (risk_level + confidence)
-    → Mistral (explanation using clause + risk_level + RAG + METADATA)
-    → output
+Clause + METADATA  (from Stage 1+2)
+     │
+     ▼
+┌─────────────────────────────┐
+│  DeBERTa Risk Classifier    │
+│  input: clause_type + text  │
+│  output: (label, conf)      │
+└──────────┬──────────────────┘
+           │
+           ▼
+      confidence ≥ 0.6 ?
+     ┌──────┴──────┐
+   YES             NO
+     │             │
+     ▼             ▼
+ High-Conf     Low-Conf
+  Path          Path
+(1 Mistral   (1 Mistral call
+ call, no     WITH tool loop —
+ tools)       agent may override)
+     │             │
+     └──────┬──────┘
+            ▼
+     {label, explanation,
+      similar_clauses,
+      agent_trace}  → Stage 4
 ```
-- Pro: reproducible, easy to debug, every step auditable
-- Con: no dynamic reasoning — DeBERTa's label is always final regardless of confidence
-- METADATA injected into Mistral's explanation context (not DeBERTa's input)
 
-### Option B — Reasoning Model as Brain (agentic) ← preferred direction
-A reasoning model (Mistral/Qwen) controls all tools autonomously via LangGraph tool nodes.
-DeBERTa is exposed as a tool the agent calls to get a calibrated classification signal.
+### Low-Level Design
+
+One Mistral-7B instance serves both paths — it's the same model, operated in two modes depending on DeBERTa's confidence.
+
+#### High-Confidence Path (conf ≥ 0.6)
+
+DeBERTa's label is final. Mistral runs once with no tools, just to generate the explanation.
+
+```python
+def high_confidence_path(clause, metadata, deberta_label, deberta_confidence):
+    # Optional: retrieve a couple of precedents to enrich explanation quality
+    neighbors = precedent_search(clause.text, k=3)
+
+    prompt = f"""
+    Clause: {clause.text}
+    Type: {clause.type}
+    METADATA: {metadata}
+    Risk Level: {deberta_label}  (classifier confidence: {deberta_confidence:.2f})
+    Similar labeled precedents: {format_neighbors(neighbors)}
+
+    Write a one-sentence risk explanation grounded in the clause and precedents.
+    """
+    explanation = mistral(prompt)   # single forward pass, no tool loop
+
+    return {
+        "label": deberta_label,
+        "confidence": deberta_confidence,
+        "explanation": explanation,
+        "similar_clauses": neighbors,
+        "agent_trace": [],        # no tool calls made
+        "overridden": False,
+    }
 ```
-Clause + METADATA
-    → Reasoning Model decides tool calls:
-        - RAG tool (retrieve similar clauses)
-        - Contract Search tool (cross-references)
-        - DeBERTa tool (specialist classifier — always called for final verdict)
-    → Reasoning Model synthesizes: DeBERTa label + context + METADATA
-    → final risk_level + explanation
+
+Properties: deterministic, ~1 LLM call, no agent overhead.
+
+#### Low-Confidence Path (conf < 0.6)
+
+Mistral is invoked as an agent with tool access. It reasons, fetches evidence, and produces a final label (possibly overriding DeBERTa) + explanation in a single structured output.
+
+```python
+def low_confidence_path(clause, metadata, deberta_label, deberta_confidence):
+    system_prompt = """
+    You are a legal risk assessor. DeBERTa produced an uncertain preliminary label.
+    Use the available tools to gather evidence (similar labeled clauses, other
+    clauses from the same contract), then output JSON:
+      {
+        "final_label": "LOW" | "MEDIUM" | "HIGH",
+        "explanation": "...",
+        "override_reason": "..."    # if disagreeing with DeBERTa
+      }
+
+    Tools available:
+      - precedent_search(clause_text, k=5)
+          → top-K similar labeled clauses across the corpus (vector RAG)
+      - contract_search(document_id)
+          → all typed clauses from the same contract (structured lookup)
+    """
+
+    context = {
+        "clause": clause.text,
+        "clause_type": clause.type,
+        "metadata": metadata,
+        "deberta_preliminary": {
+            "label": deberta_label,
+            "confidence": deberta_confidence,
+        },
+    }
+
+    # LangGraph runs the tool-calling loop. Mistral does all reasoning.
+    result = agent.invoke(
+        system=system_prompt,
+        context=context,
+        tools=[precedent_search, contract_search],
+        max_iterations=5,
+    )
+
+    return {
+        "label": result.final_label,
+        "confidence": None,                          # agent-derived, no calibrated score
+        "explanation": result.explanation,
+        "similar_clauses": result.retrieved_precedents,
+        "agent_trace": result.tool_calls,
+        "overridden": result.final_label != deberta_label,
+    }
 ```
-- Pro: agent exercises multi-hop reasoning; METADATA naturally informs label interpretation;
-  low-confidence DeBERTa scores can be escalated or cross-checked dynamically
-- Con: non-deterministic, higher latency, more complex to debug
-- DeBERTa remains the authoritative classification signal — reasoning model qualifies, not overrides
 
-### Key Shared Decision (both options)
-- **DeBERTa input**: clause_text + clause_type only (trained on these features)
-- **METADATA** (parties, agreement type, dates): flows to reasoning/explanation model, not DeBERTa
-- **Confidence threshold**: if DeBERTa confidence < 0.6, flag clause for human review
-- **Training first**: evaluate DeBERTa accuracy before committing to agent complexity
+Properties: non-deterministic, multi-turn, typically 2–5 LLM calls, able to override DeBERTa.
 
-## Open Design Question — METADATA in DeBERTa Training (Discuss After Labeling)
+### Tool Definitions
+
+The two retrieval tools solve different problems:
+
+- **`precedent_search`** (vector RAG) — FAISS similarity lookup over the labeled corpus (~4,410 non-metadata clauses). Embeddings: `all-MiniLM-L6-v2`. Returns top-K clauses with `{clause_text, clause_type, risk_level, risk_reason, similarity}`. Fast (ANN, microseconds).
+
+- **`contract_search`** (structured lookup, **not** RAG) — given a `document_id`, returns all typed clauses already extracted by Stage 1+2 for that contract. No embeddings, no navigation, no LLM calls inside the tool. A contract averages ~9 non-metadata clauses (max 27), so all fit easily in the agent's context. Purpose: resolve same-contract cross-references (e.g., "IP was already assigned in another clause").
+
+### Worked Example — Low-Confidence Path
+
+Clause arrives:
+```
+clause_type: "IP Ownership Assignment"
+clause_text: "Consultant hereby assigns to Company all right, title,
+              and interest in any deliverables..."
+metadata:    {Parties: ["AT&T Inc.", "Jane Smith Consulting"]}
+DeBERTa:     (HIGH, 0.45)   ← below threshold, escalate
+```
+
+Agent loop trace:
+
+```
+Turn 1  Mistral reads clause + DeBERTa signal
+        → "I need to see how similar clauses were labeled."
+        → calls precedent_search("Consultant hereby assigns...", k=5)
+
+        Tool returns:
+          N1: LOW  — "signing party is the recipient of rights"
+          N2: HIGH — "one-party-committed IP assignment to a vendor"
+          N3: LOW  — "standard admin paperwork, IP already owned upstream"
+          N4: LOW  — "mutual carve-out"
+          N5: MEDIUM — "conditional on acquisition"
+
+Turn 2  Mistral reads neighbors
+        → "4 of 5 are LOW. Key driver is who signed.
+           METADATA shows AT&T and Jane Smith Consulting.
+           If AT&T is the buyer/client, this is standard admin paperwork.
+           Let me verify by inspecting the full contract."
+        → calls contract_search(document_id="contract_042")
+
+        Tool returns 38 sibling clauses:
+          - Compensation: "AT&T shall pay Consultant $50K..."
+          - Services: "Consultant shall provide advisory services to AT&T..."
+          - [...36 more...]
+
+Turn 3  Mistral reads contract
+        → "Confirmed. AT&T is the client paying Consultant for services.
+           Consultant transferring IP to AT&T is standard work-for-hire.
+           AT&T (signing party of interest) RECEIVES rights — not at risk.
+           Overriding DeBERTa HIGH → LOW."
+        → returns JSON:
+          {
+            "final_label": "LOW",
+            "explanation": "Standard work-for-hire IP assignment from
+                            Consultant to AT&T. AT&T receives rights;
+                            no exposure to signing party.",
+            "override_reason": "DeBERTa could not resolve signing-party
+                                direction from clause text alone;
+                                precedents + contract context confirm LOW."
+          }
+
+Stop.
+```
+
+Final output merges into the Stage 3 → Stage 4 schema (`risk_level`, `risk_explanation`, `similar_clauses`, `agent_trace`, `overridden`).
+
+### Key Design Decisions (v1)
+
+| Decision | Choice | Rationale |
+|---|---|---|
+| Architecture | Hybrid Confidence-Gated | practical + exercises agentic RAG |
+| Confidence threshold | 0.6 | tunable post-training on validation set |
+| DeBERTa input | `clause_type + clause_text` only | baseline — measure signing-party ceiling first |
+| Party role tagging in DeBERTa | **Not in v1** | deferred; revisit if baseline is ceilinged |
+| RAG consumer | LLM (agent + explainer), **not** DeBERTa | keeps DeBERTa training simple; RAG still load-bearing at escalation |
+| Explanation generator | Mistral-7B (same instance as agent) | one LLM, two modes based on confidence |
+| Same-contract retrieval | `contract_search` structured lookup | data is already typed post-Stage 1+2 — no RAG needed |
+| Precedent retrieval | FAISS (vector RAG) over 4,410 clauses | standard for flat-corpus similarity |
+| Low-conf label source | Agent (may override DeBERTa) | needed to resolve signing-party ambiguity |
+
+### Alternative Architectures Considered (Rejected)
+
+- **Static LangGraph Pipeline** (former Option A) — DeBERTa's label always final, fixed tool sequence. No dynamic reasoning; doesn't satisfy agentic-RAG learning goal.
+- **Full Agent on Every Clause** (former Option B) — agent loop runs on all ~4,410 risk-relevant clauses. Over-engineered; majority of clauses don't need the capacity and agent latency dominates cost.
+- **Multi-Signal Verifier** — DeBERTa + Mistral label independently, reconcile on disagreement. Similar capability to Hybrid but runs expensive path even on easy cases.
+- **RAC (Retrieval-Augmented Classification)** — retrieved neighbors become part of DeBERTa's training input. Deferred to v2; brittle to retrieval quality, risk of label leakage, harder training pipeline.
+- **Pure Reasoning Model (no DeBERTa)** — abandons ML learning goal; synthetic labels are already LLM-distilled signal that a fine-tuned DeBERTa absorbs more cheaply at inference.
+
+## Open Design Question — METADATA in DeBERTa Training (v1: Option 1 chosen)
 
 > **Context**: During manual label review, we found that many HIGH↔LOW flips between Qwen and Gemini
 > are caused entirely by not knowing who the signing party is — both models reason correctly about the
@@ -92,25 +272,27 @@ The same clause text can be LOW or HIGH depending on who signed:
 
 ### Three options to evaluate after DeBERTa baseline:
 
-**Option 1 — clause_type only (current plan, baseline)**
+**Option 1 — clause_type only (v1 CHOSEN, baseline)** ✅
 `[CLS] clause_type [SEP] clause_text [SEP]`
 - Partial signal — clause type hints at risk direction but doesn't resolve signing party
 - Establishes baseline accuracy ceiling
+- **Chosen for v1 because**: we need to measure how far text + clause_type alone can go before adding complexity. The Hybrid architecture absorbs the residual ambiguity through the low-confidence escalation path (Option 3 below, handled at inference by the reasoning agent).
 
 **Option 2 — Add party role tag at training + inference time**
 `[CLS] signing_party_role=licensor [SEP] clause_type [SEP] clause_text [SEP]`
 - Stage 1+2 extracts METADATA (Parties field) and infers role (licensor/licensee, vendor/customer)
 - DeBERTa trained with role tag → directly resolves signing party ambiguity
 - Requires role inference logic from contract METADATA
+- **Deferred**: revisit only if v1 accuracy is clearly ceilinged by signing-party ambiguity and the escalation path proves insufficient.
 
-**Option 3 — Reasoning model resolves METADATA ambiguity (Option B architecture)**
+**Option 3 — Reasoning model resolves METADATA ambiguity (built into Hybrid architecture)** ✅
 - DeBERTa classifies on text alone, will be uncertain on party-dependent cases
-- Low-confidence predictions escalated to reasoning model
-- Reasoning model uses METADATA to confirm or override DeBERTa's label
+- Low-confidence predictions escalate to the reasoning agent
+- Agent uses METADATA + `contract_search` + `precedent_search` to confirm or override DeBERTa's label
 - No retraining needed — handles ambiguity at inference time
+- **Already part of v1** through the Hybrid architecture above.
 
-**Recommendation**: Run Option 1 first as baseline. If accuracy is limited by signing-party ambiguity,
-evaluate Option 2 (cleaner training signal) vs Option 3 (no retraining, more flexible).
+**v1 Plan**: Option 1 for DeBERTa + Option 3 for inference-time ambiguity resolution (via the Hybrid architecture). Option 2 remains available as a v2 upgrade if the baseline is insufficient.
 
 ## Labeling Review Learnings (Discuss After DeBERTa Baseline)
 
