@@ -12359,23 +12359,6 @@
     "confidence": 0.975
   },
   {
-    "row_num": 3020,
-    "id": "GOOSEHEADINSURANCE,INC_04_02_2018-EX-10.6-Franchise Agreement__Competitive Restriction Exception",
-    "contract": "GOOSEHEADINSURANCE,INC_04_02_2018-EX-10.6-Franchise Agreement",
-    "clause_type": "Competitive Restriction Exception",
-    "clause_text": "corporation.",
-    "label_source": "AGREED",
-    "label": "HIGH",
-    "label_int": 2,
-    "soft_label": [
-      0.0,
-      0.0,
-      1.0
-    ],
-    "label_type": "hard",
-    "confidence": 0.5
-  },
-  {
     "row_num": 3021,
     "id": "GpaqAcquisitionHoldingsInc_20200123_S-4A_EX-10.8_11951679_EX-10.8_Service Agreement__Competitive Restriction Exception",
     "contract": "GpaqAcquisitionHoldingsInc_20200123_S-4A_EX-10.8_11951679_EX-10.8_Service Agreement",
@@ -15543,23 +15526,6 @@
     "contract": "AFSALABANCORPINC_08_01_1996-EX-1.1-AGENCY AGREEMENT",
     "clause_type": "Governing Law",
     "clause_text": "This Agreement shall be construed  in accordance with the laws of the District of Columbia.",
-    "label_source": "AGREED",
-    "label": "LOW",
-    "label_int": 0,
-    "soft_label": [
-      1.0,
-      0.0,
-      0.0
-    ],
-    "label_type": "hard",
-    "confidence": 0.925
-  },
-  {
-    "row_num": 3208,
-    "id": "AIRSPANNETWORKSINC_04_11_2000-EX-10.5-Distributor Agreement__Governing Law",
-    "contract": "AIRSPANNETWORKSINC_04_11_2000-EX-10.5-Distributor Agreement",
-    "clause_type": "Governing Law",
-    "clause_text": "South Dakota",
     "label_source": "AGREED",
     "label": "LOW",
     "label_int": 0,
@@ -19023,23 +18989,6 @@
     "confidence": 0.825
   },
   {
-    "row_num": 3412,
-    "id": "RandWorldwideInc_20010402_8-KA_EX-10.2_2102464_EX-10.2_Co-Branding Agreement__Governing Law",
-    "contract": "RandWorldwideInc_20010402_8-KA_EX-10.2_2102464_EX-10.2_Co-Branding Agreement",
-    "clause_type": "Governing Law",
-    "clause_text": "state.",
-    "label_source": "AGREED",
-    "label": "HIGH",
-    "label_int": 2,
-    "soft_label": [
-      0.0,
-      0.0,
-      1.0
-    ],
-    "label_type": "hard",
-    "confidence": 0.775
-  },
-  {
     "row_num": 3413,
     "id": "RareElementResourcesLtd_20171019_SC 13D_EX-99.4_10897534_EX-99.4_Intellectual Property Agreement__Governing Law",
     "contract": "RareElementResourcesLtd_20171019_SC 13D_EX-99.4_10897534_EX-99.4_Intellectual Property Agreement",
@@ -20944,23 +20893,6 @@
     "confidence": 0.925
   },
   {
-    "row_num": 3525,
-    "id": "HOSPITALITYINVESTORSTRUST,INC_04_07_2014-EX-10.26-FRANCHISE AGREEMENT__Insurance",
-    "contract": "HOSPITALITYINVESTORSTRUST,INC_04_07_2014-EX-10.26-FRANCHISE AGREEMENT",
-    "clause_type": "Insurance",
-    "clause_text": "You must:",
-    "label_source": "AGREED",
-    "label": "HIGH",
-    "label_int": 2,
-    "soft_label": [
-      0.0,
-      0.0,
-      1.0
-    ],
-    "label_type": "hard",
-    "confidence": 0.85
-  },
-  {
     "row_num": 3526,
     "id": "HYDRONTECHNOLOGIESINC_03_31_1997-EX-10.47-SPONSORSHIP AGREEMENT__Insurance",
     "contract": "HYDRONTECHNOLOGIESINC_03_31_1997-EX-10.47-SPONSORSHIP AGREEMENT",
@@ -22353,23 +22285,6 @@
     ],
     "label_type": "hard",
     "confidence": 0.975
-  },
-  {
-    "row_num": 3608,
-    "id": "GOOSEHEADINSURANCE,INC_04_02_2018-EX-10.6-Franchise Agreement__Ip Ownership Assignment",
-    "contract": "GOOSEHEADINSURANCE,INC_04_02_2018-EX-10.6-Franchise Agreement",
-    "clause_type": "Ip Ownership Assignment",
-    "clause_text": "us.",
-    "label_source": "AGREED",
-    "label": "HIGH",
-    "label_int": 2,
-    "soft_label": [
-      0.0,
-      0.0,
-      1.0
-    ],
-    "label_type": "hard",
-    "confidence": 0.55
   },
   {
     "row_num": 3609,
@@ -33337,23 +33252,6 @@
     "confidence": 0.9
   },
   {
-    "row_num": 4254,
-    "id": "PlayboyEnterprisesInc_20090220_10-QA_EX-10.2_4091580_EX-10.2_Content License Agreement_ Marketing Agreement_ Sales-Purchase Agreement1__Non-Transferable License",
-    "contract": "PlayboyEnterprisesInc_20090220_10-QA_EX-10.2_4091580_EX-10.2_Content License Agreement_ Marketing Agreement_ Sales-Purchase Agreement1",
-    "clause_type": "Non-Transferable License",
-    "clause_text": "Business.",
-    "label_source": "AGREED",
-    "label": "HIGH",
-    "label_int": 2,
-    "soft_label": [
-      0.0,
-      0.0,
-      1.0
-    ],
-    "label_type": "hard",
-    "confidence": 0.3
-  },
-  {
     "row_num": 4255,
     "id": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement__Non-Transferable License",
     "contract": "QuantumGroupIncFl_20090120_8-K_EX-99.2_3672910_EX-99.2_Hosting Agreement",
@@ -34389,23 +34287,6 @@
     ],
     "label_type": "hard",
     "confidence": 1.0
-  },
-  {
-    "row_num": 4316,
-    "id": "MOELIS_CO_03_24_2014-EX-10.19-STRATEGIC ALLIANCE AGREEMENT__Notice Period To Terminate Renewal",
-    "contract": "MOELIS_CO_03_24_2014-EX-10.19-STRATEGIC ALLIANCE AGREEMENT",
-    "clause_type": "Notice Period To Terminate Renewal",
-    "clause_text": "initial term.",
-    "label_source": "AGREED",
-    "label": "HIGH",
-    "label_int": 2,
-    "soft_label": [
-      0.0,
-      0.0,
-      1.0
-    ],
-    "label_type": "hard",
-    "confidence": 0.75
   },
   {
     "row_num": 4317,
@@ -38044,23 +37925,6 @@
     ],
     "label_type": "hard",
     "confidence": 0.9
-  },
-  {
-    "row_num": 4531,
-    "id": "MOELIS_CO_03_24_2014-EX-10.19-STRATEGIC ALLIANCE AGREEMENT__Renewal Term",
-    "contract": "MOELIS_CO_03_24_2014-EX-10.19-STRATEGIC ALLIANCE AGREEMENT",
-    "clause_type": "Renewal Term",
-    "clause_text": "initial term.",
-    "label_source": "AGREED",
-    "label": "HIGH",
-    "label_int": 2,
-    "soft_label": [
-      0.0,
-      0.0,
-      1.0
-    ],
-    "label_type": "hard",
-    "confidence": 0.75
   },
   {
     "row_num": 4532,
@@ -45915,23 +45779,6 @@
     ],
     "label_type": "hard",
     "confidence": 0.95
-  },
-  {
-    "row_num": 4994,
-    "id": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement4__Warranty Duration",
-    "contract": "CardlyticsInc_20180112_S-1_EX-10.16_11002987_EX-10.16_Maintenance Agreement4",
-    "clause_type": "Warranty Duration",
-    "clause_text": "120 days",
-    "label_source": "AGREED",
-    "label": "MEDIUM",
-    "label_int": 1,
-    "soft_label": [
-      0.0,
-      1.0,
-      0.0
-    ],
-    "label_type": "hard",
-    "confidence": 0.875
   },
   {
     "row_num": 4995,

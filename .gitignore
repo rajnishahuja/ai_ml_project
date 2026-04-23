@@ -20,6 +20,7 @@ data/synthetic/*
 # Key pipeline artifacts — travel with git
 !data/processed/all_positive_spans.json
 !data/processed/training_dataset.json
+!data/processed/splits.json
 !data/synthetic/gold_set.json
 !data/synthetic/synthetic_risk_labels_qwen.json
 !data/synthetic/synthetic_risk_labels_gemini.json

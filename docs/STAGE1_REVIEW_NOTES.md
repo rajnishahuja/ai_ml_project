@@ -48,6 +48,28 @@
 **Fix**: Reframe the classification metric as **clause presence vs absence per type** (binary: did the model correctly predict that this clause type exists / doesn't exist in this contract). Report per-type precision/recall/F1 instead of a pooled accuracy number.  
 **Files**: `evaluate.py` (classification block)
 
+## 8. Post-prediction filter for fragment spans — medium priority
+
+**Observed**: CUAD's ground-truth annotations include a small number of "fragment" spans — single words, pronouns, or sentence-ending punctuation highlighted as the answer to a clause-type question. Examples from CUAD_v1.json (all real ground-truth answers):
+
+```
+"us."          → Ip Ownership Assignment
+"state."       → Governing Law
+"corporation." → Competitive Restriction Exception
+"Business."    → Non-Transferable License / License Grant
+"You must:"    → Non-Compete / Exclusivity / Insurance
+"initial term."→ Renewal Term / Notice Period To Terminate Renewal
+```
+
+A DeBERTa-QA model trained on CUAD will learn to reproduce these exactly when they appear in test contexts. They're not "noise" from our pipeline — they're the dataset's annotations.
+
+**Impact**: At inference time these fragments would be emitted as legitimate clause extractions, polluting downstream Stage 3 with meaningless text. In our Stage 3 labeling pool they appeared 9 times and were filtered out via `len(clause_text.strip()) < 15` in `scripts/build_training_dataset.py` — but that's a per-downstream-stage workaround, not a fix.
+
+**Fix (suggested)**: Add a post-prediction filter in Stage 1 `predict.py` / `evaluate.py`. If the predicted span is shorter than N characters (~15) **and** the DeBERTa start/end logits are below a confidence floor, reject it (treat as `NO_CLAUSE` or flag for review). Valid short answers like "South Dakota" for Governing Law should still pass if model confidence is high. Threshold tunable per clause type.
+
+**Files**: `src/stage1_extract_classify/predict.py`, `src/stage1_extract_classify/evaluate.py`  
+**Discovered**: 2026-04-23 during Stage 3 data sanity pass; see `docs/STAGE3_TRAINING_NOTES.md` §4 "Fragment clauses".
+
 ---
 
-*Created 2026-04-14 during architecture review. Item #7 added 2026-04-23.*
+*Created 2026-04-14 during architecture review. Items #7–8 added 2026-04-23.*

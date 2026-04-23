@@ -98,6 +98,16 @@ def build(use_conf_weight: bool = True) -> list[dict]:
             skipped[cat] += 1
             continue
 
+        # Drop CUAD annotation-fragment rows. These are ground-truth answer spans
+        # that are too short to carry meaningful clause content (e.g., "us.",
+        # "state.", "corporation."). They slipped through the Qwen/Gemini
+        # reconciliation because both labelers agreed on a cautious label, and
+        # through manual review because the labelers didn't flip HIGH↔LOW.
+        # See docs/STAGE3_TRAINING_NOTES.md "Fragment clauses" for detail.
+        if len(r["clause_text"].strip()) < 15:
+            skipped["short_fragment"] += 1
+            continue
+
         base = {
             "row_num":     int(r["row_num"]),
             "id":          r["id"],
