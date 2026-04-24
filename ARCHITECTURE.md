@@ -437,19 +437,44 @@ the vote-weight signal is neutralized on affected rows. Not regenerating — the
 reconciliation pipeline (AGREED / SOFT_LABEL / MANUAL_REVIEW assignments + already-done
 human reviews) would be invalidated for marginal benefit on ~5% of the training signal.
 
-### Loss Function Branching
+### Loss Function — Unified Soft-Target Cross-Entropy
 
-DeBERTa trains on mixed batches where each row carries either a hard class index or a 3-way
-probability vector. Per-example loss branches on the row's source:
+DeBERTa trains on mixed batches where each row carries a 3-way probability vector in its
+`soft_label` field (built by `scripts/build_training_dataset.py`):
 
-- **Hard label rows** (AGREED + MANUAL_REVIEW + GEMINI_PRO_REVIEW, n=3,057)
-  → `CrossEntropyLoss(logits, class_idx)`
-- **Soft label rows** (SOFT_LABEL, n=1,327)
-  → `KLDivLoss(log_softmax(logits), soft_prob_vector)`
+- Hard rows store one-hot vectors: `[1,0,0]` / `[0,1,0]` / `[0,0,1]`
+- Soft rows store probability distributions: e.g., `[0.4, 0.6, 0.0]`
 
-The batch loss is the mean over both branches. Sharp boundaries are learned where all labelers
-agreed; calibration is preserved on the borderline LOW/MEDIUM and MEDIUM/HIGH cases where both
-labels are defensible.
+Because both row types share a uniform target format, a single loss covers both:
+
+```python
+loss_fn = nn.CrossEntropyLoss(weight=class_weights)   # 3-element class weights
+loss    = loss_fn(logits, soft_targets)               # logits [B,3], soft_targets [B,3]
+```
+
+`nn.CrossEntropyLoss` (PyTorch ≥ 1.10) accepts a probability distribution as target. For a
+one-hot target this reduces to standard CE on the true class; for a soft target it becomes
+`-Σ_i target_i · log_softmax(logits)_i` — the natural generalization. This is mathematically
+equivalent to "CE for hard rows, KLDiv for soft rows" up to an additive constant (target
+entropy) that does not affect gradients, but collapses to a single code path with no
+per-sample dispatch.
+
+Sharp boundaries are learned where labelers agreed (one-hot targets → standard CE).
+Calibration is preserved on borderline LOW/MEDIUM and MEDIUM/HIGH cases (soft targets →
+model is trained to output matching uncertainty).
+
+**Class weights** (`weight` tensor above) compensate for mild imbalance in the hard-label
+distribution (LOW 44.5% / MEDIUM 32.3% / HIGH 23.1%):
+
+```
+weight_c = N / (K · count_c),  N = 3,049 hard rows, K = 3 classes
+→ LOW 0.749, MEDIUM 1.030, HIGH 1.442
+```
+
+Computed from hard-row counts only — soft rows contribute uncertainty directly through the
+loss and don't add bias that needs compensating. (Option B — include soft-label probability
+mass in the counts — available as a one-line ablation if HIGH recall is weak in v1; see
+`docs/STAGE3_TRAINING_NOTES.md` §7.)
 
 ### Row Provenance (columns in `master_label_review.csv`)
 

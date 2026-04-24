@@ -209,7 +209,66 @@ via `--no_conf_weight` for ablation.
 
 ---
 
-## 7. Reproducibility
+## 7. Loss function and class weights
+
+### Unified soft-target cross-entropy (one loss, not two)
+
+ARCHITECTURE.md originally described "CE for hard rows, KLDiv for soft rows" — two loss
+functions dispatched per-sample. At implementation time this collapses to a single,
+simpler formulation:
+
+```python
+loss_fn = nn.CrossEntropyLoss(weight=class_weights)
+loss    = loss_fn(logits, soft_targets)     # soft_targets: [B, 3] float
+```
+
+`nn.CrossEntropyLoss` accepts a probability distribution as the target (since PyTorch 1.10).
+Both row types flow through identically:
+
+- Hard rows have `soft_label = [1, 0, 0]` / `[0, 1, 0]` / `[0, 0, 1]` → this reduces to
+  standard CE on that class.
+- Soft rows have `soft_label = [0.4, 0.6, 0]` etc. → the loss distributes proportionally
+  across classes.
+
+**Mathematical equivalence**: CE with a soft target equals the KL divergence between
+target and prediction up to an additive constant (the target's entropy) that does not
+affect gradients. So this is identical to the "CE + KLDiv branching" design, just cleaner
+code. No dispatch logic, no risk of a branching bug.
+
+The upstream `scripts/build_training_dataset.py` already stores both row types as 3-vectors
+in the `soft_label` field, so the trainer reads a single uniform format.
+
+### Class weights (Option A: hard-only counts)
+
+Mild class imbalance in hard labels:
+
+| Class | Count | % | Weight `N / (K · count)` |
+|---|---|---|---|
+| LOW | 1,357 | 44.5% | 0.749 |
+| MEDIUM | 987 | 32.3% | 1.030 |
+| HIGH | 705 | 23.1% | 1.442 |
+
+Using `N = 3,049` (total hard rows) and `K = 3` classes. Higher weight on HIGH compensates
+for its lower frequency — without this, gradient descent would drift toward "predict LOW
+when uncertain," which is exactly backwards for our use case (missing a HIGH is the
+expensive error).
+
+**Computed from hard counts only** (not including soft-label mass).
+
+Rationale:
+- Class weights compensate for *optimization bias*. Hard rows are the dominant source
+  of that bias — soft rows already carry built-in uncertainty in the target.
+- Weights don't shift much between the two methods: Option A gives HIGH weight 1.44,
+  Option B (include soft mass) gives 1.56. Within noise for our mild imbalance.
+- Simpler to reason about — one clear quantity drives the weights.
+
+**Option B (include soft-label probability mass in the counts) remains available as an
+ablation** if the v1 run shows HIGH recall is still weak. It's a one-line change to the
+weight computation.
+
+---
+
+## 8. Reproducibility
 
 All prep is deterministic given the inputs:
 - `data/review/master_label_review.csv` → `scripts/build_training_dataset.py` →
@@ -222,9 +281,9 @@ in the script default, so no arguments needed.
 
 ---
 
-## 8. Still open (before training code)
+## 9. Still open (before training code)
 
 See `memory/project_stage3_training_checklist.md` for the live list. As of 2026-04-23,
-Section A (data prep) is complete. Section B (model & tokenizer), Section C (loss & signal
-implementation), Section D (hyperparameters), Section E (evaluation), Section F
-(post-training), and Section G (engineering) remain.
+Sections A (data prep), B (model & tokenizer), and C (loss & signal) are complete.
+Section D (hyperparameters), Section E (evaluation), Section F (post-training), and
+Section G (engineering) remain.
