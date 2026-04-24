@@ -1,0 +1,9 @@
+# Stage 4: Report Generation
+explanation_model: google/flan-t5-base
+
+risk_thresholds:
+  high: 0.75
+  medium: 0.40
+
+output_format: json
+max_explanation_length: 200

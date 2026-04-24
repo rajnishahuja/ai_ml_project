@@ -1,0 +1,21 @@
+# Enforce LF line endings in the repo (important for Azure Linux compatibility)
+* text=auto eol=lf
+
+# Python files
+*.py text eol=lf
+
+# Config and docs
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+
+# Binary files - no line ending conversion
+*.pt binary
+*.bin binary
+*.safetensors binary
+*.gguf binary
+*.parquet binary
+*.png binary
+*.jpg binary
