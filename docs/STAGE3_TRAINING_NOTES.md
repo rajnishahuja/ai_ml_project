@@ -268,7 +268,69 @@ weight computation.
 
 ---
 
-## 8. Reproducibility
+## 8. Hyperparameters (Section D decisions)
+
+### Fine-tuning strategy
+
+**Full fine-tuning** — all ~86M parameters (embeddings + 12 transformer layers +
+classification head) are trainable. No LoRA, no freezing.
+
+Rationale: DeBERTa-v3-base is base-sized, not LLM-scale; memory is not a constraint
+on A100-40GB. LoRA's benefits don't kick in at this scale. Small dataset (3,472 rows)
+does carry overfit risk, but weight decay + dropout + early stopping handle it.
+
+**Layer-wise LR decay (LLRD)** — deferred. Would give deeper layers a higher LR than
+earlier ones (0.5-1 F1 point in published results). Available as a v1.1 ablation if
+the baseline shows catastrophic forgetting.
+
+### Core optimizer hyperparameters
+
+| | Value | Rationale |
+|---|---|---|
+| `batch_size` | 16 | Fits A100 VRAM; 217 updates/epoch on 3,472 train rows |
+| `learning_rate` | 2e-5 | Within the DeBERTa-v3 paper's validated band (6e-6 to 3e-5 across tasks) |
+| `warmup_ratio` | 0.1 | ~108 steps warmup; gives AdamW time to build stable gradient variance |
+| `lr_scheduler_type` | linear | Post-warmup linear decay to 0; forces the model to settle |
+| `epochs` | 5 (max) | Ceiling — early stopping will stop earlier if val plateaus |
+| `early_stopping_patience` | 2 | Stop if val macro-F1 fails to improve for 2 consecutive epochs |
+| `metric_for_best_model` | val_macro_f1 | Primary metric from Section E |
+| `weight_decay` | 0.01 | AdamW default; HuggingFace Trainer excludes bias+LayerNorm automatically |
+| `seed` | 42 | Independent from the `splits.json` seed (100); different random process |
+
+### Precision — the fragile one
+
+**Target: bf16. Fallback: fp32. Explicitly NOT fp16.**
+
+Stage 1 experiments (Apr 2026) documented NaN issues with DeBERTa + reduced precision:
+
+1. **transformers library bug** — `modeling_deberta_v2.py` uses `torch.finfo(dtype).min`
+   as the attention mask fill value. In fp16, that's `-65504`, which overflows during
+   softmax stabilization (`max-subtract` step), producing `-inf` → `NaN`. Still present
+   in the currently-installed transformers 5.1.0. See `notebooks/EXPERIMENT_NOTES.md`.
+
+2. **HF Trainer + DeBERTa-v3 interaction** — Stage 1 QA experiments hit NaN even at fp32
+   with Trainer, while a manual forward pass in plain PyTorch ran cleanly (loss 6.95,
+   no NaN). Root cause never fully isolated; suspects were `processing_class=tokenizer`
+   and the v2 data collator. Stage 3 uses classification (not QA span prediction), which
+   is a simpler head and loss — the interaction may not repeat, but we can't assume.
+
+**De-risking plan for Stage 3:**
+
+- Run a pre-training smoke test (plain PyTorch loop, no Trainer) — verifies the model
+  loads cleanly in bf16, 10 forward+backward steps produce no NaN, gradients flow.
+- If bf16 smoke test passes → proceed with bf16 (expected ~2× throughput on A100).
+- If bf16 smoke test fails → rerun smoke test in fp32 to isolate the issue.
+  - fp32 passes → fall back to fp32 precision (acceptable — ~30% slower, no numerical risk).
+  - fp32 also fails → drop to `deberta-base` (v1, Stage 1's proven config).
+- If Trainer training then NaNs after smoke test passes → rewrite as a custom PyTorch
+  training loop (~80 lines), bypasses any Trainer-specific interaction.
+
+`strict_determinism = false`. `torch.use_deterministic_algorithms(True)` costs 10-30%
+throughput for bit-exact reproducibility. We accept ~0.1 F1 run-to-run wiggle in exchange.
+
+---
+
+## 9. Reproducibility
 
 All prep is deterministic given the inputs:
 - `data/review/master_label_review.csv` → `scripts/build_training_dataset.py` →
@@ -279,9 +341,12 @@ All prep is deterministic given the inputs:
 Anyone on the team can regenerate both files with two commands. The split seed is pinned
 in the script default, so no arguments needed.
 
+Training seed (`42`) is separate — pinned in `configs/stage3_config.yaml`. Same code +
+same data + same seed on the same GPU gives results within ~0.1 F1 of each other.
+
 ---
 
-## 9. Still open (before training code)
+## 10. Still open (before training code)
 
 See `memory/project_stage3_training_checklist.md` for the live list. As of 2026-04-23,
 Sections A (data prep), B (model & tokenizer), and C (loss & signal) are complete.

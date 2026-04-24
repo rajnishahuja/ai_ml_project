@@ -1,25 +1,66 @@
 # Stage 3: Risk Detection Agent
+# ---
+# Section A/B/C/D decisions are locked here. Any change should go through the
+# checklist + STAGE3_TRAINING_NOTES.md rationale.
+
 risk_classifier:
-  model_name: microsoft/deberta-v3-base
-  output_dir: models/stage3_risk_deberta_v3
-  learning_rate: 2.0e-5
-  epochs: 5
-  batch_size: 16
-  max_length: 512                                # 99.9% of clauses fit; 5 rows truncated
+  # Model (Section B)
+  model_name: microsoft/deberta-v3-base          # see STAGE3_TRAINING_NOTES.md §2
+  output_dir: models/stage3_risk_deberta_v3      # versioned — don't overwrite across experiments
+
+  # Data (Section A)
   training_data_path: data/processed/training_dataset.json
   splits_path:        data/processed/splits.json
+  max_length: 512                                # 99.9% of clauses fit with v3 tokenizer
 
+  # Loss & training signal (Section C)
+  # Single nn.CrossEntropyLoss(weight=class_weights) over soft-vector targets.
+  # Hard rows carry one-hot, soft rows carry probability vectors — unified.
+  class_weights_method: hard_counts              # Option A: LOW 0.749 / MED 1.030 / HIGH 1.442
+  soft_label_weighting: confidence_weighted      # baked in at build time (--no_conf_weight flag exists)
+
+  # Fine-tuning strategy (Section D.0)
+  fine_tuning: full                              # all 86M params trainable; no LoRA, no freezing
+  llrd: false                                    # layer-wise LR decay — deferred to v1.1 ablation
+
+  # Optimizer + schedule (Section D.1–D.5)
+  batch_size: 16
+  learning_rate: 2.0e-5
+  warmup_ratio: 0.1                              # linear warmup 0 → lr over 10% of steps
+  lr_scheduler_type: linear                      # linear decay after warmup
+  epochs: 5
+  weight_decay: 0.01                             # AdamW default; biases + LayerNorm excluded automatically
+
+  # Early stopping (Section D.4)
+  early_stopping_patience: 2
+  metric_for_best_model: val_macro_f1
+  greater_is_better: true
+
+  # Precision (Section D.6)
+  # Target bf16; fall back to fp32 if smoke test NaNs.
+  # DO NOT use fp16 — DeBERTa's disentangled attention + torch.finfo(fp16).min
+  # produces NaN in softmax masking. See STAGE3_TRAINING_NOTES.md §8.
+  precision: bf16                                # fallback: fp32
+  allow_fp32_fallback: true
+
+  # Reproducibility (Section D.7)
+  seed: 42                                       # different from splits seed (100) — independent process
+  strict_determinism: false                      # ~0.1 F1 wiggle tolerated; ~15% speed savings
+
+# Stage 3 inference — agent + tools (unchanged)
 embedding_model: sentence-transformers/all-MiniLM-L6-v2
 faiss_index_path: data/faiss_index/clauses.index
 
-explanation_model: mistralai/Mistral-7B-Instruct-v0.3
+agent_model: mistralai/Mistral-7B-Instruct-v0.3  # same instance used for explanation + agent
 quantization: 4bit
 
-agent_max_iterations: 3
-similarity_threshold: 0.75
-similarity_top_k: 5
+confidence_threshold: 0.6                        # DeBERTa confidence gate for high-conf vs low-conf path
+agent_max_iterations: 5                          # low-conf path tool-calling loop cap
+similarity_top_k_high_conf: 3                    # precedent_search k on high-conf path
+similarity_top_k_low_conf: 5                    # precedent_search k on low-conf path
 
-synthetic_labels:
-  model: Qwen/Qwen2.5-32B-Instruct
-  backup: gemini/openai
-  output_path: data/synthetic/risk_labels.json
+# Raw label passes — preserved for audit; training uses the merged master_label_review.csv
+raw_label_passes:
+  qwen:              data/synthetic/synthetic_risk_labels_qwen.json
+  gemini_flash:      data/synthetic/synthetic_risk_labels_gemini.json
+  gemini_pro_focus_87: data/synthetic/synthetic_risk_labels_gemini_pro.json

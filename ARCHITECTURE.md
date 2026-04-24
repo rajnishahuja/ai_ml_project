@@ -714,23 +714,59 @@ fp16: true
 ### `configs/stage3_config.yaml`
 ```yaml
 risk_classifier:
+  # Model
   model_name: microsoft/deberta-v3-base
   output_dir: models/stage3_risk_deberta_v3
-  learning_rate: 2.0e-5
-  epochs: 5
+
+  # Data
+  training_data_path: data/processed/training_dataset.json
+  splits_path: data/processed/splits.json
+  max_length: 512
+
+  # Loss & signal (unified soft-target CE)
+  class_weights_method: hard_counts          # LOW 0.749 / MED 1.030 / HIGH 1.442
+  soft_label_weighting: confidence_weighted
+
+  # Fine-tuning strategy
+  fine_tuning: full                           # all 86M params trainable
+  llrd: false                                 # layer-wise LR decay — deferred to v1.1
+
+  # Optimizer + schedule
   batch_size: 16
+  learning_rate: 2.0e-5
+  warmup_ratio: 0.1                           # linear warmup
+  lr_scheduler_type: linear                   # linear decay after warmup
+  epochs: 5
+  weight_decay: 0.01
+
+  # Early stopping
+  early_stopping_patience: 2
+  metric_for_best_model: val_macro_f1
+
+  # Precision
+  # Target bf16; fall back to fp32 if smoke test NaNs.
+  # DO NOT use fp16 — DeBERTa attention + torch.finfo(fp16).min → NaN softmax.
+  precision: bf16
+  allow_fp32_fallback: true
+
+  # Reproducibility
+  seed: 42                                    # independent from splits seed=100
+  strict_determinism: false
+
+# Stage 3 inference — agent + tools
 embedding_model: sentence-transformers/all-MiniLM-L6-v2
 faiss_index_path: data/faiss_index/clauses.index
-agent_model: mistralai/Mistral-7B-Instruct-v0.3   # same instance used for explanation + agent
+agent_model: mistralai/Mistral-7B-Instruct-v0.3
 quantization: 4bit
-confidence_threshold: 0.6          # DeBERTa confidence gate for high-conf vs low-conf path
-agent_max_iterations: 5            # low-conf path only; tool-calling loop cap
-similarity_top_k_high_conf: 3      # precedent_search k on high-conf path (explanation context)
-similarity_top_k_low_conf: 5       # precedent_search k on low-conf path (agent reasoning)
-training_labels_path: data/review/master_label_review.csv   # canonical source of truth
-raw_label_passes:                  # pre-merge labeler outputs (preserved for audit, not used at train time)
-  qwen: data/synthetic/synthetic_risk_labels_qwen.json
-  gemini_flash: data/synthetic/synthetic_risk_labels_gemini.json
+confidence_threshold: 0.6                     # DeBERTa confidence gate
+agent_max_iterations: 5                       # low-conf path tool-calling loop cap
+similarity_top_k_high_conf: 3
+similarity_top_k_low_conf: 5
+
+# Raw label passes — preserved for audit, not used at train time
+raw_label_passes:
+  qwen:              data/synthetic/synthetic_risk_labels_qwen.json
+  gemini_flash:      data/synthetic/synthetic_risk_labels_gemini.json
   gemini_pro_focus_87: data/synthetic/synthetic_risk_labels_gemini_pro.json
 ```
 
