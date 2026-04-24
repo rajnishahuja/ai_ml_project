@@ -352,7 +352,90 @@ not the model itself.
 
 ---
 
-## 9. Reproducibility
+## 9. Evaluation & metrics (Section E decisions)
+
+Metrics are split into two tiers based on cost and purpose.
+
+### Tier A — computed every validation epoch
+
+Cheap to compute; drives early stopping and model selection.
+
+| Metric | Use |
+|---|---|
+| **Val macro-F1** (primary) | `metric_for_best_model` in Trainer — early stopping monitor |
+| Per-class precision/recall/F1 (LOW/MED/HIGH) | Diagnosis — *which* class is failing and in which direction |
+| Overall accuracy | Cheap; easy sanity check |
+
+Macro-F1 weights each class equally regardless of size. Important because LOW is
+the majority class (44.5%) — a model that always predicts LOW gets 44.5% accuracy
+but macro-F1 around 0.21. We want the model to handle all three classes.
+
+**HIGH recall is the business-critical sub-metric.** Missing a HIGH clause means an
+unflagged legal risk in the downstream report. Per-epoch reporting of HIGH recall
+lets us spot models that are accurate-on-average but dangerously biased against HIGH.
+
+### Tier B — computed only on the held-out test set (post-training)
+
+Expensive or low-value during training; meaningful once at the end.
+
+**Per-clause-type F1 (36 types)** — tells us where the model is systematically
+weak. Example expected failures: Uncapped Liability F1 may be low because signing-party
+ambiguity isn't resolvable from clause_text alone (the Hybrid architecture's agent path
+is exactly the intended remedy — low F1 here is *expected* and motivates escalation).
+
+Reporting includes sample size. Types with n<5 rows in test (Source Code Escrow,
+Price Restrictions, Affiliate License-Licensor, etc.) are statistically noisy —
+a single wrong prediction swings F1 by 20+ points. Flag with a caveat.
+
+### Confidence calibration — load-bearing for the Hybrid architecture
+
+The Hybrid architecture's **0.6 confidence gate** only makes sense if the model's
+self-reported confidence matches its true accuracy. An over-confident model routes
+wrong-but-confident predictions past the agent; an under-confident model wastes LLM
+budget on already-correct predictions.
+
+**Measurement**: **Expected Calibration Error (ECE)**. Bin predictions by confidence
+(0.0-0.1, 0.1-0.2, …, 0.9-1.0); in each bin compute the mean confidence and the
+actual accuracy; ECE is the weighted average of `|mean_conf - accuracy|` across
+bins. Target: ECE<0.05 ideally, <0.10 acceptable.
+
+**Visualization**: Reliability diagram. Points on the diagonal = calibrated.
+Below-diagonal = overconfident. Above = underconfident.
+
+**Fix if miscalibrated**: **temperature scaling**. Replace `softmax(logits)` with
+`softmax(logits/T)` where `T` is a single scalar fit on val set to minimize NLL or
+ECE. Standard technique (Guo et al., 2017). Doesn't change which class is predicted
+(argmax is preserved) — only adjusts the confidence numbers. Typically reduces ECE
+by 2-5×. Takes ~60 seconds to fit.
+
+### Baselines (test set only)
+
+Three baselines on the hard-labeled test subset (AGREED + MANUAL_REVIEW +
+GEMINI_PRO_REVIEW rows in test split, ~325 rows — SOFT_LABEL rows have no single
+ground-truth class, excluded from this comparison):
+
+1. **Majority-class predictor** — always predict LOW. Macro-F1 floor ≈ 0.21. If we
+   don't beat this, training failed fundamentally.
+2. **Qwen-only** — use raw `qwen_label` as prediction. Shows what Qwen alone gives
+   us without any merging or fine-tuning.
+3. **Gemini-only** — same with `gemini_label`.
+
+If our DeBERTa doesn't beat (2) or (3) meaningfully, the fine-tuning pipeline added
+no value over either labeler alone — a signal that the merge + training effort was
+not worth it. Realistic expectation: DeBERTa should beat both since it absorbs
+signal from *both* labelers' agreement + the human reconciliation.
+
+### SOFT_LABEL test rows (optional extra metric)
+
+Test split contains ~141 SOFT_LABEL rows with no single ground-truth class. Skipped
+for headline baselines (no fair comparison), but useful for a calibration signal:
+compute **KL divergence between predicted softmax and the soft target vector**.
+Low KL = model matches labeler uncertainty on borderline cases. Treated as a
+secondary diagnostic, not a primary metric.
+
+---
+
+## 10. Reproducibility
 
 All prep is deterministic given the inputs:
 - `data/review/master_label_review.csv` → `scripts/build_training_dataset.py` →
@@ -368,7 +451,7 @@ same data + same seed on the same GPU gives results within ~0.1 F1 of each other
 
 ---
 
-## 10. Still open (before training code)
+## 11. Still open (before training code)
 
 See `memory/project_stage3_training_checklist.md` for the live list. As of 2026-04-23,
 Sections A (data prep), B (model & tokenizer), and C (loss & signal) are complete.
