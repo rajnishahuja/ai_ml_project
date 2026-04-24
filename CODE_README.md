@@ -56,17 +56,26 @@ The system is a **multi-stage parallel pipeline** invoked on every PDF upload. E
 
 ## 📁 Project Structure
 
-```
+```text
 AIML_project/
 ├── app/
 │   ├── main.py                         # FastAPI app entry point
 │   ├── routers/
 │   │   ├── stage1_extract.py           # POST /api/v1/stage1/analyze (main pipeline trigger)
-│   │   └── documents.py                # GET /api/v1/documents (FAISS DB explorer)
+│   │   ├── documents.py                # GET /api/v1/documents (FAISS DB explorer)
+│   │   ├── stage3_agent.py             # (Empty - Planned) Standalone endpoints to chat manually with the Mistral RAG
+│   │   └── stage4_report.py            # (Empty - Planned) API to retrieve/regenerate past reports
 │   ├── schemas/
-│   │   └── domain.py                   # Pydantic models: ExtractedClause, RiskAssessedClause, FinalRiskReport
-│   └── services/
-│       └── stage1_extract_svc.py       # DeBERTa inference service wrapper
+│   │   ├── domain.py                   # Pydantic models: ExtractedClause, RiskAssessedClause, FinalRiskReport
+│   │   ├── requests.py                 # (Empty - Planned) Custom request payload validations
+│   │   └── responses.py                # (Empty - Planned) Custom API response formats
+│   ├── services/
+│   │   ├── stage1_extract_svc.py       # DeBERTa inference service wrapper
+│   │   ├── stage3_agent_svc.py         # (Empty - Planned) Service to wrap isolated RAG prompts
+│   │   └── stage4_report_svc.py        # (Empty - Planned) Service to format/export reports as PDF
+│   └── dependencies/
+│       ├── auth.py                     # (Empty - Planned) JWT / API Key authentication middleware
+│       └── config.py                   # (Empty - Planned) Pydantic environment configuration class
 │
 ├── src/
 │   ├── workflow/                        # 🧠 Central LangGraph Orchestration
@@ -76,17 +85,30 @@ AIML_project/
 │   ├── stage1_extract_classify/         # Stage 1+2: DeBERTa extraction
 │   │   ├── model.py                    # Model loader and inference engine
 │   │   ├── preprocessing.py            # PDF/DOCX/TXT text extraction
-│   │   └── nodes.py                    # LangGraph node: node_extract_clauses
+│   │   ├── nodes.py                    # LangGraph node: node_extract_clauses
+│   │   ├── baseline.py / pipeline.py   # (Empty - Legacy) Removed monolithic ML research scripts
+│   │   └── train.py / evaluate.py      # (Empty - Legacy) Removed ML training/evaluation files
 │   │
 │   ├── stage3_risk_agent/               # Stage 3: Risk classification + RAG
-│   │   ├── embeddings.py               # FAISS vector store: embed_and_store, get_all_document_ids, get_document_chunks
+│   │   ├── embeddings.py               # FAISS vector store: embed_and_store, get_document_chunks
 │   │   ├── nodes.py                    # LangGraph nodes: B (FAISS), C (Classifier), D (Mistral RAG)
-│   │   └── agent.py                    # ⚠️ Legacy file — re-exports risk_graph for backwards compat
+│   │   ├── risk_classifier.py          # (Empty - Planned) Wrapper for DeBERTa Risk sequence classifier
+│   │   ├── rag_retriever.py            # (Empty - Planned) LangChain logic for FAISS context retrieval
+│   │   ├── tools.py                    # (Empty - Planned) Custom tools for the Mistral ReAct agent
+│   │   ├── faiss_store.py              # (Empty - Planned) Eventual migration of FAISS logic from embeddings
+│   │   └── synthetic_labels.py         # (Empty - Planned) Script for auto-labeling training datasets
 │   │
 │   ├── stage4_report_gen/               # Stage 4: Final report generation
-│   │   └── nodes.py                    # LangGraph node: node_report_generation
+│   │   ├── nodes.py                    # LangGraph node: node_report_generation
+│   │   ├── aggregator.py               # (Empty - Planned) Logic to summarize clauses into metrics
+│   │   ├── explainer.py                # (Empty - Planned) Formatter for Mistral's risk explanations
+│   │   ├── recommender.py              # (Empty - Planned) Mapping of Risk Types to actionable legal advice
+│   │   ├── report_builder.py           # (Empty - Planned) Logic to assemble the final unified JSON
+│   │   └── generator.py                # (Empty - Planned) PDF/Word export generation engine
 │   │
 │   └── common/                          # Shared utilities
+│       ├── constants.py                # Global pipeline variables (Thresholds, clause types)
+│       └── data_loader.py / utils.py   # (Empty - Planned) Reusable cross-stage helper functions
 │
 ├── data/
 │   ├── raw/                            # Temp upload storage (auto-cleaned after processing)
