@@ -328,6 +328,28 @@ Stage 1 experiments (Apr 2026) documented NaN issues with DeBERTa + reduced prec
 `strict_determinism = false`. `torch.use_deterministic_algorithms(True)` costs 10-30%
 throughput for bit-exact reproducibility. We accept ~0.1 F1 run-to-run wiggle in exchange.
 
+### Smoke test — bf16 PASSED (2026-04-23)
+
+`scripts/smoke_test_stage3.py` ran:
+- deberta-v3-base + classification head (184.4M params total — v3's 128k vocab drives
+  the size; ~86M backbone + ~98M embeddings)
+- bf16 precision, plain PyTorch loop, no HF Trainer
+- Soft-target cross-entropy loss with class weights [0.749, 1.030, 1.442]
+- 10 forward+backward+optimizer steps on real clauses from the train split, batch=8
+
+Result: no NaN/Inf in loss, logits, gradients, or classifier weights at any step.
+Loss fluctuated around 1.0 (initial random-init 3-class baseline `-log(1/3) ≈ 1.099`)
+which is the expected range — 10 steps is not enough to learn, just enough to verify
+numerical stability.
+
+`finfo(bf16).min = -3.39e38` was exercised in DeBERTa's attention masking on every
+step without triggering NaN. The Stage 1 failure was not reproduced in this isolated
+plain-PyTorch setup; the root cause there was likely HF Trainer + QA-head interaction,
+not the model itself.
+
+**Bf16 is safe to use for Stage 3 training.** The real trainer will still include a
+`NaNDetector` callback as belt-and-suspenders.
+
 ---
 
 ## 9. Reproducibility
