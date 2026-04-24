@@ -105,3 +105,6 @@ tmp/
 temp/
 *.tmp
 refrences.txt
+
+# Instructions 
+.github/

@@ -3,6 +3,7 @@ Inference-only Model wrapper for Stage 1+2.
 Responsible for loading the local HuggingFace weights and running the extraction.
 """
 
+import json
 import logging
 import re
 from dataclasses import dataclass, field, asdict
@@ -31,6 +32,8 @@ class ClauseObject:
     end_pos: int
     confidence: float
     confidence_logit: Optional[float] = None
+    page_no: Optional[str] = None
+    content_label: Optional[str] = None
     document_id: Optional[str] = None
 
     def to_dict(self):
@@ -52,7 +55,7 @@ class ExtractionResult:
 
 
 class ClauseExtractorClassifier:
-    MAX_ANSWER_LEN = 340
+    MAX_ANSWER_LEN = 480
 
     def __init__(self, model_path: str):
         logger.info(f"Loading Stage 1+2 model from: {model_path}")
@@ -115,6 +118,70 @@ class ClauseExtractorClassifier:
 
         return answer_text, char_start, char_end, best_score, cls_score
 
+    def _resolve_metadata(self, doc_id: str, clause_text: str) -> dict:
+        """
+        Attempts to resolve the original PDF page number and element type
+        (e.g., table, paragraph) by searching the Docling JSON metadata.
+        Supports multi-page clauses returning formats like "2-3".
+        """
+        base_dir = Path(__file__).resolve().parent.parent.parent
+        json_path = (
+            base_dir / "data" / "processed" / "docling_outputs" / f"{doc_id}.json"
+        )
+
+        default_meta = {"page_no": None, "content_label": None}
+        if not json_path.exists():
+            return default_meta
+
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            def _norm(t: str) -> str:
+                return "".join(c.lower() for c in t if c.isalnum())
+
+            norm_start = _norm(clause_text[:40])
+            norm_end = (
+                _norm(clause_text[-40:]) if len(clause_text) >= 40 else norm_start
+            )
+
+            start_page = None
+            end_page = None
+            content_label = None
+
+            for item in data.get("texts", []):
+                it_text = _norm(item.get("text", ""))
+
+                # Forward-only: our clause fragment must appear INSIDE a Docling block.
+                # Bidirectional check causes false positives — e.g., a block containing just "3"
+                # matches "suchotherpartythatremainsuncured30" via reverse substring.
+                # 8-char minimum guard prevents single-word/digit tokens from matching.
+                if not start_page and len(norm_start) >= 8 and norm_start in it_text:
+                    prov = item.get("prov", [])
+                    if prov:
+                        start_page = prov[0].get("page_no")
+                    content_label = item.get("label")
+
+                # Check end mapping
+                if not end_page and len(norm_end) >= 8 and norm_end in it_text:
+                    prov = item.get("prov", [])
+                    if prov:
+                        end_page = prov[0].get("page_no")
+
+
+            if start_page and end_page and start_page != end_page:
+                page_no = f"{start_page}-{end_page}"
+            elif start_page:
+                page_no = str(start_page)
+            else:
+                page_no = None
+
+            return {"page_no": page_no, "content_label": content_label}
+
+        except Exception as e:
+            logger.warning(f"Failed to resolve metadata for doc {doc_id}: {e}")
+            return default_meta
+
     def extract(self, contract_text: str, doc_id: str = "unknown") -> list:
         clauses = []
         logger.info(
@@ -128,7 +195,7 @@ class ClauseExtractorClassifier:
             questions,
             contracts,
             truncation="only_second",
-            max_length=384,
+            max_length=512,
             stride=128,
             return_overflowing_tokens=True,
             return_offsets_mapping=True,
@@ -283,6 +350,8 @@ class ClauseExtractorClassifier:
             conf_raw = float(score - cls_score)
             conf = 1 / (1 + np.exp(-(conf_raw / 2)))
 
+            meta = self._resolve_metadata(doc_id, answer_text)
+
             new_clause = ClauseObject(
                 clause_id=_make_clause_id(
                     doc_id, clause_type, clause_idx
@@ -293,6 +362,8 @@ class ClauseExtractorClassifier:
                 end_pos=char_end,
                 confidence=round(conf, 4),
                 confidence_logit=round(conf_raw, 4),
+                page_no=meta["page_no"],
+                content_label=meta["content_label"],
                 document_id=doc_id,
             )
 

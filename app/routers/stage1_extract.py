@@ -41,7 +41,7 @@ async def analyze_document_with_agent(file: UploadFile = File(...)):
         # Preprocess text off the main thread to keep FastAPI completely responsive
         loop = asyncio.get_running_loop()
         contract_text = await loop.run_in_executor(
-            None, preprocess_contract, str(temp_path)
+            None, preprocess_contract, str(temp_path), doc_id
         )
 
         # Kick off the Parallel LangGraph Execution Graph!
