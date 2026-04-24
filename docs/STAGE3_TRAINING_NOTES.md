@@ -350,6 +350,26 @@ not the model itself.
 **Bf16 is safe to use for Stage 3 training.** The real trainer will still include a
 `NaNDetector` callback as belt-and-suspenders.
 
+### HF Trainer phase — also PASSED (extended smoke test, 2026-04-23)
+
+After the plain-PyTorch phase passed, a second phase ran the same config through
+HuggingFace `Trainer` — because Stage 1's NaN was specifically a Trainer+v3
+interaction. Result: 10 `trainer.train()` steps completed cleanly, loss around
+1.10-1.20 (normal 3-class random-init range), classifier weights sane post-training.
+
+Details that may have avoided the Stage 1 trap:
+- **Classification head** (simpler than Stage 1's QA span prediction)
+- **No `processing_class=tokenizer`** passed to Trainer — one of the Stage 1 NaN
+  suspects (per `notebooks/EXPERIMENT_NOTES.md`). We pre-tokenize into a HF
+  `Dataset` and pass `data_collator=DefaultDataCollator()` directly.
+- **`remove_unused_columns=False`** in `TrainingArguments` — keeps our `soft_label`
+  field through the data loader; without this the Trainer strips non-model-input
+  columns before `compute_loss` runs.
+- **transformers 5.5.4** (may have fixed earlier v3 interaction bugs that hit 4.57)
+
+**Decision: use HuggingFace Trainer for the real training loop.** Saves ~120 lines
+vs a custom PyTorch loop, and now empirically de-risked.
+
 ---
 
 ## 9. Evaluation & metrics (Section E decisions)

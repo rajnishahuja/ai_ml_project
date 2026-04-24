@@ -31,6 +31,7 @@ Exit codes:
 """
 
 import json
+import math
 import random
 import sys
 from pathlib import Path
@@ -38,7 +39,15 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.optim import AdamW
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers import (
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    DefaultDataCollator,
+    Trainer,
+    TrainerCallback,
+    TrainingArguments,
+)
+from datasets import Dataset
 
 # Config — pull from stage3_config.yaml in spirit, hardcoded for smoke test
 MODEL_NAME       = "microsoft/deberta-v3-base"
@@ -177,6 +186,98 @@ def run_phase(precision: str, tokenizer, train_rows, device):
     return True
 
 
+def run_phase_hf_trainer(precision: str, tokenizer, train_rows, device):
+    """Run an equivalent check but driven by HuggingFace Trainer.
+
+    Answers the question: does our exact bf16 + deberta-v3-base + custom loss
+    config survive the HF Trainer loop? Stage 1 experiments hit NaN here even
+    at FP32; we want to know before committing to Trainer-based code.
+
+    Returns True if 10 training steps complete without NaN.
+    """
+    banner(f"HF TRAINER PHASE [{precision}]: 10 Trainer.train() steps")
+    dtype = {"bf16": torch.bfloat16, "fp32": torch.float32}[precision]
+
+    # Build a HF Dataset of ~10 batches worth of data
+    subset = train_rows[:BATCH_SIZE * NUM_STEPS]
+    enc = tokenizer(
+        [r["clause_type"] for r in subset],
+        [r["clause_text"] for r in subset],
+        padding="max_length", truncation=True, max_length=MAX_LENGTH,
+    )
+    dataset = Dataset.from_dict({
+        **enc,
+        "soft_label": [r["soft_label"] for r in subset],
+    })
+
+    # NaN detector: fails loudly on first NaN/Inf loss
+    class NaNDetector(TrainerCallback):
+        def on_log(self, args, state, control, logs=None, **kwargs):
+            if logs and "loss" in logs:
+                L = logs["loss"]
+                if math.isnan(L) or math.isinf(L):
+                    raise ValueError(f"NaN/Inf loss at step {state.global_step}: {L}")
+
+    # Custom Trainer: override compute_loss for soft-target CE with class weights
+    class_weights_device = CLASS_WEIGHTS.to(device)
+
+    class SoftTargetCETrainer(Trainer):
+        def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+            targets = inputs.pop("soft_label")
+            outputs = model(**inputs)
+            loss = soft_target_ce(outputs.logits, targets, class_weights_device)
+            return (loss, outputs) if return_outputs else loss
+
+    model = AutoModelForSequenceClassification.from_pretrained(
+        MODEL_NAME, num_labels=NUM_LABELS, dtype=dtype,
+    )
+
+    args = TrainingArguments(
+        output_dir="/tmp/smoke_trainer_stage3",
+        max_steps=NUM_STEPS,
+        per_device_train_batch_size=BATCH_SIZE,
+        learning_rate=LEARNING_RATE,
+        logging_steps=1,
+        save_strategy="no",
+        eval_strategy="no",
+        report_to="none",
+        bf16=(precision == "bf16"),
+        fp16=False,
+        seed=SEED,
+        disable_tqdm=True,
+        remove_unused_columns=False,   # keep `soft_label` through the pipeline
+    )
+
+    trainer = SoftTargetCETrainer(
+        model=model,
+        args=args,
+        train_dataset=dataset,
+        data_collator=DefaultDataCollator(),
+        callbacks=[NaNDetector()],
+        # NOTE: deliberately NOT passing processing_class=tokenizer — this was a
+        # suspect in the Stage 1 v3+Trainer NaN mystery (see EXPERIMENT_NOTES.md).
+        # We've already tokenized above, so Trainer doesn't need it.
+    )
+
+    try:
+        result = trainer.train()
+        print(f"\n  ✓ Trainer.train() completed {NUM_STEPS} steps")
+        print(f"    final loss: {result.training_loss:.4f}")
+        # Verify final model weights are sane
+        cw = model.classifier.weight
+        if torch.isnan(cw).any() or torch.isinf(cw).any():
+            print(f"  ✗ classifier weights NaN/Inf after training")
+            return False
+        print(f"    classifier.weight sane: min={cw.float().min():.4g} max={cw.float().max():.4g}")
+        return True
+    except ValueError as e:
+        print(f"  ✗ {e}")
+        return False
+    except Exception as e:
+        print(f"  ✗ Trainer raised: {type(e).__name__}: {e}")
+        return False
+
+
 def main():
     banner("STAGE 3 SMOKE TEST — DeBERTa-v3-base + bf16 + soft-target CE")
     print(f"  model:   {MODEL_NAME}")
@@ -202,20 +303,34 @@ def main():
     # Load tokenizer once
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
-    # Phase 1: bf16
-    if run_phase("bf16", tokenizer, list(train_rows), device):
-        banner("RESULT: bf16 PASSED — safe to train in bf16")
+    # Phase 1: plain PyTorch in bf16
+    if not run_phase("bf16", tokenizer, list(train_rows), device):
+        print("\n  bf16 plain-PyTorch failed — retrying in fp32 to localize...")
+        torch.cuda.empty_cache()
+        if run_phase("fp32", tokenizer, list(train_rows), device):
+            banner("RESULT: plain PyTorch bf16 FAILED, fp32 PASSED — fall back to fp32")
+            sys.exit(1)
+        banner("RESULT: plain PyTorch failed in both precisions — investigate")
+        sys.exit(2)
+
+    # Phase 2: HF Trainer in bf16 (only reached if Phase 1 passed)
+    torch.cuda.empty_cache()
+    if run_phase_hf_trainer("bf16", tokenizer, list(train_rows), device):
+        banner("RESULT: bf16 PASSED in both plain PyTorch AND HF Trainer\n"
+               "        → safe to use HuggingFace Trainer for the real run")
         sys.exit(0)
 
-    # Phase 2: fp32 fallback
-    print("\n  bf16 failed — retrying in fp32 to localize...")
+    # Phase 2a: HF Trainer in fp32 (diagnostic — Trainer-specific issue or precision?)
+    print("\n  HF Trainer bf16 failed — retrying HF Trainer in fp32 to localize...")
     torch.cuda.empty_cache()
-    if run_phase("fp32", tokenizer, list(train_rows), device):
-        banner("RESULT: bf16 FAILED, fp32 PASSED — fall back to fp32")
-        sys.exit(1)
+    if run_phase_hf_trainer("fp32", tokenizer, list(train_rows), device):
+        banner("RESULT: plain PyTorch bf16 OK, HF Trainer bf16 FAILED, Trainer fp32 OK\n"
+               "        → use HF Trainer but in fp32, not bf16")
+        sys.exit(3)
 
-    banner("RESULT: BOTH FAILED — investigate before training")
-    sys.exit(2)
+    banner("RESULT: HF Trainer failed in BOTH precisions, plain PyTorch bf16 OK\n"
+           "        → use custom PyTorch training loop, skip HF Trainer")
+    sys.exit(4)
 
 
 if __name__ == "__main__":
