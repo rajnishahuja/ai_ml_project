@@ -23,15 +23,16 @@ risk_classifier:
 
   # Fine-tuning strategy (Section D.0)
   fine_tuning: full                              # all 86M params trainable; no LoRA, no freezing
-  llrd: false                                    # layer-wise LR decay — deferred to v1.1 ablation
+  llrd: true                                     # ABLATION run F: LLRD with milder decay
+  llrd_decay: 0.95                               # gentler than C's 0.9 (embeddings still get 0.95^12 ≈ 0.54x base_lr)
 
   # Optimizer + schedule (Section D.1–D.5)
   batch_size: 16
-  learning_rate: 2.0e-5
+  learning_rate: 5.0e-5    # ABLATION run F: Run B recipe + LLRD=0.95 (milder than C's 0.9)
   warmup_ratio: 0.1                              # linear warmup 0 → lr over 10% of steps
-  lr_scheduler_type: linear                      # linear decay after warmup
-  epochs: 5
-  weight_decay: 0.01                             # AdamW default; biases + LayerNorm excluded automatically
+  lr_scheduler_type: cosine                      # carry over winner from Run B
+  epochs: 10
+  weight_decay: 0.05                             # carry over winner from Run B
 
   # Early stopping (Section D.4)
   early_stopping_patience: 2
@@ -48,6 +49,9 @@ risk_classifier:
   # Reproducibility (Section D.7)
   seed: 42                                       # different from splits seed (100) — independent process
   strict_determinism: false                      # ~0.1 F1 wiggle tolerated; ~15% speed savings
+
+  # Run E: dropout override (DeBERTa default = 0.1)
+  dropout: 0.1                                   # back to default for run F
 
 # Stage 3 inference — agent + tools (unchanged)
 embedding_model: sentence-transformers/all-MiniLM-L6-v2

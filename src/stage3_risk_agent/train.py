@@ -24,6 +24,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import transformers
 import yaml
 from datasets import Dataset
 from sklearn.metrics import accuracy_score, f1_score, precision_recall_fscore_support
@@ -37,6 +38,9 @@ from transformers import (
     TrainingArguments,
     set_seed,
 )
+
+# Cut HF HTTP/loading-progress chatter from training.log; keep WARN+ for real issues.
+transformers.logging.set_verbosity_error()
 
 
 # -------- constants -----------------------------------------------------------
@@ -73,6 +77,8 @@ class Stage3Config:
     allow_fp32_fallback: bool
     seed: int
     strict_determinism: bool
+    llrd_decay: float = 0.9   # only used when llrd: true; LR_layer = base_lr * decay^(top - layer_idx)
+    dropout: float = 0.1      # DeBERTa default; override to test added regularization
 
     @classmethod
     def from_yaml(cls, path: str) -> "Stage3Config":
@@ -93,6 +99,51 @@ def soft_target_ce(logits, targets, class_weights):
     log_probs = torch.log_softmax(logits.float(), dim=-1)
     per_class = class_weights.to(log_probs.device) * targets * log_probs
     return -per_class.sum(dim=-1).mean()
+
+
+def emd_loss(logits, targets, class_weights):
+    """Earth Mover's Distance (Wasserstein-1) loss for ORDINAL classes.
+
+    Treats predictions and targets as 1D distributions over [LOW, MED, HIGH].
+    Penalizes 'off by k' proportionally to k:
+      truth=HIGH, pred=MED  → EMD = 1
+      truth=HIGH, pred=LOW  → EMD = 2 (twice as bad)
+    CE would penalize both equally; EMD respects the ordering.
+
+    For K classes, EMD = sum_{k=0..K-2} | CDF_pred(k) - CDF_target(k) |.
+
+    Class weights are applied per-row using the expected class weight under
+    the target distribution: weight_row = sum_c (target[c] * class_weight[c]).
+
+    NOTE: Pure EMD on imbalanced data can collapse to predicting the median
+    class (Run 12 demonstrated this). Use `hybrid_ce_emd` for production runs.
+    """
+    probs = torch.softmax(logits.float(), dim=-1)
+    cdf_pred = torch.cumsum(probs, dim=-1)
+    cdf_target = torch.cumsum(targets, dim=-1)
+    # Drop last cumulative (always = 1, contributes 0 to abs diff).
+    emd_per_row = torch.abs(cdf_pred[..., :-1] - cdf_target[..., :-1]).sum(dim=-1)
+    weight_per_row = (targets * class_weights.to(probs.device)).sum(dim=-1)
+    return (emd_per_row * weight_per_row).mean()
+
+
+def emd_loss_unweighted(logits, targets):
+    """Unweighted EMD — used as the additive term in hybrid CE+EMD."""
+    probs = torch.softmax(logits.float(), dim=-1)
+    cdf_pred = torch.cumsum(probs, dim=-1)
+    cdf_target = torch.cumsum(targets, dim=-1)
+    return torch.abs(cdf_pred[..., :-1] - cdf_target[..., :-1]).sum(dim=-1).mean()
+
+
+def hybrid_ce_emd(logits, targets, class_weights, lam=0.5):
+    """CE (class-weighted) + lam * EMD (unweighted).
+
+    The CE term provides class-discriminative pressure (anchors the model away
+    from the median-collapse trap that pure EMD falls into on imbalanced data).
+    The EMD term adds ordinal awareness — gradients near LOW↔HIGH boundaries
+    push harder than near LOW↔MED or MED↔HIGH.
+    """
+    return soft_target_ce(logits, targets, class_weights) + lam * emd_loss_unweighted(logits, targets)
 
 
 # -------- class weights -------------------------------------------------------
@@ -129,12 +180,40 @@ def compute_class_weights(train_ds: Dataset, method: str) -> torch.Tensor:
 
 # -------- dataset prep --------------------------------------------------------
 
-def build_datasets(cfg: Stage3Config, tokenizer):
+def transform_train_labels(rows, mode: str):
+    """Apply label-mode transformation to training rows. Val/test are NEVER transformed.
+
+    - 'soft' (default): no change — soft vectors used as-is for soft-target CE.
+    - 'hard_only': filter out SOFT_LABEL rows (where max(soft_label) < 0.99).
+                    Tests whether the labeler-disagreement rows are net helpful or harmful.
+    - 'argmax_soft': convert soft vectors → one-hot via argmax. Keeps the rows but discards
+                    the uncertainty info. Tests whether the SOFT vector format is the issue
+                    (vs the MEDIUM anchor in the underlying labels).
+    """
+    if mode == "soft":
+        return rows
+    if mode == "hard_only":
+        return [r for r in rows if max(r["soft_label"]) >= 0.99]
+    if mode == "argmax_soft":
+        out = []
+        for r in rows:
+            r2 = dict(r)
+            sl = r["soft_label"]
+            idx = sl.index(max(sl))
+            r2["soft_label"] = [1.0 if i == idx else 0.0 for i in range(NUM_LABELS)]
+            out.append(r2)
+        return out
+    raise ValueError(f"Unknown label-mode: {mode!r}")
+
+
+def build_datasets(cfg: Stage3Config, tokenizer, label_mode: str = "soft"):
     data = json.loads(Path(cfg.training_data_path).read_text(encoding="utf-8"))
     splits = json.loads(Path(cfg.splits_path).read_text(encoding="utf-8"))
 
-    def tokenize_split(row_nums):
+    def tokenize_split(row_nums, transform: bool = False):
         rows = [r for r in data if r["row_num"] in row_nums]
+        if transform:
+            rows = transform_train_labels(rows, label_mode)
         enc = tokenizer(
             [r["clause_type"] for r in rows],
             [r["clause_text"] for r in rows],
@@ -144,15 +223,78 @@ def build_datasets(cfg: Stage3Config, tokenizer):
         )
         return Dataset.from_dict({
             **enc,
-            "labels": [r["soft_label"] for r in rows],   # [N, 3] soft targets
-            "row_num": [r["row_num"] for r in rows],     # needed for per-clause-type at test
+            "labels": [r["soft_label"] for r in rows],
+            "row_num": [r["row_num"] for r in rows],
         })
 
     return (
-        tokenize_split(set(splits["train"])),
+        tokenize_split(set(splits["train"]), transform=True),
         tokenize_split(set(splits["val"])),
         tokenize_split(set(splits["test"])),
     )
+
+
+# -------- LLRD optimizer (Section D.0 / ablation) -----------------------------
+
+def build_llrd_param_groups(model, base_lr: float, weight_decay: float, decay: float):
+    """Layer-wise LR decay parameter groups for DeBERTa-v3.
+
+    Top encoder layer (layer_{n-1}) gets base_lr; each lower layer multiplies by `decay`.
+    Embeddings + rel_embeddings + encoder-level LayerNorm get the lowest LR (base_lr * decay^n).
+    Classifier head + pooler stay at base_lr (newly initialized, need full speed).
+    Bias / LayerNorm weights get weight_decay=0 (HF Trainer convention).
+    """
+    no_decay_keys = ("bias", "LayerNorm.weight", "LayerNorm.bias")
+    n_layers = model.config.num_hidden_layers
+    embedding_lr = base_lr * (decay ** n_layers)
+
+    groups = []
+    seen = set()
+
+    def add(params, lr_val, wd_val):
+        if params:
+            groups.append({"params": params, "lr": lr_val, "weight_decay": wd_val})
+
+    # 1. Classifier + pooler — full LR (newly initialized layers)
+    head_d, head_nd = [], []
+    for n, p in model.named_parameters():
+        if n.startswith(("classifier.", "pooler.")):
+            seen.add(n)
+            (head_nd if any(k in n for k in no_decay_keys) else head_d).append(p)
+    add(head_d, base_lr, weight_decay)
+    add(head_nd, base_lr, 0.0)
+
+    # 2. Encoder layers — top-down geometric decay
+    for layer_i in range(n_layers):
+        layer_lr = base_lr * (decay ** (n_layers - 1 - layer_i))
+        l_d, l_nd = [], []
+        prefix = f"deberta.encoder.layer.{layer_i}."
+        for n, p in model.named_parameters():
+            if n.startswith(prefix):
+                seen.add(n)
+                (l_nd if any(k in n for k in no_decay_keys) else l_d).append(p)
+        add(l_d, layer_lr, weight_decay)
+        add(l_nd, layer_lr, 0.0)
+
+    # 3. Embeddings + rel_embeddings + encoder.LayerNorm — lowest LR
+    emb_d, emb_nd = [], []
+    for n, p in model.named_parameters():
+        if n in seen:
+            continue
+        if n.startswith(("deberta.embeddings.",
+                          "deberta.encoder.rel_embeddings",
+                          "deberta.encoder.LayerNorm")):
+            seen.add(n)
+            (emb_nd if any(k in n for k in no_decay_keys) else emb_d).append(p)
+    add(emb_d, embedding_lr, weight_decay)
+    add(emb_nd, embedding_lr, 0.0)
+
+    # Sanity check
+    missing = {n for n, _ in model.named_parameters()} - seen
+    if missing:
+        raise RuntimeError(f"LLRD param groups missing: {missing}")
+
+    return groups
 
 
 # -------- trainer subclass ----------------------------------------------------
@@ -161,11 +303,29 @@ MODEL_INPUT_KEYS = {"input_ids", "attention_mask", "token_type_ids"}
 
 
 class SoftTargetCETrainer(Trainer):
-    """Overrides compute_loss with our weighted soft-target CE."""
+    """Overrides compute_loss with our weighted soft-target CE.
+    If llrd_decay is provided, also overrides create_optimizer to build per-layer LR groups.
+    """
 
-    def __init__(self, *args, class_weights, **kwargs):
+    def __init__(self, *args, class_weights, llrd_decay=None, loss_type="ce",
+                 emd_lambda=0.5, **kwargs):
         super().__init__(*args, **kwargs)
         self._class_weights = class_weights
+        self._llrd_decay = llrd_decay
+        self._loss_type = loss_type
+        self._emd_lambda = emd_lambda
+
+    def create_optimizer(self):
+        if self.optimizer is None and self._llrd_decay is not None:
+            param_groups = build_llrd_param_groups(
+                self.model,
+                self.args.learning_rate,
+                self.args.weight_decay,
+                self._llrd_decay,
+            )
+            self.optimizer = torch.optim.AdamW(param_groups)
+            return self.optimizer
+        return super().create_optimizer()
 
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
         # Move class weights to model device on first use
@@ -175,7 +335,13 @@ class SoftTargetCETrainer(Trainer):
         targets = inputs["labels"]   # keep in inputs so prediction_step can still extract
         model_inputs = {k: v for k, v in inputs.items() if k in MODEL_INPUT_KEYS}
         outputs = model(**model_inputs)
-        loss = soft_target_ce(outputs.logits, targets, self._class_weights)
+        if self._loss_type == "emd":
+            loss = emd_loss(outputs.logits, targets, self._class_weights)
+        elif self._loss_type == "hybrid":
+            loss = hybrid_ce_emd(outputs.logits, targets, self._class_weights,
+                                  lam=self._emd_lambda)
+        else:
+            loss = soft_target_ce(outputs.logits, targets, self._class_weights)
         return (loss, outputs) if return_outputs else loss
 
 
@@ -333,6 +499,18 @@ def parse_cli():
     p.add_argument("--output-suffix", type=str, default=None,
                    help="Append suffix to output_dir (e.g. '_smoke30') so test runs "
                         "don't overwrite full-training artifacts")
+    p.add_argument("--seed", type=int, default=None,
+                   help="Override training seed from config (for multi-seed runs)")
+    p.add_argument("--loss", type=str, default="ce", choices=["ce", "emd", "hybrid"],
+                   help="Loss function: 'ce' (CE), 'emd' (pure EMD, may collapse), "
+                        "or 'hybrid' (CE + lambda*EMD; recommended for ordinal)")
+    p.add_argument("--emd-lambda", type=float, default=0.5,
+                   help="Weight for the EMD term in hybrid loss (default 0.5)")
+    p.add_argument("--label-mode", type=str, default="soft",
+                   choices=["soft", "hard_only", "argmax_soft"],
+                   help="How to treat SOFT_LABEL rows in training: keep soft (default), "
+                        "drop them (hard_only), or hard-argmax the soft vectors (argmax_soft). "
+                        "Val/test are never transformed.")
     return p.parse_args()
 
 
@@ -341,6 +519,8 @@ def main():
     cfg = Stage3Config.from_yaml(CONFIG_PATH)
     if cli.output_suffix:
         cfg.output_dir = cfg.output_dir + cli.output_suffix
+    if cli.seed is not None:
+        cfg.seed = cli.seed
     Path(cfg.output_dir).mkdir(parents=True, exist_ok=True)
 
     logging.basicConfig(
@@ -361,7 +541,8 @@ def main():
     logger.info(f"Loading tokenizer: {cfg.model_name}")
     tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
 
-    train_ds, val_ds, test_ds = build_datasets(cfg, tokenizer)
+    train_ds, val_ds, test_ds = build_datasets(cfg, tokenizer, label_mode=cli.label_mode)
+    logger.info(f"Label mode: {cli.label_mode}")
     logger.info(f"Datasets — train: {len(train_ds)}  val: {len(val_ds)}  test: {len(test_ds)}")
 
     class_weights = compute_class_weights(train_ds, cfg.class_weights_method)
@@ -369,9 +550,16 @@ def main():
                 f"LOW={class_weights[0]:.4f}  MED={class_weights[1]:.4f}  HIGH={class_weights[2]:.4f}")
 
     logger.info(f"Loading model in {cfg.precision}: {cfg.model_name}")
+    if cfg.dropout != 0.1:
+        logger.info(f"Dropout override: hidden_dropout_prob={cfg.dropout}, "
+                    f"attention_probs_dropout_prob={cfg.dropout}")
     dtype = torch.bfloat16 if cfg.precision == "bf16" else torch.float32
     model = AutoModelForSequenceClassification.from_pretrained(
-        cfg.model_name, num_labels=NUM_LABELS, dtype=dtype,
+        cfg.model_name,
+        num_labels=NUM_LABELS,
+        dtype=dtype,
+        hidden_dropout_prob=cfg.dropout,
+        attention_probs_dropout_prob=cfg.dropout,
     )
 
     # Full-epoch defaults, overridden by CLI flags for smoke runs
@@ -420,6 +608,15 @@ def main():
         disable_tqdm=False,
     )
 
+    if cfg.llrd:
+        logger.info(f"LLRD enabled (decay={cfg.llrd_decay}): "
+                    f"top-layer LR={cfg.learning_rate:.2e}, "
+                    f"embedding LR={cfg.learning_rate * (cfg.llrd_decay ** 12):.2e}")
+    if cli.loss == "hybrid":
+        logger.info(f"Loss function: hybrid CE + {cli.emd_lambda} * EMD")
+    else:
+        logger.info(f"Loss function: {cli.loss}")
+
     trainer = SoftTargetCETrainer(
         model=model,
         args=args,
@@ -428,6 +625,9 @@ def main():
         data_collator=DefaultDataCollator(),
         compute_metrics=compute_val_metrics,
         class_weights=class_weights,
+        llrd_decay=cfg.llrd_decay if cfg.llrd else None,
+        loss_type=cli.loss,
+        emd_lambda=cli.emd_lambda,
         callbacks=[
             NaNDetector(),
             EarlyStoppingCallback(early_stopping_patience=cfg.early_stopping_patience),
