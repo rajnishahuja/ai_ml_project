@@ -16,7 +16,8 @@ risk_classifier:
   # Loss & training signal (Section C)
   # Single nn.CrossEntropyLoss(weight=class_weights) over soft-vector targets.
   # Hard rows carry one-hot, soft rows carry probability vectors — unified.
-  class_weights_method: hard_counts              # Option A: LOW 0.749 / MED 1.030 / HIGH 1.442
+  class_weights_method: effective_counts         # Option B: counts include soft-label probability mass.
+                                                 # Option A (hard_counts) produced MEDIUM-collapse (Run 1, macro_f1=0.21)
   soft_label_weighting: confidence_weighted      # baked in at build time (--no_conf_weight flag exists)
 
   # Fine-tuning strategy (Section D.0)

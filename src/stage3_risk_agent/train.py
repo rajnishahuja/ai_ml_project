@@ -149,13 +149,28 @@ def hybrid_ce_emd(logits, targets, class_weights, lam=0.5):
 # -------- class weights -------------------------------------------------------
 
 def compute_class_weights(train_ds: Dataset, method: str) -> torch.Tensor:
-    """Option A: hard-row counts only. weight = N / (K * count_c)."""
-    if method != "hard_counts":
+    """Compute per-class weights using the standard weight = N / (K * count_c) formula.
+
+    method='hard_counts' (Option A): count only one-hot rows.
+        Simpler, but can miscalibrate if soft rows over-represent some class
+        in the loss computation — as happened in our Option A run where all
+        soft rows carried MEDIUM=0.5, pushing the model to predict MEDIUM only.
+
+    method='effective_counts' (Option B): accumulate probability mass across ALL rows
+        including soft labels. Keeps class-weight computation consistent with the loss
+        function — both see the same distribution.
+    """
+    counts = [0.0, 0.0, 0.0]
+    if method == "hard_counts":
+        for sl in train_ds["labels"]:
+            if max(sl) >= 0.99:  # one-hot row
+                counts[sl.index(max(sl))] += 1
+    elif method == "effective_counts":
+        for sl in train_ds["labels"]:
+            for c in range(NUM_LABELS):
+                counts[c] += sl[c]
+    else:
         raise ValueError(f"Unsupported class_weights_method: {method!r}")
-    counts = [0, 0, 0]
-    for sl in train_ds["labels"]:
-        if max(sl) >= 0.99:  # one-hot row
-            counts[sl.index(max(sl))] += 1
     N = sum(counts)
     return torch.tensor(
         [N / (NUM_LABELS * c) if c > 0 else 1.0 for c in counts],
