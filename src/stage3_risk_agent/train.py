@@ -24,6 +24,8 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import transformers
 import yaml
 from datasets import Dataset
@@ -38,6 +40,7 @@ from transformers import (
     TrainingArguments,
     set_seed,
 )
+from transformers.modeling_outputs import SequenceClassifierOutput
 
 # Cut HF HTTP/loading-progress chatter from training.log; keep WARN+ for real issues.
 transformers.logging.set_verbosity_error()
@@ -146,6 +149,99 @@ def hybrid_ce_emd(logits, targets, class_weights, lam=0.5):
     return soft_target_ce(logits, targets, class_weights) + lam * emd_loss_unweighted(logits, targets)
 
 
+def corn_loss(logit1: torch.Tensor, logit2: torch.Tensor,
+              true_class: torch.Tensor, class_weights: torch.Tensor) -> torch.Tensor:
+    """CORN loss: K-1=2 conditional binary BCE losses (Shi et al., NeurIPS 2021).
+
+    Threshold 0 (logit1): ALL rows. Binary target = (y >= 1), i.e. MEDIUM or HIGH.
+    Threshold 1 (logit2): Rows where true y >= 1 ONLY (the 'conditional' part).
+                          Binary target within that subset = (y >= 2), i.e. HIGH.
+
+    Conditioning on the subset is what distinguishes CORN from plain ordinal regression
+    — it avoids the circular dependency problem in conditional probability estimation.
+
+    pos_weight derived from effective class counts so imbalanced classes get corrected.
+    """
+    cw = class_weights.float().to(logit1.device)
+    inv = 1.0 / (cw + 1e-9)  # inv[c] ∝ effective count of class c
+
+    # Threshold 0: neg=LOW, pos=MEDIUM+HIGH
+    pw0 = (inv[0] / (inv[1] + inv[2])).expand_as(logit1)
+    target_0 = (true_class >= 1).float()
+    loss_0 = F.binary_cross_entropy_with_logits(logit1, target_0, pos_weight=pw0)
+
+    # Threshold 1: subset where y >= 1, neg=MEDIUM, pos=HIGH
+    mask = true_class >= 1
+    if mask.any():
+        pw1 = (inv[1] / inv[2]).expand_as(logit2[mask])
+        target_1 = (true_class[mask] >= 2).float()
+        loss_1 = F.binary_cross_entropy_with_logits(logit2[mask], target_1, pos_weight=pw1)
+    else:
+        loss_1 = logit1.new_zeros(1).squeeze()
+
+    return loss_0 + loss_1
+
+
+class CORNWrapper(nn.Module):
+    """CORN: Conditional Ordinal Regression for Neural Networks (Shi et al., 2021).
+
+    Replaces DeBERTa's 3-class head with two independent binary classifiers:
+      classifier1: P(y >= 1) = P(MEDIUM or HIGH)          — evaluated on ALL rows
+      classifier2: P(y >= 2 | y >= 1) = P(HIGH | not LOW) — conditioned on subset
+
+    Chain rule gives 3-class probabilities:
+      P(LOW)    = 1 - P(y >= 1)
+      P(MEDIUM) = P(y >= 1) * (1 - P(y >= 2 | y >= 1))
+      P(HIGH)   = P(y >= 1) *  P(y >= 2 | y >= 1)
+
+    Forward returns log-probs [B, 3] so existing argmax-based eval code is unchanged.
+    Binary logits are stored in self._corn_logits for the trainer's compute_loss.
+
+    HuggingFace Trainer saves/loads this as a plain nn.Module (pytorch_model.bin),
+    so load_best_model_at_end and early stopping work without modification.
+    """
+    is_corn = True  # trainer branches on this
+
+    def __init__(self, base_model):
+        super().__init__()
+        self.config = base_model.config
+        self.deberta = base_model.deberta
+        self.pooler = base_model.pooler
+        drop_p = getattr(base_model.config, "hidden_dropout_prob", 0.1)
+        self.dropout = nn.Dropout(drop_p)
+        out_dim = getattr(base_model.config, "pooler_hidden_size", base_model.config.hidden_size)
+        # Cast new heads to match backbone dtype (backbone may be bf16/fp16)
+        backbone_dtype = next(self.deberta.parameters()).dtype
+        self.classifier1 = nn.Linear(out_dim, 1).to(backbone_dtype)  # P(y >= 1)
+        self.classifier2 = nn.Linear(out_dim, 1).to(backbone_dtype)  # P(y >= 2 | y >= 1)
+
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
+    def forward(self, input_ids=None, attention_mask=None, token_type_ids=None,
+                labels=None, **kwargs):
+        # labels accepted in signature so HuggingFace find_labels() wires eval label extraction;
+        # actual loss is computed externally in SoftTargetCETrainer.compute_loss
+        seq = self.deberta(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+        )[0]                                         # [B, L, H]
+        pooled = self.dropout(self.pooler(seq))      # [B, out_dim]
+
+        logit1 = self.classifier1(pooled).squeeze(-1)    # [B]
+        logit2 = self.classifier2(pooled).squeeze(-1)    # [B]
+        self._corn_logits = (logit1, logit2)             # trainer reads for loss
+
+        p_gt0 = torch.sigmoid(logit1)
+        p_gt1 = torch.sigmoid(logit2)
+        probs = torch.stack(
+            [1.0 - p_gt0, p_gt0 * (1.0 - p_gt1), p_gt0 * p_gt1], dim=-1
+        )                                                # [B, 3]
+        return SequenceClassifierOutput(loss=None, logits=torch.log(probs.clamp(min=1e-8)))
+
+
 # -------- class weights -------------------------------------------------------
 
 def compute_class_weights(train_ds: Dataset, method: str) -> torch.Tensor:
@@ -180,15 +276,36 @@ def compute_class_weights(train_ds: Dataset, method: str) -> torch.Tensor:
 
 # -------- dataset prep --------------------------------------------------------
 
-def transform_train_labels(rows, mode: str):
+def sord_vector(true_class: int, n_classes: int = NUM_LABELS, scale: float = 1.5):
+    """Soft Ordinal Regression (SORD) target vector (Diaz & Marathe, CVPR 2019).
+
+    Converts a hard integer class into a probability distribution that decays
+    exponentially with ordinal distance from the true class:
+        weight_j = exp(-scale * |true_class - j|)  then normalised to sum=1.
+
+    Applied only to hard rows (max(soft_label) >= 0.99). Soft rows are left
+    unchanged — they already encode labeler-disagreement uncertainty.
+
+    scale=1.5 chosen so SORD hard labels (peak ~0.79) sit above confident
+    soft labels (peak ~0.64) — preserving the hard > soft reliability hierarchy.
+    """
+    import math
+    weights = [math.exp(-scale * abs(true_class - j)) for j in range(n_classes)]
+    total = sum(weights)
+    return [w / total for w in weights]
+
+
+def transform_train_labels(rows, mode: str, sord_scale: float = 1.5):
     """Apply label-mode transformation to training rows. Val/test are NEVER transformed.
 
     - 'soft' (default): no change — soft vectors used as-is for soft-target CE.
     - 'hard_only': filter out SOFT_LABEL rows (where max(soft_label) < 0.99).
-                    Tests whether the labeler-disagreement rows are net helpful or harmful.
-    - 'argmax_soft': convert soft vectors → one-hot via argmax. Keeps the rows but discards
-                    the uncertainty info. Tests whether the SOFT vector format is the issue
-                    (vs the MEDIUM anchor in the underlying labels).
+    - 'argmax_soft': convert soft vectors → one-hot via argmax.
+    - 'sord': apply Soft Ordinal Regression encoding to hard rows only.
+              Each hard one-hot [1,0,0] becomes a distance-decayed distribution
+              [0.786, 0.175, 0.039] (at scale=1.5), injecting ordinal awareness
+              into CE loss without changing the loss function itself.
+              Soft rows (labeler disagreements) are left unchanged.
     """
     if mode == "soft":
         return rows
@@ -203,17 +320,27 @@ def transform_train_labels(rows, mode: str):
             r2["soft_label"] = [1.0 if i == idx else 0.0 for i in range(NUM_LABELS)]
             out.append(r2)
         return out
+    if mode == "sord":
+        out = []
+        for r in rows:
+            r2 = dict(r)
+            if max(r["soft_label"]) >= 0.99:  # hard row — apply SORD
+                true_class = r["soft_label"].index(max(r["soft_label"]))
+                r2["soft_label"] = sord_vector(true_class, scale=sord_scale)
+            # soft rows (labeler disagreements) left unchanged
+            out.append(r2)
+        return out
     raise ValueError(f"Unknown label-mode: {mode!r}")
 
 
-def build_datasets(cfg: Stage3Config, tokenizer, label_mode: str = "soft"):
+def build_datasets(cfg: Stage3Config, tokenizer, label_mode: str = "soft", sord_scale: float = 1.5):
     data = json.loads(Path(cfg.training_data_path).read_text(encoding="utf-8"))
     splits = json.loads(Path(cfg.splits_path).read_text(encoding="utf-8"))
 
     def tokenize_split(row_nums, transform: bool = False):
         rows = [r for r in data if r["row_num"] in row_nums]
         if transform:
-            rows = transform_train_labels(rows, label_mode)
+            rows = transform_train_labels(rows, label_mode, sord_scale=sord_scale)
         enc = tokenizer(
             [r["clause_type"] for r in rows],
             [r["clause_text"] for r in rows],
@@ -236,13 +363,18 @@ def build_datasets(cfg: Stage3Config, tokenizer, label_mode: str = "soft"):
 
 # -------- LLRD optimizer (Section D.0 / ablation) -----------------------------
 
-def build_llrd_param_groups(model, base_lr: float, weight_decay: float, decay: float):
+def build_llrd_param_groups(model, base_lr: float, weight_decay: float, decay: float,
+                            head_prefixes=("classifier.", "pooler.")):
     """Layer-wise LR decay parameter groups for DeBERTa-v3.
 
     Top encoder layer (layer_{n-1}) gets base_lr; each lower layer multiplies by `decay`.
     Embeddings + rel_embeddings + encoder-level LayerNorm get the lowest LR (base_lr * decay^n).
     Classifier head + pooler stay at base_lr (newly initialized, need full speed).
     Bias / LayerNorm weights get weight_decay=0 (HF Trainer convention).
+
+    head_prefixes: parameter name prefixes treated as the freshly-initialized head.
+      Standard: ("classifier.", "pooler.")
+      CORN:     ("classifier1.", "classifier2.", "pooler.")
     """
     no_decay_keys = ("bias", "LayerNorm.weight", "LayerNorm.bias")
     n_layers = model.config.num_hidden_layers
@@ -258,7 +390,7 @@ def build_llrd_param_groups(model, base_lr: float, weight_decay: float, decay: f
     # 1. Classifier + pooler — full LR (newly initialized layers)
     head_d, head_nd = [], []
     for n, p in model.named_parameters():
-        if n.startswith(("classifier.", "pooler.")):
+        if n.startswith(head_prefixes):
             seen.add(n)
             (head_nd if any(k in n for k in no_decay_keys) else head_d).append(p)
     add(head_d, base_lr, weight_decay)
@@ -317,11 +449,14 @@ class SoftTargetCETrainer(Trainer):
 
     def create_optimizer(self):
         if self.optimizer is None and self._llrd_decay is not None:
+            is_corn = getattr(self.model, "is_corn", False)
+            head_pfx = ("classifier1.", "classifier2.", "pooler.") if is_corn else ("classifier.", "pooler.")
             param_groups = build_llrd_param_groups(
                 self.model,
                 self.args.learning_rate,
                 self.args.weight_decay,
                 self._llrd_decay,
+                head_prefixes=head_pfx,
             )
             self.optimizer = torch.optim.AdamW(param_groups)
             return self.optimizer
@@ -335,7 +470,13 @@ class SoftTargetCETrainer(Trainer):
         targets = inputs["labels"]   # keep in inputs so prediction_step can still extract
         model_inputs = {k: v for k, v in inputs.items() if k in MODEL_INPUT_KEYS}
         outputs = model(**model_inputs)
-        if self._loss_type == "emd":
+
+        if getattr(model, "is_corn", False):
+            # CORN: binary logits stored on model during forward; use argmax of soft targets
+            logit1, logit2 = model._corn_logits
+            true_class = targets.argmax(dim=-1)
+            loss = corn_loss(logit1, logit2, true_class, self._class_weights)
+        elif self._loss_type == "emd":
             loss = emd_loss(outputs.logits, targets, self._class_weights)
         elif self._loss_type == "hybrid":
             loss = hybrid_ce_emd(outputs.logits, targets, self._class_weights,
@@ -501,16 +642,22 @@ def parse_cli():
                         "don't overwrite full-training artifacts")
     p.add_argument("--seed", type=int, default=None,
                    help="Override training seed from config (for multi-seed runs)")
-    p.add_argument("--loss", type=str, default="ce", choices=["ce", "emd", "hybrid"],
+    p.add_argument("--loss", type=str, default="ce", choices=["ce", "emd", "hybrid", "corn"],
                    help="Loss function: 'ce' (CE), 'emd' (pure EMD, may collapse), "
-                        "or 'hybrid' (CE + lambda*EMD; recommended for ordinal)")
+                        "'hybrid' (CE + lambda*EMD), or 'corn' (Conditional Ordinal Regression, "
+                        "Shi et al. 2021 — two binary heads with chain-rule 3-class output)")
     p.add_argument("--emd-lambda", type=float, default=0.5,
                    help="Weight for the EMD term in hybrid loss (default 0.5)")
     p.add_argument("--label-mode", type=str, default="soft",
-                   choices=["soft", "hard_only", "argmax_soft"],
-                   help="How to treat SOFT_LABEL rows in training: keep soft (default), "
-                        "drop them (hard_only), or hard-argmax the soft vectors (argmax_soft). "
+                   choices=["soft", "hard_only", "argmax_soft", "sord"],
+                   help="How to treat training labels: keep soft (default), "
+                        "drop soft rows (hard_only), hard-argmax soft vectors (argmax_soft), "
+                        "or SORD-encode hard rows with ordinal distance decay (sord). "
                         "Val/test are never transformed.")
+    p.add_argument("--sord-scale", type=float, default=1.5,
+                   help="Decay scale for SORD label encoding (default 1.5). "
+                        "Higher = closer to one-hot; lower = softer. "
+                        "1.5 chosen so hard label peak (~0.79) > confident soft label peak (~0.64).")
     return p.parse_args()
 
 
@@ -541,8 +688,8 @@ def main():
     logger.info(f"Loading tokenizer: {cfg.model_name}")
     tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
 
-    train_ds, val_ds, test_ds = build_datasets(cfg, tokenizer, label_mode=cli.label_mode)
-    logger.info(f"Label mode: {cli.label_mode}")
+    train_ds, val_ds, test_ds = build_datasets(cfg, tokenizer, label_mode=cli.label_mode, sord_scale=cli.sord_scale)
+    logger.info(f"Label mode: {cli.label_mode}" + (f" (sord_scale={cli.sord_scale})" if cli.label_mode == "sord" else ""))
     logger.info(f"Datasets — train: {len(train_ds)}  val: {len(val_ds)}  test: {len(test_ds)}")
 
     class_weights = compute_class_weights(train_ds, cfg.class_weights_method)
@@ -554,13 +701,20 @@ def main():
         logger.info(f"Dropout override: hidden_dropout_prob={cfg.dropout}, "
                     f"attention_probs_dropout_prob={cfg.dropout}")
     dtype = torch.bfloat16 if cfg.precision == "bf16" else torch.float32
-    model = AutoModelForSequenceClassification.from_pretrained(
+    base_model = AutoModelForSequenceClassification.from_pretrained(
         cfg.model_name,
         num_labels=NUM_LABELS,
         dtype=dtype,
         hidden_dropout_prob=cfg.dropout,
         attention_probs_dropout_prob=cfg.dropout,
     )
+    if cli.loss == "corn":
+        model = CORNWrapper(base_model)
+        n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        logger.info(f"CORN wrapper: {n_params:,} trainable params "
+                    f"(2 binary heads replace standard 3-class classifier)")
+    else:
+        model = base_model
 
     # Full-epoch defaults, overridden by CLI flags for smoke runs
     eval_strategy = "epoch"
@@ -614,6 +768,8 @@ def main():
                     f"embedding LR={cfg.learning_rate * (cfg.llrd_decay ** 12):.2e}")
     if cli.loss == "hybrid":
         logger.info(f"Loss function: hybrid CE + {cli.emd_lambda} * EMD")
+    elif cli.loss == "corn":
+        logger.info("Loss function: CORN — conditional ordinal binary BCE (2 heads, chain-rule output)")
     else:
         logger.info(f"Loss function: {cli.loss}")
 

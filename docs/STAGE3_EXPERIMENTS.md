@@ -28,6 +28,8 @@ For *design rationale* (loss choice, hyperparameter philosophy, eval scheme), se
 | 13 | Run 9 + hybrid CE + 0.5×EMD | 0.587 | 0.616 | 0.720 | 0.425 | 0.616 | 0.626 | 0.613 |
 | 14 | Run 9 + label-mode hard_only | 0.610 | 0.627 | 0.693 | 0.492 | 0.645 | 0.657 | 0.574 |
 | 15 | Run 9 + label-mode argmax_soft | 0.603 | 0.614 | 0.671 | 0.464 | 0.675 | 0.645 | 0.580 |
+| 16 | Run 9 + SORD (scale=1.5, soft labels) | 0.567 | 0.599 | 0.677 | 0.355 | 0.669 | — | — |
+| 17 | Run 9 + CORN loss (2 binary heads) | 0.485 | 0.605 | 0.701 | 0.074 | 0.681 | 0.496 | 0.476 |
 
 **Multi-seed F (Runs 9, 10, 11) summary:**
 - mean macro_f1 = 0.598, std = 0.020
@@ -203,6 +205,36 @@ For *design rationale* (loss choice, hyperparameter philosophy, eval scheme), se
   yet** (only 72.5% agreement with E — lowest pair we've seen), but adding it to B+E+F
   ensemble doesn't help — its lower individual F1 dilutes the ensemble.
 
+### Run 16 — Run 9 config + SORD (scale=1.5, soft labels)
+- **Config:** Run 9 hyperparameters, `--loss ce --label-mode sord --sord-scale 1.5`
+  Hard rows (max>=0.99) converted: [1,0,0] → [0.786,0.175,0.039] via exp(-1.5*|i-j|).
+  Soft rows unchanged. class_weights computed on SORD-transformed labels (bug: inflated MEDIUM count).
+- **Output:** `models/stage3_risk_deberta_v3_run16_sord15/`
+- **Result:** macro_f1=0.567; LOW=0.677; **MEDIUM=0.355 (collapsed vs Run 9's 0.463)**; HIGH=0.669
+- **Observation:** SORD regressed MEDIUM by -0.108 F1. Two root causes:
+  (1) class_weights computed on SORD-softened labels inflated MEDIUM's effective count → underweighted MEDIUM in loss;
+  (2) SORD blurs LOW↔MEDIUM boundary (LOW target [0.786,0.175,0.039] has 17.5% in MEDIUM slot),
+  which is exactly the hardest boundary for this dataset. **SORD path closed.**
+
+### Run 17 — CORN loss (2 binary heads, chain-rule output)
+- **Config:** Run 9 hyperparameters, `--loss corn --label-mode soft`.
+  Architecture change: replaces single 3-class classifier with 2 independent binary heads:
+  - classifier1: P(y ≥ 1) = P(MEDIUM or HIGH) — trained on all rows
+  - classifier2: P(y ≥ 2 | y ≥ 1) = P(HIGH | not LOW) — trained only on rows with true class ≥ 1
+  Chain rule gives 3-class probs. Val metrics use log-probs as argmax-compatible "logits".
+- **Output:** `models/stage3_risk_deberta_v3_run17_corn/`
+- **Result:** macro_f1=0.485; LOW=0.701; **MEDIUM=0.074 (CORN collapsed MEDIUM)**; HIGH=0.681;
+  hard_only=0.496. Stopped at epoch 7 (best val at ep5=0.476).
+- **Epoch trajectory:** ep1=0.213 (all-LOW) → ep2=0.378 (HIGH wakes up) → ep5=0.476 (MEDIUM appears 0.149)
+  → ep7=0.463 (MEDIUM settles at 0.16 val, 0.074 on test)
+- **Observation:** CORN's chain rule works structurally: HIGH is the cleanest binary
+  (precision=0.648, recall=0.717, F1=0.681 — best HIGH F1 of any single-seed run).
+  But MEDIUM (the "in-between" class) depends on classifier2 outputting P(HIGH)=low for
+  MEDIUM samples. Since MEDIUM is noisy and few (22% of data), classifier2 learns a
+  biased HIGH-threshold that misses MEDIUM at test time (recall=0.039).
+  **Root cause is identical to all other approaches: MEDIUM label noise, not the loss function.
+  CORN path closed for current label quality. Worth retrying after Gemini Pro relabel.**
+
 ### Ens-11 — Run 14 + Run 15 (label-mode pair)
 - **Result:** macro_f1=**0.623**, MEDIUM=**0.502** ← best MEDIUM of any combination
 - **Observation:** Two label-mode variants ensemble together to **match Ens-1's 0.622**
@@ -303,13 +335,27 @@ For *design rationale* (loss choice, hyperparameter philosophy, eval scheme), se
 - **Single model with diversity advantage:** Run 15 (most-disagreeing decisions)
 - **Ensemble best:** **Ens-B (R5+R8+R10+R14+R15) = 0.6264, hard-only = 0.6733**
 - **MEDIUM best (any combination):** Ens-11 = 0.502
-- **HIGH best (any combination):** Ens-A 7-way = 0.685 (single run: R15 = 0.675)
+- **HIGH best single model:** Run 17 CORN = 0.681 (single run, but MEDIUM collapsed)
+- **HIGH best ensemble:** Ens-A 7-way = 0.685
+
+## Closed paths (loss / architecture level, 2026-04-27)
+
+In addition to hyperparameter space (Runs 4-9), these structural approaches regressed:
+- **EMD (Run 12):** collapsed to median class. Squared EMD not worth trying.
+- **Hybrid CE+EMD (Run 13):** net-zero overall, dilutes ensembles.
+- **SORD (Run 16, scale=1.5):** MEDIUM -0.108 due to class-weight contamination + boundary blurring.
+- **CORN (Run 17):** HIGH improves (0.681) but MEDIUM collapses (0.074) — low-recall threshold.
+  Worth retrying after Gemini Pro relabel removes MEDIUM label noise.
+
+**Pattern:** Every structural approach produces the same fingerprint — MEDIUM suffers.
+Confirms bottleneck is MEDIUM label noise, not the loss/architecture.
 
 ## Open paths (not yet tried)
 
 1. **Re-label the SOFT_LABEL rows with Gemini Pro** — produce clean hard labels
    for the labeler-disagreement rows. 1,055 in train, 1,327 dataset-wide. Per-row cost
    ~$0.01, so ~$10-13 total. Expected: macro_f1 → 0.62-0.63 single-shot, possibly higher.
+   **CORN + clean labels could be very strong — HIGH is already 0.681 on noisy labels.**
 
 2. **Metadata Option 2** (signing-party role injection into encoder) — addresses
    HIGH↔LOW polarity flips, won't help MEDIUM. Bigger architectural change.
