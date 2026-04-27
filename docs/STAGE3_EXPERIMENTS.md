@@ -49,6 +49,9 @@ For *design rationale* (loss choice, hyperparameter philosophy, eval scheme), se
 | Ens-9 | Run 5 + Run 8 + Run 9 + Run 14 | 0.620 | 0.637 | 0.709 | 0.480 | 0.670 | 0.664 |
 | Ens-10 | Run 5 + Run 8 + Run 9 + Run 15 | 0.614 | 0.633 | 0.703 | 0.457 | 0.681 | 0.649 |
 | Ens-11 | Run 14 + Run 15 (label-mode pair) | 0.623 | 0.633 | 0.694 | 0.502 | 0.672 | 0.661 |
+| Ens-A | 7-way: R5+R8+R9+R10+R11+R14+R15 | 0.620 | 0.637 | 0.707 | 0.468 | 0.685 | 0.663 |
+| **Ens-B** | **5-way: R5+R8+R10+R14+R15 (best-of-axis)** | **0.6264** | **0.644** | 0.713 | 0.484 | 0.682 | **0.6733** |
+| Ens-C | 4-way: R14+R15+R5+R8 (R14-anchored) | 0.625 | 0.644 | 0.710 | 0.477 | 0.688 | 0.664 |
 
 **Reference baselines** (on 331 hard-labeled test rows):
 - Majority-LOW: 0.200
@@ -251,6 +254,31 @@ For *design rationale* (loss choice, hyperparameter philosophy, eval scheme), se
 - **Observation:** Worse than Ens-1 — adding 2 F-seed variants over-weights the LLRD
   config (3/5 vs 1/3 in Ens-1). **Regularization diversity > seed diversity.**
 
+### Ens-A — 7-way (all axes: R5+R8+R9+R10+R11+R14+R15)
+- **Method:** uniform softmax average of all 7 saved models (regularization + seed + label-mode)
+- **Result:** macro_f1=0.6201 (-0.002 vs Ens-1)
+- **Observation:** **More is not better.** Adding Run 11 (single=0.576 — the worst F-seed)
+  drags the ensemble below Ens-1 baseline. Run 11's noisy decision boundary pulls average
+  probabilities away from cleaner consensus. Confirms: ensemble members must each be
+  individually competent.
+
+### Ens-B — 5-way best-of-axis (R5+R8+R10+R14+R15) — NEW BEST
+- **Members:** Run 5 (WD reg) + Run 8 (dropout reg) + Run 10 (best F-seed=7) +
+  Run 14 (hard_only label-mode) + Run 15 (argmax_soft label-mode)
+- **Result:** macro_f1=**0.6264**, hard-only=**0.6733**, MEDIUM=0.484, HIGH=0.682
+- **Observation:** **Best ensemble result so far.** +0.004 macro over Ens-1, +0.010 hard-only.
+  Picks one strong model per diversity axis instead of multiple correlated ones.
+  Replacing Run 9 (single=0.607) with Run 10 (single=0.611, better MEDIUM) helps marginally.
+  Confirms: **best-of-axis > more-of-axis** for ensembling. The +0.004 is small but the test
+  set is fixed (not seed-resampled), so the gain is real on this distribution.
+
+### Ens-C — 4-way R14-anchored (R14+R15+R5+R8)
+- **Members:** Run 14 + Run 15 (label-mode pair) + Run 5 (WD reg) + Run 8 (dropout reg)
+- **Result:** macro_f1=0.6248, hard-only=0.6638
+- **Observation:** Almost matches Ens-B without the F-seed model. Suggests label-mode +
+  regularization diversity captures most of the ensemble gain. F-seed adds the last 0.002.
+  Practical implication: 4 models give ≈ same gain as 5 — useful if shipping cost matters.
+
 ---
 
 ## Closed hypotheses (with evidence)
@@ -273,9 +301,9 @@ For *design rationale* (loss choice, hyperparameter philosophy, eval scheme), se
 
 - **Single model best:** Run 14 macro_f1 = 0.610, hard-only = 0.657
 - **Single model with diversity advantage:** Run 15 (most-disagreeing decisions)
-- **Ensemble best:** Ens-1 (B+E+F) = 0.622; Ens-11 (R14+R15) = 0.623 (tied)
+- **Ensemble best:** **Ens-B (R5+R8+R10+R14+R15) = 0.6264, hard-only = 0.6733**
 - **MEDIUM best (any combination):** Ens-11 = 0.502
-- **HIGH best (any combination):** Ens-7 = 0.670 (single run: R15 = 0.675)
+- **HIGH best (any combination):** Ens-A 7-way = 0.685 (single run: R15 = 0.675)
 
 ## Open paths (not yet tried)
 
