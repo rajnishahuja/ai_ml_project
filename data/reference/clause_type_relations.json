@@ -1,0 +1,237 @@
+{
+  "Affiliate License-Licensee": [
+    "Affiliate License-Licensor",
+    "License Grant",
+    "Anti-Assignment",
+    "Change Of Control",
+    "Non-Transferable License"
+  ],
+  "Affiliate License-Licensor": [
+    "Affiliate License-Licensee",
+    "License Grant",
+    "Anti-Assignment",
+    "Change Of Control",
+    "Ip Ownership Assignment"
+  ],
+  "Agreement Date": [
+    "Effective Date",
+    "Expiration Date"
+  ],
+  "Anti-Assignment": [
+    "Change Of Control",
+    "Non-Transferable License",
+    "Affiliate License-Licensee",
+    "Affiliate License-Licensor",
+    "Governing Law"
+  ],
+  "Audit Rights": [
+    "Revenue/Profit Sharing",
+    "Minimum Commitment",
+    "Volume Restriction",
+    "Price Restrictions"
+  ],
+  "Cap On Liability": [
+    "Uncapped Liability",
+    "Liquidated Damages",
+    "Insurance",
+    "Warranty Duration",
+    "Covenant Not To Sue"
+  ],
+  "Change Of Control": [
+    "Anti-Assignment",
+    "Termination For Convenience",
+    "Affiliate License-Licensee",
+    "Affiliate License-Licensor"
+  ],
+  "Competitive Restriction Exception": [
+    "Non-Compete",
+    "Exclusivity",
+    "No-Solicit Of Customers"
+  ],
+  "Covenant Not To Sue": [
+    "Cap On Liability",
+    "Uncapped Liability",
+    "Anti-Assignment",
+    "Third Party Beneficiary"
+  ],
+  "Document Name": [],
+  "Effective Date": [
+    "Agreement Date",
+    "Expiration Date",
+    "Renewal Term"
+  ],
+  "Exclusivity": [
+    "Non-Compete",
+    "Most Favored Nation",
+    "Volume Restriction",
+    "Minimum Commitment",
+    "Competitive Restriction Exception",
+    "License Grant",
+    "Rofr/Rofo/Rofn"
+  ],
+  "Expiration Date": [
+    "Effective Date",
+    "Renewal Term",
+    "Notice Period To Terminate Renewal",
+    "Termination For Convenience"
+  ],
+  "Governing Law": [
+    "Anti-Assignment",
+    "Third Party Beneficiary"
+  ],
+  "Insurance": [
+    "Cap On Liability",
+    "Uncapped Liability",
+    "Warranty Duration"
+  ],
+  "Ip Ownership Assignment": [
+    "Joint Ip Ownership",
+    "License Grant",
+    "Source Code Escrow",
+    "Affiliate License-Licensor"
+  ],
+  "Irrevocable Or Perpetual License": [
+    "License Grant",
+    "Termination For Convenience",
+    "Post-Termination Services",
+    "Source Code Escrow"
+  ],
+  "Joint Ip Ownership": [
+    "Ip Ownership Assignment",
+    "License Grant",
+    "Affiliate License-Licensor"
+  ],
+  "License Grant": [
+    "Non-Transferable License",
+    "Irrevocable Or Perpetual License",
+    "Affiliate License-Licensee",
+    "Affiliate License-Licensor",
+    "Unlimited/All-You-Can-Eat-License",
+    "Volume Restriction",
+    "Ip Ownership Assignment",
+    "Exclusivity"
+  ],
+  "Liquidated Damages": [
+    "Cap On Liability",
+    "Uncapped Liability",
+    "Termination For Convenience"
+  ],
+  "Minimum Commitment": [
+    "Volume Restriction",
+    "Exclusivity",
+    "Price Restrictions",
+    "Revenue/Profit Sharing",
+    "Most Favored Nation",
+    "Unlimited/All-You-Can-Eat-License"
+  ],
+  "Most Favored Nation": [
+    "Price Restrictions",
+    "Exclusivity",
+    "Volume Restriction",
+    "Minimum Commitment"
+  ],
+  "No-Solicit Of Customers": [
+    "Non-Compete",
+    "No-Solicit Of Employees",
+    "Competitive Restriction Exception"
+  ],
+  "No-Solicit Of Employees": [
+    "Non-Compete",
+    "No-Solicit Of Customers",
+    "Non-Disparagement"
+  ],
+  "Non-Compete": [
+    "Exclusivity",
+    "No-Solicit Of Customers",
+    "No-Solicit Of Employees",
+    "Competitive Restriction Exception",
+    "Non-Disparagement"
+  ],
+  "Non-Disparagement": [
+    "Non-Compete",
+    "No-Solicit Of Employees"
+  ],
+  "Non-Transferable License": [
+    "License Grant",
+    "Anti-Assignment",
+    "Affiliate License-Licensee",
+    "Change Of Control"
+  ],
+  "Notice Period To Terminate Renewal": [
+    "Renewal Term",
+    "Termination For Convenience",
+    "Post-Termination Services"
+  ],
+  "Parties": [],
+  "Post-Termination Services": [
+    "Termination For Convenience",
+    "Renewal Term",
+    "Notice Period To Terminate Renewal",
+    "Warranty Duration",
+    "Source Code Escrow"
+  ],
+  "Price Restrictions": [
+    "Most Favored Nation",
+    "Volume Restriction",
+    "Minimum Commitment",
+    "Revenue/Profit Sharing",
+    "Unlimited/All-You-Can-Eat-License"
+  ],
+  "Renewal Term": [
+    "Notice Period To Terminate Renewal",
+    "Expiration Date",
+    "Termination For Convenience",
+    "Post-Termination Services"
+  ],
+  "Revenue/Profit Sharing": [
+    "Price Restrictions",
+    "Minimum Commitment",
+    "Audit Rights"
+  ],
+  "Rofr/Rofo/Rofn": [
+    "Anti-Assignment",
+    "Change Of Control",
+    "Exclusivity"
+  ],
+  "Source Code Escrow": [
+    "Ip Ownership Assignment",
+    "Irrevocable Or Perpetual License",
+    "Post-Termination Services"
+  ],
+  "Termination For Convenience": [
+    "Notice Period To Terminate Renewal",
+    "Post-Termination Services",
+    "Renewal Term",
+    "Change Of Control",
+    "Liquidated Damages"
+  ],
+  "Third Party Beneficiary": [
+    "Anti-Assignment",
+    "Governing Law",
+    "Covenant Not To Sue"
+  ],
+  "Uncapped Liability": [
+    "Cap On Liability",
+    "Liquidated Damages",
+    "Insurance",
+    "Covenant Not To Sue"
+  ],
+  "Unlimited/All-You-Can-Eat-License": [
+    "License Grant",
+    "Volume Restriction",
+    "Minimum Commitment",
+    "Price Restrictions"
+  ],
+  "Volume Restriction": [
+    "Minimum Commitment",
+    "Unlimited/All-You-Can-Eat-License",
+    "Price Restrictions",
+    "License Grant",
+    "Most Favored Nation"
+  ],
+  "Warranty Duration": [
+    "Cap On Liability",
+    "Insurance",
+    "Post-Termination Services"
+  ]
+}

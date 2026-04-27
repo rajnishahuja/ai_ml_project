@@ -6,6 +6,7 @@ import pytest
 
 from src.stage3_risk_agent.tools import (
     METADATA_CLAUSE_TYPES,
+    _load_relations,
     contract_search,
     precedent_search,
 )
@@ -102,6 +103,98 @@ class TestContractSearchCorpus:
         result = contract_search(doc_id, include_metadata=True)
         assert any(c.get("is_metadata") is True for c in result)
         assert any(c.get("is_metadata") is False for c in result)
+
+
+class TestContractSearchWithClauseType:
+    """clause_type filter pulls the related-types list from the static JSON."""
+
+    @pytest.fixture
+    def doc_id(self):
+        return "LIMEENERGYCO_09_09_1999-EX-10-DISTRIBUTOR AGREEMENT"
+
+    def test_filter_returns_related_types_only(self, doc_id):
+        """License Grant filter on this contract → License Grant + Exclusivity only."""
+        result = contract_search(doc_id, clause_type="License Grant")
+        types = {c["clause_type"] for c in result}
+        assert "License Grant" in types               # self always included
+        assert "Exclusivity" in types                  # in relations[License Grant]
+        # Types in this contract that are NOT in License Grant's related list
+        # should be filtered out.
+        assert "Renewal Term" not in types
+        assert "Insurance" not in types
+        assert "Governing Law" not in types
+
+    def test_filter_includes_self_type(self, doc_id):
+        """The target's own type is always allowed (multi-clause same-type case)."""
+        result = contract_search(doc_id, clause_type="Cap On Liability")
+        # This contract has no Cap On Liability clause but the filter
+        # should not crash and should return only related types if any
+        # are present.
+        types = {c["clause_type"] for c in result}
+        relations = _load_relations("data/reference/clause_type_relations.json")
+        allowed = relations["Cap On Liability"] | {"Cap On Liability"}
+        assert types.issubset(allowed)
+
+    def test_unknown_clause_type_falls_back_to_all_siblings(self, doc_id):
+        """If clause_type is not in the relations file, return all non-metadata."""
+        with_filter = contract_search(doc_id, clause_type="Made Up Type")
+        without_filter = contract_search(doc_id)
+        assert {c["clause_id"] for c in with_filter} == {c["clause_id"] for c in without_filter}
+
+    def test_clause_type_none_matches_old_behavior(self, doc_id):
+        """clause_type=None (default) → same result as before the feature."""
+        a = contract_search(doc_id, clause_type=None)
+        b = contract_search(doc_id)
+        assert {c["clause_id"] for c in a} == {c["clause_id"] for c in b}
+
+    def test_in_memory_mode_with_clause_type(self):
+        """clause_type filter works on in-memory clauses too."""
+        clauses = [
+            {"clause_id": "i1", "document_id": "D", "clause_type": "Indemnification",
+             "clause_text": "x"},  # Indemnification not in CUAD — no relations entry
+            {"clause_id": "c1", "document_id": "D", "clause_type": "Cap On Liability",
+             "clause_text": "x"},
+            {"clause_id": "i2", "document_id": "D", "clause_type": "Insurance",
+             "clause_text": "x"},
+            {"clause_id": "g1", "document_id": "D", "clause_type": "Governing Law",
+             "clause_text": "x"},
+        ]
+        result = contract_search("D", clause_type="Cap On Liability", all_clauses=clauses)
+        types = {c["clause_type"] for c in result}
+        # Cap On Liability + Insurance (related); Governing Law and Indemnification excluded
+        assert "Cap On Liability" in types
+        assert "Insurance" in types
+        assert "Governing Law" not in types
+        assert "Indemnification" not in types
+
+    def test_relations_file_missing_disables_filter(self, doc_id, tmp_path, caplog):
+        """If the relations file is missing, returns all non-metadata + warns."""
+        bogus = tmp_path / "no_such_relations.json"
+        result = contract_search(doc_id, clause_type="License Grant",
+                                 relations_path=str(bogus))
+        # Same as the no-filter case
+        baseline = contract_search(doc_id)
+        assert {c["clause_id"] for c in result} == {c["clause_id"] for c in baseline}
+
+
+class TestRelationsFile:
+    """Sanity checks on data/reference/clause_type_relations.json."""
+
+    def test_covers_all_41_cuad_types(self):
+        relations = _load_relations("data/reference/clause_type_relations.json")
+        assert len(relations) == 41
+
+    def test_no_self_references(self):
+        relations = _load_relations("data/reference/clause_type_relations.json")
+        for src, targets in relations.items():
+            assert src not in targets, f"{src!r} is listed as related to itself"
+
+    def test_all_referenced_types_exist(self):
+        relations = _load_relations("data/reference/clause_type_relations.json")
+        all_types = set(relations.keys())
+        for src, targets in relations.items():
+            for t in targets:
+                assert t in all_types, f"{src!r} references unknown type {t!r}"
 
 
 class TestPrecedentSearch:

@@ -5,14 +5,22 @@ Tools:
   1. precedent_search  — vector RAG over the labeled corpus (FAISS).
                           Implementation lives in `embeddings.py`; this file
                           only owns the agent-facing wrapper signature.
-  2. contract_search   — structured same-document lookup. Returns every
-                          non-metadata clause Stage 1+2 extracted for a given
-                          contract. No embeddings, no RAG, no LLM calls.
+  2. contract_search   — structured same-document lookup, filtered by a
+                          static `clause_type → related_types` map. Returns
+                          only those clauses from the same contract whose
+                          type is *legally related* to the target's type.
+                          No embeddings, no RAG, no LLM calls.
 
 Per ARCHITECTURE.md (decision 2026-04-23): contract_search is a structured
-lookup, not a similarity search. The output feeds the Mistral-7B reasoning
-agent on the low-confidence path so it can resolve same-contract
-cross-references (e.g. "IP was already assigned in another clause").
+lookup, not a similarity search. It feeds the Mistral-7B reasoning agent on
+the low-confidence path so it can resolve same-contract cross-references
+(e.g. "the indemnification clause is uncapped, but the cap-on-liability
+clause already limits exposure to 12 months of fees").
+
+The static relations file (`data/reference/clause_type_relations.json`) is
+built by `scripts/build_clause_type_relations.py`. It maps each of the 41
+CUAD clause types to a curated list of related types so that the agent
+sees focused, legally-relevant evidence instead of a 13-clause sibling dump.
 """
 
 from __future__ import annotations
@@ -39,6 +47,22 @@ METADATA_CLAUSE_TYPES: frozenset[str] = frozenset({
 
 DEFAULT_INDEX_PATH = "data/processed/contract_clause_index.json"
 DEFAULT_SPANS_PATH = "data/processed/all_positive_spans.json"
+DEFAULT_RELATIONS_PATH = "data/reference/clause_type_relations.json"
+
+
+@lru_cache(maxsize=2)
+def _load_relations(relations_path: str) -> dict[str, frozenset[str]]:
+    """Load and cache the static clause_type → related_types map.
+
+    Each value is converted to a frozenset for O(1) membership checks at
+    filter time. Built by `scripts/build_clause_type_relations.py`.
+    """
+    path = Path(relations_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Relations file not found: {relations_path}")
+    with open(path) as f:
+        raw = json.load(f)
+    return {key: frozenset(value) for key, value in raw.items()}
 
 
 @lru_cache(maxsize=2)
@@ -109,79 +133,125 @@ def _coerce_clause(clause: Any) -> dict:
 
 def contract_search(
     document_id: str,
+    clause_type: str | None = None,
+    *,
     all_clauses: Iterable[Any] | None = None,
     index_path: str = DEFAULT_INDEX_PATH,
     spans_path: str = DEFAULT_SPANS_PATH,
+    relations_path: str = DEFAULT_RELATIONS_PATH,
     include_metadata: bool = False,
 ) -> list[dict]:
-    """Return every non-metadata clause from the same contract.
+    """Return clauses from the same contract whose type is *related* to the
+    target clause's type, per the static `clause_type_relations.json` map.
 
-    Three resolution paths, tried in order:
+    Filtering pipeline:
 
-      1. **In-memory mode** (preferred at agent runtime): pass `all_clauses`.
-         Typically the LangGraph state's `extracted_clauses` list. Avoids
-         touching disk inside the tool call.
+        1. Pick the contract's clauses (in-memory list, pre-built index, or
+           raw spans fallback).
+        2. If `clause_type` is supplied, look up its related types in the
+           static relations file and keep only clauses of those types.
+           Clauses of the *same* type as the target are also included
+           (relevant when a contract has multiple instances of the same
+           clause type — e.g. two indemnification provisions for different
+           breach categories).
+        3. Drop metadata types (Document Name, Parties, etc.) unless
+           `include_metadata=True`.
 
-      2. **Index mode** (default for offline / batch use): load the
-         pre-computed `contract_clause_index.json` (built by
-         `scripts/build_contract_clause_index.py`) and do an O(1) dict
-         lookup by `document_id`. Each per-contract entry already carries
-         the `is_metadata` flag, so filtering is cheap.
+    If `clause_type` is `None` or unknown to the relations file, the type
+    filter is skipped — the function returns *all* non-metadata siblings,
+    matching the pre-relations behavior. This keeps backward compat with
+    callers / agents that don't have a clause_type to pass.
 
-      3. **Corpus fallback**: if the index file is missing, load the raw
-         `all_positive_spans.json` and filter on the fly. Slower, but keeps
-         the tool functional in environments where the index hasn't been
-         generated yet.
+    Resolution paths for the contract data, tried in order:
+
+      1. **In-memory mode** (preferred at runtime): `all_clauses` keyword.
+      2. **Index mode** (default offline): pre-built clause index file.
+      3. **Corpus fallback**: raw spans file if the index is missing.
 
     Args:
-        document_id: Contract identifier (e.g. "contract_042" or the CUAD
-            slug used as the `contract` field in `all_positive_spans.json`).
-        all_clauses: Optional in-memory list of clause objects (dicts,
-            dataclasses, or pydantic models). When provided, the function
-            does NOT touch disk.
-        index_path: Path to the pre-computed clause index. Default points
-            at `data/processed/contract_clause_index.json`.
+        document_id: Contract identifier (matches the `contract` field in
+            `all_positive_spans.json`).
+        clause_type: Optional CUAD clause type of the clause being assessed
+            (e.g. "Indemnification" — but note CUAD's 41 types do not
+            include that one; see `data/reference/cuad_category_descriptions.csv`).
+            When provided, only clauses whose type is in
+            `relations[clause_type] ∪ {clause_type}` are returned.
+        all_clauses: Optional in-memory list (LangGraph runtime).
+        index_path: Path to the pre-built clause index.
         spans_path: Path to the raw spans file (fallback only).
-        include_metadata: If True, include the 5 metadata clause types in
-            the result. Default False — they route to the Stage 4 header.
+        relations_path: Path to the clause-type relations map.
+        include_metadata: Include metadata clause types if True.
 
     Returns:
-        List of dicts with keys:
-            - clause_id    : str
-            - document_id  : str
-            - clause_type  : str
-            - clause_text  : str
-            - start_pos    : int
-            - is_metadata  : bool   (only present when loaded from the index)
-
-        Empty list if no matches are found. Never raises on a missing
-        document — the agent treats `[]` as "no evidence" and falls back.
+        List of dicts: clause_id, document_id, clause_type, clause_text,
+        start_pos, is_metadata. Empty list on unknown document_id, missing
+        relations data, or no matching siblings. Never raises.
     """
     if not document_id:
         logger.warning("contract_search: empty document_id; returning [].")
         return []
 
-    # 1. In-memory mode — used by the LangGraph agent at runtime.
+    # ----- Step 1: pick the contract's clauses -----
+    contract_clauses = _resolve_contract_clauses(
+        document_id=document_id,
+        all_clauses=all_clauses,
+        index_path=index_path,
+        spans_path=spans_path,
+        include_metadata=include_metadata,
+    )
+    if not contract_clauses:
+        return []
+
+    # ----- Step 2: apply clause_type relations filter -----
+    if clause_type:
+        allowed_types = _allowed_types_for(clause_type, relations_path)
+        if allowed_types is None:
+            logger.debug(
+                "contract_search: clause_type=%r not in relations file; "
+                "returning all non-metadata siblings.",
+                clause_type,
+            )
+        else:
+            before = len(contract_clauses)
+            contract_clauses = [
+                c for c in contract_clauses
+                if c["clause_type"] in allowed_types
+            ]
+            logger.debug(
+                "contract_search: filtered %d → %d clauses by relations[%r].",
+                before, len(contract_clauses), clause_type,
+            )
+
+    return contract_clauses
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _resolve_contract_clauses(
+    *,
+    document_id: str,
+    all_clauses: Iterable[Any] | None,
+    index_path: str,
+    spans_path: str,
+    include_metadata: bool,
+) -> list[dict]:
+    """Return all clauses for `document_id` (no clause_type filter applied)."""
+    # 1. In-memory mode
     if all_clauses is not None:
-        siblings = [
+        return [
             c for c in (_coerce_clause(x) for x in all_clauses)
             if c["document_id"] == document_id
             and (include_metadata or c["clause_type"] not in METADATA_CLAUSE_TYPES)
         ]
-        if not siblings:
-            logger.debug(
-                "contract_search: no clauses for %r in supplied list.",
-                document_id,
-            )
-        return siblings
 
-    # 2. Index mode — fast dict lookup against the pre-built index.
+    # 2. Index mode
     try:
         index = _load_index(index_path)
     except FileNotFoundError:
         logger.info(
-            "Index %s not found — falling back to spans file %s. "
-            "Run scripts/build_contract_clause_index.py to build it.",
+            "Index %s not found — falling back to spans file %s.",
             index_path, spans_path,
         )
         index = None
@@ -191,27 +261,44 @@ def contract_search(
         if entry is None:
             logger.debug("contract_search: %r not in index.", document_id)
             return []
-        # Add document_id to each row (the per-clause objects in the index
-        # don't carry it — it's the dict key) and filter metadata.
         return [
             {**c, "document_id": document_id}
             for c in entry["clauses"]
             if include_metadata or not c.get("is_metadata", False)
         ]
 
-    # 3. Corpus fallback — filter the raw spans corpus on the fly.
+    # 3. Corpus fallback
     candidates = _load_corpus(spans_path)
-    siblings = [
+    return [
         c for c in candidates
         if c["document_id"] == document_id
         and (include_metadata or not c.get("is_metadata", False))
     ]
-    if not siblings:
-        logger.debug(
-            "contract_search: no clauses for %r in spans corpus.",
-            document_id,
+
+
+def _allowed_types_for(
+    clause_type: str,
+    relations_path: str,
+) -> frozenset[str] | None:
+    """Resolve `clause_type` → set of allowed types (related ∪ self).
+
+    Returns None if the relations file is missing or the clause_type is not
+    present in it — caller treats that as "no filter, return everything".
+    """
+    try:
+        relations = _load_relations(relations_path)
+    except FileNotFoundError:
+        logger.warning(
+            "Relations file %s not found — clause_type filter disabled. "
+            "Run scripts/build_clause_type_relations.py to generate it.",
+            relations_path,
         )
-    return siblings
+        return None
+
+    if clause_type not in relations:
+        return None
+
+    return relations[clause_type] | {clause_type}
 
 
 # ---------------------------------------------------------------------------
