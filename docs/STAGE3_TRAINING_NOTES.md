@@ -262,9 +262,13 @@ Rationale:
   Option B (include soft mass) gives 1.56. Within noise for our mild imbalance.
 - Simpler to reason about — one clear quantity drives the weights.
 
-**Option B (include soft-label probability mass in the counts) remains available as an
-ablation** if the v1 run shows HIGH recall is still weak. It's a one-line change to the
-weight computation.
+**Update (post-Run 1):** Run 1 with Option A weights produced MEDIUM collapse (macro_f1=0.21).
+Soft rows each contribute 0.5 to the MEDIUM target slot, so Option A underestimated MEDIUM's
+effective frequency and gave it a disproportionate loss budget relative to how often the
+model was correct on it. **Option B (effective_counts, including soft-label probability mass
+in the class-count computation) was adopted from Run 2 onwards** and is the actual
+implementation in `src/stage3_risk_agent/train.py`. The weights in the table above are the
+original Option A plan values, kept for reference.
 
 ---
 
@@ -279,9 +283,11 @@ Rationale: DeBERTa-v3-base is base-sized, not LLM-scale; memory is not a constra
 on A100-40GB. LoRA's benefits don't kick in at this scale. Small dataset (3,472 rows)
 does carry overfit risk, but weight decay + dropout + early stopping handle it.
 
-**Layer-wise LR decay (LLRD)** — deferred. Would give deeper layers a higher LR than
-earlier ones (0.5-1 F1 point in published results). Available as a v1.1 ablation if
-the baseline shows catastrophic forgetting.
+**Layer-wise LR decay (LLRD)** — implemented and tested in Runs 6 and 9.
+Run 6 (LLRD=0.9): regressed vs baseline — decay too aggressive, bottom layers got only
+0.28× base LR and couldn't adapt to the legal text domain. Run 9 (LLRD=0.95): +0.004
+macro over Run 5, best HIGH F1 of any single-seed run (0.661). **LLRD=0.95 is the
+current baseline config** (in `configs/stage3_config.yaml`).
 
 ### Core optimizer hyperparameters
 
@@ -471,9 +477,23 @@ same data + same seed on the same GPU gives results within ~0.1 F1 of each other
 
 ---
 
-## 11. Still open (before training code)
+## 11. Training status (updated 2026-04-27)
 
-See `memory/project_stage3_training_checklist.md` for the live list. As of 2026-04-23,
-Sections A (data prep), B (model & tokenizer), and C (loss & signal) are complete.
-Section D (hyperparameters), Section E (evaluation), Section F (post-training), and
-Section G (engineering) remain.
+**Training is complete.** 17 runs + 13 ensemble configurations have been executed and
+documented in `docs/STAGE3_EXPERIMENTS.md`. All prep sections (A–G) are done.
+
+Current ceilings on current label quality:
+- **Single model:** Run 14 macro_f1=0.610, hard-only=0.657
+- **Best HIGH single model:** Run 17 CORN = 0.681 (but MEDIUM collapsed to 0.074)
+- **Ensemble:** Ens-B (R5+R8+R10+R14+R15) macro_f1=0.6264, hard-only=0.6733
+
+Diagnosed bottleneck: **MEDIUM label noise** (SOFT_LABEL rows). Evidence: stronger
+regularisation hurts (Run 7 regressed), seed variance is high (std=0.020 macro / 0.035
+MEDIUM), train loss descends normally, and every structural approach regresses MEDIUM.
+
+**Next action:** Gemini Pro relabel of the 1,055 SOFT_LABEL rows in the train split
+(~$10-13 total). Script precedent: `scripts/run_gemini_pro_review.py`.
+After relabel, retry CORN (Run 18) — CORN's HIGH=0.681 on noisy labels suggests the
+architecture is sound; clean MEDIUM labels should allow classifier2 to recover.
+
+See `docs/STAGE3_EXPERIMENTS.md` for full run details, closed paths, and ensemble results.

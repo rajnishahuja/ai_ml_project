@@ -360,11 +360,19 @@ Confirms bottleneck is MEDIUM label noise, not the loss/architecture.
 2. **Metadata Option 2** (signing-party role injection into encoder) — addresses
    HIGH↔LOW polarity flips, won't help MEDIUM. Bigger architectural change.
 
-3. **deberta-v3-large** — bigger model, more capacity. ~30-60 min training. Expected:
-   +0.02-0.04 across all classes if capacity was a bottleneck.
+3. **deberta-v3-large** — DEPRIORITIZED. 17 runs of evidence contradict the capacity-bottleneck
+   hypothesis: stronger regularisation hurts (Run 7 WD=0.1 regressed vs Run 5), seed variance
+   is high (std=0.020 macro / 0.035 MEDIUM), train loss descends normally (1.05 → 0.78), and
+   every structural approach (CORN, SORD, EMD, hybrid) hits the same MEDIUM ceiling via
+   different paths. A larger model trained on the same noisy labels will learn the noise more
+   thoroughly, not break through it. **Only worth trying after Gemini Pro relabel**, if clean
+   labels reveal a remaining capacity gap.
 
-4. **Higher-quality ensemble:** combine regularization-diverse (B/E/F) + label-mode-diverse
-   (R14/R15) + multi-seed of the winner — may push past 0.625.
+4. **Higher-quality ensemble:** DONE — Ens-B (R5+R8+R10+R14+R15) achieved macro_f1=0.6264,
+   hard-only=0.6733, implementing exactly this combination (regularisation-diverse + label-mode-
+   diverse + best F-seed). Ens-C (4-way without F-seed) gave 0.6248 — nearly identical, useful
+   if inference cost matters. **Ensemble ceiling reached at 0.626 on current labels.** Further
+   ensemble gains require better base models (i.e., after Gemini Pro relabel).
 
 ## Reference
 
