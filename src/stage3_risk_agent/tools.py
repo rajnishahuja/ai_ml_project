@@ -302,6 +302,130 @@ def _allowed_types_for(
 
 
 # ---------------------------------------------------------------------------
+# Closure factory — Mistral-facing tool with bound contract data.
+# ---------------------------------------------------------------------------
+
+def make_contract_search(
+    extracted_clauses: Iterable[Any],
+    *,
+    relations_path: str = DEFAULT_RELATIONS_PATH,
+    include_metadata: bool = False,
+):
+    """Bind `contract_search` to a specific contract's extracted clauses.
+
+    Returns a Mistral-callable function with signature
+    `(document_id, clause_type) -> list[dict]`. The function closes over the
+    `extracted_clauses` list so the LLM never sees or transports it as a
+    tool argument — only `(document_id, clause_type)` cross the LLM boundary.
+
+    Usage in the LangGraph Stage 3 worker:
+        bound = make_contract_search(state["extracted_clauses"])
+        # ...pass `bound` into Mistral's tool list...
+
+    Args:
+        extracted_clauses: All clauses for the current contract (Stage 1+2
+            output). Anything `_coerce_clause` accepts: dataclass instances,
+            pydantic models, or dicts. Captured by reference — caller owns
+            the list's lifetime.
+        relations_path: Path to the static `clause_type_relations.json`
+            map. Defaults to `data/reference/clause_type_relations.json`.
+        include_metadata: If True, the bound tool will return the 5
+            metadata clause types too. Default False — metadata flows to
+            Mistral via the prompt's METADATA block, not the tool.
+
+    Returns:
+        Callable: `bound_search(document_id: str, clause_type: str) -> list[dict]`
+    """
+    # Snapshot the list reference at bind time. Cheap (O(N) coerce) and
+    # makes the closure independent of caller mutation.
+    bound_clauses: list[dict] = [_coerce_clause(c) for c in extracted_clauses]
+
+    def bound_search(document_id: str, clause_type: str = "") -> list[dict]:
+        """Mistral-facing contract_search. Bound to one contract's clauses.
+
+        Args:
+            document_id: Required. Sanity check; must match the contract
+                whose clauses are bound. Empty / mismatching → returns [].
+            clause_type: Optional. When supplied, filters by
+                relations[clause_type] ∪ {clause_type}. When empty / unknown,
+                returns all non-metadata siblings (the pre-relations behavior).
+
+        Returns:
+            List of clause dicts with keys: clause_id, document_id,
+            clause_type, clause_text, start_pos, is_metadata.
+        """
+        return contract_search(
+            document_id,
+            clause_type or None,
+            all_clauses=bound_clauses,
+            relations_path=relations_path,
+            include_metadata=include_metadata,
+        )
+
+    return bound_search
+
+
+# ---------------------------------------------------------------------------
+# Metadata-block extractor — assembles the prompt payload for Mistral.
+# ---------------------------------------------------------------------------
+
+# Order in which metadata fields appear in the prompt block. Driven by what
+# Mistral actually uses for risk reasoning:
+#   Parties           ← #1: resolves signing-party direction
+#   Effective Date    ← term-clause reasoning (Renewal, Expiration)
+#   Expiration Date   ← same
+#   Agreement Date    ← occasionally useful (date-conditioned obligations)
+#   Document Name     ← rarely useful; included for completeness
+_METADATA_FIELD_ORDER: tuple[str, ...] = (
+    "Parties",
+    "Effective Date",
+    "Expiration Date",
+    "Agreement Date",
+    "Document Name",
+)
+
+
+def extract_metadata_block(extracted_clauses: Iterable[Any]) -> dict[str, str]:
+    """Pull the 5 metadata clause types into a flat dict for prompt injection.
+
+    Per ARCHITECTURE.md §"Labeling Review Learnings": signing-party direction
+    is the #1 driver of label flips (81% of HIGH↔LOW cases in manual review).
+    Mistral needs `Parties` on turn 1, before any tool call — hence this
+    block is injected DIRECTLY into the user prompt, not fetched via
+    `contract_search`.
+
+    Behavior:
+      - Returns the 5 metadata fields as `{field_name: clause_text}`.
+      - First occurrence wins on duplicates (rare in CUAD; e.g. some
+        contracts have multiple Parties clauses — first one is the principal).
+      - Missing types are simply absent from the dict (Mistral handles
+        "Parties: <unknown>" gracefully via the prompt template).
+      - Output is ordered (insertion-ordered dict) per `_METADATA_FIELD_ORDER`
+        so the prompt is reproducible across runs.
+
+    Args:
+        extracted_clauses: Stage 1+2 output (any clause schema —
+            ExtractedClause / ClauseObject / dict).
+
+    Returns:
+        Ordered dict of metadata fields present in the contract.
+    """
+    by_type: dict[str, str] = {}
+    for c in extracted_clauses:
+        coerced = _coerce_clause(c)
+        ctype = coerced["clause_type"]
+        if ctype in METADATA_CLAUSE_TYPES and ctype not in by_type:
+            by_type[ctype] = coerced["clause_text"]
+
+    # Re-insert in canonical order.
+    return {
+        field: by_type[field]
+        for field in _METADATA_FIELD_ORDER
+        if field in by_type
+    }
+
+
+# ---------------------------------------------------------------------------
 # precedent_search — placeholder. Real implementation lives in embeddings.py
 # (FAISS index over the 4,410 risk-relevant labeled clauses).
 # ---------------------------------------------------------------------------

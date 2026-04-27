@@ -19,6 +19,12 @@ class RiskAnalysisState(TypedDict):
     # [Node C] Stage 3 output: DeBERTa risk flags (High/Med/Low) per clause
     flagged_clauses: List[Dict[str, Any]]
 
+    # [Node C] Stage 3 side-output: contract-level metadata for Mistral's prompt
+    # (Parties / Effective Date / Expiration Date / Agreement Date / Document Name).
+    # Built once by `extract_metadata_block(...)` and reused across every
+    # parallel worker branch.
+    metadata_block: Dict[str, str]
+
     # [Node D] Stage 3 output: Mistral Map-Reduce explanations per flagged clause
     risk_assessed_clauses: Annotated[List[RiskAssessedClause], operator.add]
 

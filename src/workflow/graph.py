@@ -13,11 +13,38 @@ from src.stage4_report_gen.nodes import node_report_generation
 
 def continue_to_mistral(state: RiskAnalysisState):
     """
-    Dispatcher logic for the Map-Reduce architecture.
-    Takes the list of flagged clauses from Node C and dynamically creates a parallel
-    sub-task (Send) to route each clause to the Mistral Router (Node D).
+    Dispatcher logic for the Map-Reduce fan-out.
+    Takes the flagged clauses from Node C and creates one parallel branch
+    (Send) per clause routed to the Mistral Router (Node D).
+
+    Each Send payload carries:
+      - clause_data        : the single clause this worker assesses
+      - extracted_clauses  : ALL clauses in the contract — used by the worker
+                             to bind contract_search via closure so the
+                             tool sees same-document context without Mistral
+                             having to transport it
+      - document_id        : contract identifier (sanity arg for tools)
+      - metadata_block     : Parties / Effective Date / Expiration Date for
+                             direct prompt injection (ARCHITECTURE.md says
+                             Parties is the #1 driver of label flips —
+                             must be in Mistral's prompt on turn 1)
+
+    Note: passing the full extracted_clauses list in each Send is a Python
+    reference, not a deep copy — overhead is negligible for ~13 clauses.
     """
-    return [Send("Node_D_Mistral_Router", {"clause_data": clause}) for clause in state["flagged_clauses"]]
+    extracted_clauses = state.get("extracted_clauses", [])
+    metadata_block = state.get("metadata_block", {})
+    document_id = state.get("document_id", "")
+
+    return [
+        Send("Node_D_Mistral_Router", {
+            "clause_data": clause,
+            "extracted_clauses": extracted_clauses,
+            "document_id": document_id,
+            "metadata_block": metadata_block,
+        })
+        for clause in state["flagged_clauses"]
+    ]
 
 
 def build_workflow():

@@ -8,6 +8,8 @@ from src.stage3_risk_agent.tools import (
     METADATA_CLAUSE_TYPES,
     _load_relations,
     contract_search,
+    extract_metadata_block,
+    make_contract_search,
     precedent_search,
 )
 
@@ -195,6 +197,105 @@ class TestRelationsFile:
         for src, targets in relations.items():
             for t in targets:
                 assert t in all_types, f"{src!r} references unknown type {t!r}"
+
+
+class TestMakeContractSearch:
+    """Closure factory: binds extracted_clauses; Mistral passes only IDs."""
+
+    @pytest.fixture
+    def contract_clauses(self):
+        return [
+            {"clause_id": "d__Parties",   "document_id": "d", "clause_type": "Parties",
+             "clause_text": "Acme and Buyer."},
+            {"clause_id": "d__Cap",       "document_id": "d", "clause_type": "Cap On Liability",
+             "clause_text": "Total liability capped at 12mo fees."},
+            {"clause_id": "d__Uncapped",  "document_id": "d", "clause_type": "Uncapped Liability",
+             "clause_text": "IP indemnity uncapped."},
+            {"clause_id": "d__Insurance", "document_id": "d", "clause_type": "Insurance",
+             "clause_text": "$5M coverage."},
+            {"clause_id": "d__GL",        "document_id": "d", "clause_type": "Governing Law",
+             "clause_text": "Delaware law."},
+        ]
+
+    def test_factory_returns_callable(self, contract_clauses):
+        bound = make_contract_search(contract_clauses)
+        assert callable(bound)
+
+    def test_bound_tool_filters_by_clause_type(self, contract_clauses):
+        bound = make_contract_search(contract_clauses)
+        result = bound("d", "Cap On Liability")
+        types = {c["clause_type"] for c in result}
+        assert "Cap On Liability" in types
+        assert "Uncapped Liability" in types
+        assert "Insurance" in types
+        # Governing Law is NOT in relations[Cap On Liability] → filtered out.
+        assert "Governing Law" not in types
+
+    def test_bound_tool_excludes_metadata_by_default(self, contract_clauses):
+        bound = make_contract_search(contract_clauses)
+        result = bound("d", "")  # no clause_type filter
+        types = {c["clause_type"] for c in result}
+        assert "Parties" not in types
+
+    def test_include_metadata_flag_via_factory(self, contract_clauses):
+        bound = make_contract_search(contract_clauses, include_metadata=True)
+        result = bound("d", "")
+        types = {c["clause_type"] for c in result}
+        assert "Parties" in types
+
+    def test_wrong_document_id_returns_empty(self, contract_clauses):
+        bound = make_contract_search(contract_clauses)
+        assert bound("not_d", "Cap On Liability") == []
+
+    def test_closure_independent_of_caller_mutation(self, contract_clauses):
+        """Mutating the caller's list after binding does not affect the closure."""
+        bound = make_contract_search(contract_clauses)
+        contract_clauses.clear()
+        result = bound("d", "Cap On Liability")
+        assert len(result) > 0  # closure has its own snapshot
+
+
+class TestExtractMetadataBlock:
+    """The 5 metadata fields → flat dict for prompt injection."""
+
+    def test_extracts_present_fields_in_canonical_order(self):
+        clauses = [
+            {"clause_id": "1", "clause_type": "Cap On Liability", "clause_text": "..."},
+            {"clause_id": "2", "clause_type": "Effective Date", "clause_text": "Jan 1 2024"},
+            {"clause_id": "3", "clause_type": "Parties", "clause_text": "Acme and Buyer"},
+        ]
+        result = extract_metadata_block(clauses)
+        # Canonical order: Parties, Effective Date, Expiration Date, Agreement Date, Document Name.
+        assert list(result.keys()) == ["Parties", "Effective Date"]
+        assert result["Parties"] == "Acme and Buyer"
+        assert result["Effective Date"] == "Jan 1 2024"
+
+    def test_first_occurrence_wins(self):
+        clauses = [
+            {"clause_id": "1", "clause_type": "Parties", "clause_text": "FIRST"},
+            {"clause_id": "2", "clause_type": "Parties", "clause_text": "SECOND"},
+        ]
+        assert extract_metadata_block(clauses)["Parties"] == "FIRST"
+
+    def test_no_metadata_returns_empty_dict(self):
+        clauses = [
+            {"clause_id": "1", "clause_type": "Cap On Liability", "clause_text": "..."},
+        ]
+        assert extract_metadata_block(clauses) == {}
+
+    def test_empty_input(self):
+        assert extract_metadata_block([]) == {}
+
+    def test_accepts_pydantic_models(self):
+        from app.schemas.domain import ExtractedClause
+        clauses = [
+            ExtractedClause(clause_id="1", clause_text="Acme and Buyer",
+                            clause_type="Parties",
+                            start_pos=0, end_pos=10, confidence=0.99,
+                            confidence_logit=5.0),
+        ]
+        result = extract_metadata_block(clauses)
+        assert result["Parties"] == "Acme and Buyer"
 
 
 class TestPrecedentSearch:
