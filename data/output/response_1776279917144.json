@@ -1,0 +1,517 @@
+{
+  "status": "success",
+  "filename": "ImpresseCorp_20000322_S-1A_EX-10.11_5199234_EX-10.11_Co-Branding%20Agreement.pdf",
+  "document_id": "c04c2ac3-db23-4cb3-9f3a-6aadcc60163c",
+  "faiss_sync_status": "Complete",
+  "extracted_clauses": [
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Document_Name_0000",
+      "clause_text": "Co-Branding Agreement",
+      "clause_type": "Document Name",
+      "start_pos": 75,
+      "end_pos": 97,
+      "confidence": 0.9952,
+      "confidence_logit": 10.6559
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Agreement_Date_0002",
+      "clause_text": "March 3, 2000",
+      "clause_type": "Agreement Date",
+      "start_pos": 122,
+      "end_pos": 136,
+      "confidence": 0.9982,
+      "confidence_logit": 12.6346
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Parties_0001",
+      "clause_text": "Impresse Corporation",
+      "clause_type": "Parties",
+      "start_pos": 348,
+      "end_pos": 369,
+      "confidence": 0.9779,
+      "confidence_logit": 7.581
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Non-Compete_0009",
+      "clause_text": "Beginning on the Launch Date and continuing during the Term,\nVerticalNet shall not place advertising relating to the commercial printing\nentities listed on Exhibit \"A,\" or other such entities subsequently identified\nby Impresse, on the VerticalNet Area",
+      "clause_type": "Non-Compete",
+      "start_pos": 9834,
+      "end_pos": 10087,
+      "confidence": 0.9722,
+      "confidence_logit": 7.1068
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Non-Transferable_Lic_0025",
+      "clause_text": "Impresse hereby grants to VerticalNet a non-exclusive,\nnon-transferable, royalty-free, right and license to link to the Impresse Area\nof the Co-Branded Site.",
+      "clause_type": "Non-Transferable License",
+      "start_pos": 10116,
+      "end_pos": 10274,
+      "confidence": 0.9981,
+      "confidence_logit": 12.544
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Unlimited/All-You-Ca_0028",
+      "clause_text": "Impresse shall permit Users who access the Co-Branded\nSite to access and use Co-Branded Content from the Co-Branded Site for the\npersonal use of such Users in",
+      "clause_type": "Unlimited/All-You-Can-Eat-License",
+      "start_pos": 10274,
+      "end_pos": 10433,
+      "confidence": 0.8864,
+      "confidence_logit": 4.1088
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Minimum_Commitment_0020",
+      "clause_text": "Impresse agrees to purchase at least $[*] of such Banners\nand Newsletters in each calendar quarter after the Effective Date until a\ntotal of $[*] have been purchased, provided, the total dollar amount\npurchased by Impresse in any calendar quarter shall not consist of greater\nthan 70% of either Banners or Newsletters.",
+      "clause_type": "Minimum Commitment",
+      "start_pos": 13705,
+      "end_pos": 14024,
+      "confidence": 0.9977,
+      "confidence_logit": 12.1527
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Revenue/Profit_Shari_0018",
+      "clause_text": "Impresse shall pay VerticalNet [*]of Impresse\nVerticalNet Revenue accruing during the term of this Agreement, payable to\nVerticalNet on or before the thirtieth day of the calendar quarter\nimmediately following the quarter in which such revenue was",
+      "clause_type": "Revenue/Profit Sharing",
+      "start_pos": 14730,
+      "end_pos": 14978,
+      "confidence": 0.9974,
+      "confidence_logit": 11.922
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Audit_Rights_0032",
+      "clause_text": "During the term of this Agreement and for one year thereafter,\nVerticalNet shall have the right to appoint a certified public accountant to\naudit Impresse's financial records relating to such payment to verify the\naccuracy of Impresse's financial records in order to verify the amount of the\npayments owed and/or paid hereunder, but no more frequently than once per year.",
+      "clause_type": "Audit Rights",
+      "start_pos": 16912,
+      "end_pos": 17284,
+      "confidence": 0.9983,
+      "confidence_logit": 12.7341
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Expiration_Date_0004",
+      "clause_text": "The Term of this Agreement shall begin on the Effective Date and shall\nend fifteen months therefrom.",
+      "clause_type": "Expiration Date",
+      "start_pos": 18496,
+      "end_pos": 18597,
+      "confidence": 0.9976,
+      "confidence_logit": 12.0665
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Warranty_Duration_0036",
+      "clause_text": "after written notice\nof such breach was received by such other party or, if the breach is not\nreasonably capable of cure within 30 days, such longer period, not to exceed 60\ndays, so long as the cure is commenced within the 30-day period and thereafter\nis diligently prosecuted to completion as soon as possible and in any event\nwithin 60 days.",
+      "clause_type": "Warranty Duration",
+      "start_pos": 18810,
+      "end_pos": 19155,
+      "confidence": 0.9731,
+      "confidence_logit": 7.1785
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Post-Termination_Ser_0031",
+      "clause_text": "Following expiration or termination of this Agreement, the terms and\nprovisions of Article 4 [THE COMMERCIAL TERMS] above shall continue to govern Impresse's payment\nobligations for any payment obligations accruing during the term of this\nAgreement.",
+      "clause_type": "Post-Termination Services",
+      "start_pos": 19727,
+      "end_pos": 19977,
+      "confidence": 0.991,
+      "confidence_logit": 9.4073
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_ROFR/ROFO/ROFN_0015",
+      "clause_text": "; provided, however, that the receiving\nparty first gives the disclosing party notice and a reasonable opportunity to\nsecure confidential protection of such Confidential Information.",
+      "clause_type": "ROFR/ROFO/ROFN",
+      "start_pos": 26855,
+      "end_pos": 27037,
+      "confidence": 0.796,
+      "confidence_logit": 2.7232
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Joint_IP_Ownership_0023",
+      "clause_text": "Upon termination of the Agreement,\nVerticalNet and Impresse shall jointly own all User Data.",
+      "clause_type": "Joint IP Ownership",
+      "start_pos": 29382,
+      "end_pos": 29475,
+      "confidence": 0.9936,
+      "confidence_logit": 10.0838
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Cap_On_Liability_0034",
+      "clause_text": "EXCEPT IN CONNECTION WITH A BREACH BY EITHER\nPARTY OF ARTICLE 7 OR SECTION 8.1.5 [REPRESENTATIONS AND WARRANTIES] (v) AND THE INDEMNIFICATION OBLIGATIONS OF\nIMPRESSE UNDER SECTION 9.4(i)(d) [INDEMNIFICATION BY IMPRESSE] AND THE INDEMNIFICATION OBLIGATIONS OF\nVERTICALNET UNDER SECTION 9.5(i)(d) [INDEMNIFICATION BY VERTICALNET], NEITHER PARTY WILL BE LIABLE FOR ANY\nSPECIAL, INDIRECT, CONSEQUENTIAL, EXEMPLARY OR INCIDENTAL DAMAGES ARISING OUT OF\nOR RELATED TO THIS AGREEMENT, HOWEVER CAUSED AND UNDER ANY THEORY OF LIABILITY\n(INCLUDING NEGLIGENCE), EVEN IF SUCH PART",
+      "clause_type": "Cap On Liability",
+      "start_pos": 32605,
+      "end_pos": 33173,
+      "confidence": 0.9988,
+      "confidence_logit": 13.3717
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Covenant_Not_To_Sue_0038",
+      "clause_text": "In\naddition, VerticalNet shall not now or in the future contest the validity of\nImpresse's ownership of its Intellectual Property; provided, however, that\nVerticalNet may contest the validity of Impresse's Intellectual Property in\nany proceeding brought against VerticalNet alleging infringement or\nmisappropriation of Impresse's Intellectual Property.",
+      "clause_type": "Covenant Not To Sue",
+      "start_pos": 38854,
+      "end_pos": 39207,
+      "confidence": 0.9981,
+      "confidence_logit": 12.5199
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Governing_Law_0007",
+      "clause_text": "This Agreement shall be governed by and interpreted\nunder the laws of the State of Delaware without regard to its conflicts of law\nprovisions.",
+      "clause_type": "Governing Law",
+      "start_pos": 39231,
+      "end_pos": 39374,
+      "confidence": 0.9994,
+      "confidence_logit": 14.7651
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Anti-Assignment_0017",
+      "clause_text": "Except as otherwise set forth herein, neither party\nshall transfer, assign or cede any rights or delegate any obligations hereunder,\nin whole or in part, whether voluntarily or by operation of law, without the\nprior written consent of the other party, which consent may be withheld at the\nother party's reasonable business discretion; provided, however, that either\nparty may transfer this Agreement without prior written consent of the other to\nan Affiliate of such party, or to the surviving party in a merger or\nconsolidation, or to a purchaser of all or substantially all of its assets.",
+      "clause_type": "Anti-Assignment",
+      "start_pos": 39395,
+      "end_pos": 39986,
+      "confidence": 0.9985,
+      "confidence_logit": 12.9504
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Third_Party_Benefici_0039",
+      "clause_text": "Nothing in this Agreement is intended\nto confer benefits, rights or remedies unto any person or entity other than the\nparties and their permitted successors and assigns.",
+      "clause_type": "Third Party Beneficiary",
+      "start_pos": 44289,
+      "end_pos": 44459,
+      "confidence": 0.9376,
+      "confidence_logit": 5.4182
+    }
+  ],
+  "risk_assessed_clauses": [
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Document_Name_0000",
+      "clause_text": "Co-Branding Agreement",
+      "clause_type": "Document Name",
+      "start_pos": 75,
+      "end_pos": 97,
+      "confidence": 0.9952,
+      "confidence_logit": 10.6559,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Agreement_Date_0002",
+      "clause_text": "March 3, 2000",
+      "clause_type": "Agreement Date",
+      "start_pos": 122,
+      "end_pos": 136,
+      "confidence": 0.9982,
+      "confidence_logit": 12.6346,
+      "risk_level": "MEDIUM",
+      "risk_reason": "[MOCK] Liability cap may be insufficient relative to contract value.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Parties_0001",
+      "clause_text": "Impresse Corporation",
+      "clause_type": "Parties",
+      "start_pos": 348,
+      "end_pos": 369,
+      "confidence": 0.9779,
+      "confidence_logit": 7.581,
+      "risk_level": "LOW",
+      "risk_reason": "[MOCK] Standard boilerplate with minor ambiguity in termination notice period.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Non-Compete_0009",
+      "clause_text": "Beginning on the Launch Date and continuing during the Term,\nVerticalNet shall not place advertising relating to the commercial printing\nentities listed on Exhibit \"A,\" or other such entities subsequently identified\nby Impresse, on the VerticalNet Area",
+      "clause_type": "Non-Compete",
+      "start_pos": 9834,
+      "end_pos": 10087,
+      "confidence": 0.9722,
+      "confidence_logit": 7.1068,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Non-Transferable_Lic_0025",
+      "clause_text": "Impresse hereby grants to VerticalNet a non-exclusive,\nnon-transferable, royalty-free, right and license to link to the Impresse Area\nof the Co-Branded Site.",
+      "clause_type": "Non-Transferable License",
+      "start_pos": 10116,
+      "end_pos": 10274,
+      "confidence": 0.9981,
+      "confidence_logit": 12.544,
+      "risk_level": "MEDIUM",
+      "risk_reason": "[MOCK] Liability cap may be insufficient relative to contract value.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Unlimited/All-You-Ca_0028",
+      "clause_text": "Impresse shall permit Users who access the Co-Branded\nSite to access and use Co-Branded Content from the Co-Branded Site for the\npersonal use of such Users in",
+      "clause_type": "Unlimited/All-You-Can-Eat-License",
+      "start_pos": 10274,
+      "end_pos": 10433,
+      "confidence": 0.8864,
+      "confidence_logit": 4.1088,
+      "risk_level": "LOW",
+      "risk_reason": "[MOCK] Standard boilerplate with minor ambiguity in termination notice period.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Minimum_Commitment_0020",
+      "clause_text": "Impresse agrees to purchase at least $[*] of such Banners\nand Newsletters in each calendar quarter after the Effective Date until a\ntotal of $[*] have been purchased, provided, the total dollar amount\npurchased by Impresse in any calendar quarter shall not consist of greater\nthan 70% of either Banners or Newsletters.",
+      "clause_type": "Minimum Commitment",
+      "start_pos": 13705,
+      "end_pos": 14024,
+      "confidence": 0.9977,
+      "confidence_logit": 12.1527,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Revenue/Profit_Shari_0018",
+      "clause_text": "Impresse shall pay VerticalNet [*]of Impresse\nVerticalNet Revenue accruing during the term of this Agreement, payable to\nVerticalNet on or before the thirtieth day of the calendar quarter\nimmediately following the quarter in which such revenue was",
+      "clause_type": "Revenue/Profit Sharing",
+      "start_pos": 14730,
+      "end_pos": 14978,
+      "confidence": 0.9974,
+      "confidence_logit": 11.922,
+      "risk_level": "MEDIUM",
+      "risk_reason": "[MOCK] Liability cap may be insufficient relative to contract value.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Audit_Rights_0032",
+      "clause_text": "During the term of this Agreement and for one year thereafter,\nVerticalNet shall have the right to appoint a certified public accountant to\naudit Impresse's financial records relating to such payment to verify the\naccuracy of Impresse's financial records in order to verify the amount of the\npayments owed and/or paid hereunder, but no more frequently than once per year.",
+      "clause_type": "Audit Rights",
+      "start_pos": 16912,
+      "end_pos": 17284,
+      "confidence": 0.9983,
+      "confidence_logit": 12.7341,
+      "risk_level": "LOW",
+      "risk_reason": "[MOCK] Standard boilerplate with minor ambiguity in termination notice period.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Expiration_Date_0004",
+      "clause_text": "The Term of this Agreement shall begin on the Effective Date and shall\nend fifteen months therefrom.",
+      "clause_type": "Expiration Date",
+      "start_pos": 18496,
+      "end_pos": 18597,
+      "confidence": 0.9976,
+      "confidence_logit": 12.0665,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Warranty_Duration_0036",
+      "clause_text": "after written notice\nof such breach was received by such other party or, if the breach is not\nreasonably capable of cure within 30 days, such longer period, not to exceed 60\ndays, so long as the cure is commenced within the 30-day period and thereafter\nis diligently prosecuted to completion as soon as possible and in any event\nwithin 60 days.",
+      "clause_type": "Warranty Duration",
+      "start_pos": 18810,
+      "end_pos": 19155,
+      "confidence": 0.9731,
+      "confidence_logit": 7.1785,
+      "risk_level": "MEDIUM",
+      "risk_reason": "[MOCK] Liability cap may be insufficient relative to contract value.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Post-Termination_Ser_0031",
+      "clause_text": "Following expiration or termination of this Agreement, the terms and\nprovisions of Article 4 [THE COMMERCIAL TERMS] above shall continue to govern Impresse's payment\nobligations for any payment obligations accruing during the term of this\nAgreement.",
+      "clause_type": "Post-Termination Services",
+      "start_pos": 19727,
+      "end_pos": 19977,
+      "confidence": 0.991,
+      "confidence_logit": 9.4073,
+      "risk_level": "LOW",
+      "risk_reason": "[MOCK] Standard boilerplate with minor ambiguity in termination notice period.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_ROFR/ROFO/ROFN_0015",
+      "clause_text": "; provided, however, that the receiving\nparty first gives the disclosing party notice and a reasonable opportunity to\nsecure confidential protection of such Confidential Information.",
+      "clause_type": "ROFR/ROFO/ROFN",
+      "start_pos": 26855,
+      "end_pos": 27037,
+      "confidence": 0.796,
+      "confidence_logit": 2.7232,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Joint_IP_Ownership_0023",
+      "clause_text": "Upon termination of the Agreement,\nVerticalNet and Impresse shall jointly own all User Data.",
+      "clause_type": "Joint IP Ownership",
+      "start_pos": 29382,
+      "end_pos": 29475,
+      "confidence": 0.9936,
+      "confidence_logit": 10.0838,
+      "risk_level": "MEDIUM",
+      "risk_reason": "[MOCK] Liability cap may be insufficient relative to contract value.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Cap_On_Liability_0034",
+      "clause_text": "EXCEPT IN CONNECTION WITH A BREACH BY EITHER\nPARTY OF ARTICLE 7 OR SECTION 8.1.5 [REPRESENTATIONS AND WARRANTIES] (v) AND THE INDEMNIFICATION OBLIGATIONS OF\nIMPRESSE UNDER SECTION 9.4(i)(d) [INDEMNIFICATION BY IMPRESSE] AND THE INDEMNIFICATION OBLIGATIONS OF\nVERTICALNET UNDER SECTION 9.5(i)(d) [INDEMNIFICATION BY VERTICALNET], NEITHER PARTY WILL BE LIABLE FOR ANY\nSPECIAL, INDIRECT, CONSEQUENTIAL, EXEMPLARY OR INCIDENTAL DAMAGES ARISING OUT OF\nOR RELATED TO THIS AGREEMENT, HOWEVER CAUSED AND UNDER ANY THEORY OF LIABILITY\n(INCLUDING NEGLIGENCE), EVEN IF SUCH PART",
+      "clause_type": "Cap On Liability",
+      "start_pos": 32605,
+      "end_pos": 33173,
+      "confidence": 0.9988,
+      "confidence_logit": 13.3717,
+      "risk_level": "LOW",
+      "risk_reason": "[MOCK] Standard boilerplate with minor ambiguity in termination notice period.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Covenant_Not_To_Sue_0038",
+      "clause_text": "In\naddition, VerticalNet shall not now or in the future contest the validity of\nImpresse's ownership of its Intellectual Property; provided, however, that\nVerticalNet may contest the validity of Impresse's Intellectual Property in\nany proceeding brought against VerticalNet alleging infringement or\nmisappropriation of Impresse's Intellectual Property.",
+      "clause_type": "Covenant Not To Sue",
+      "start_pos": 38854,
+      "end_pos": 39207,
+      "confidence": 0.9981,
+      "confidence_logit": 12.5199,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Governing_Law_0007",
+      "clause_text": "This Agreement shall be governed by and interpreted\nunder the laws of the State of Delaware without regard to its conflicts of law\nprovisions.",
+      "clause_type": "Governing Law",
+      "start_pos": 39231,
+      "end_pos": 39374,
+      "confidence": 0.9994,
+      "confidence_logit": 14.7651,
+      "risk_level": "MEDIUM",
+      "risk_reason": "[MOCK] Liability cap may be insufficient relative to contract value.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Anti-Assignment_0017",
+      "clause_text": "Except as otherwise set forth herein, neither party\nshall transfer, assign or cede any rights or delegate any obligations hereunder,\nin whole or in part, whether voluntarily or by operation of law, without the\nprior written consent of the other party, which consent may be withheld at the\nother party's reasonable business discretion; provided, however, that either\nparty may transfer this Agreement without prior written consent of the other to\nan Affiliate of such party, or to the surviving party in a merger or\nconsolidation, or to a purchaser of all or substantially all of its assets.",
+      "clause_type": "Anti-Assignment",
+      "start_pos": 39395,
+      "end_pos": 39986,
+      "confidence": 0.9985,
+      "confidence_logit": 12.9504,
+      "risk_level": "LOW",
+      "risk_reason": "[MOCK] Standard boilerplate with minor ambiguity in termination notice period.",
+      "similar_clauses": [],
+      "cross_references": []
+    },
+    {
+      "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Third_Party_Benefici_0039",
+      "clause_text": "Nothing in this Agreement is intended\nto confer benefits, rights or remedies unto any person or entity other than the\nparties and their permitted successors and assigns.",
+      "clause_type": "Third Party Beneficiary",
+      "start_pos": 44289,
+      "end_pos": 44459,
+      "confidence": 0.9376,
+      "confidence_logit": 5.4182,
+      "risk_level": "HIGH",
+      "risk_reason": "[MOCK] One-sided indemnification covering counterparty negligence.",
+      "similar_clauses": [],
+      "cross_references": []
+    }
+  ],
+  "final_report": {
+    "summary": "This contract contains 19 assessed clause(s). 7 HIGH, 6 MEDIUM, 6 LOW risk.",
+    "high_risk": [
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Document_Name_0000",
+        "clause_type": "Document Name",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      },
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Non-Compete_0009",
+        "clause_type": "Non-Compete",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      },
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Minimum_Commitment_0020",
+        "clause_type": "Minimum Commitment",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      },
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Expiration_Date_0004",
+        "clause_type": "Expiration Date",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      },
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_ROFR/ROFO/ROFN_0015",
+        "clause_type": "ROFR/ROFO/ROFN",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      },
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Covenant_Not_To_Sue_0038",
+        "clause_type": "Covenant Not To Sue",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      },
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Third_Party_Benefici_0039",
+        "clause_type": "Third Party Beneficiary",
+        "explanation": "[MOCK] One-sided indemnification covering counterparty negligence.",
+        "recommendation": "Renegotiate to achieve mutual and balanced protections."
+      }
+    ],
+    "medium_risk": [
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Agreement_Date_0002",
+        "clause_type": "Agreement Date",
+        "explanation": "[MOCK] Liability cap may be insufficient relative to contract value.",
+        "recommendation": "Review and clarify scope."
+      },
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Non-Transferable_Lic_0025",
+        "clause_type": "Non-Transferable License",
+        "explanation": "[MOCK] Liability cap may be insufficient relative to contract value.",
+        "recommendation": "Review and clarify scope."
+      },
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Revenue/Profit_Shari_0018",
+        "clause_type": "Revenue/Profit Sharing",
+        "explanation": "[MOCK] Liability cap may be insufficient relative to contract value.",
+        "recommendation": "Review and clarify scope."
+      },
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Warranty_Duration_0036",
+        "clause_type": "Warranty Duration",
+        "explanation": "[MOCK] Liability cap may be insufficient relative to contract value.",
+        "recommendation": "Review and clarify scope."
+      },
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Joint_IP_Ownership_0023",
+        "clause_type": "Joint IP Ownership",
+        "explanation": "[MOCK] Liability cap may be insufficient relative to contract value.",
+        "recommendation": "Review and clarify scope."
+      },
+      {
+        "clause_id": "c04c2ac3-db23-4cb3-9_f39f1c_Governing_Law_0007",
+        "clause_type": "Governing Law",
+        "explanation": "[MOCK] Liability cap may be insufficient relative to contract value.",
+        "recommendation": "Review and clarify scope."
+      }
+    ],
+    "low_risk_summary": "6 clause(s) assessed as standard / low risk.",
+    "missing_protections": [],
+    "overall_risk_score": 23.5,
+    "total_clauses": 19
+  }
+}

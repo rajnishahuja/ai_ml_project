@@ -1,66 +1,110 @@
+# ============================================================
 # Python
+# ============================================================
 __pycache__/
 *.py[cod]
-*.egg-info/
-dist/
-build/
-.eggs/
+*$py.class
+*.pyo
 
-# Virtual environments
-venv/
+# ============================================================
+# Testing & Coverage
+# ============================================================
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+pytest.xml
+
+# ============================================================
+# Virtual Environments & Package Managers
+# ============================================================
 .venv/
 env/
+venv/
+ENV/
+.uv/
 
-# Data (large files - don't commit)
-data/raw/
-data/processed/*
-data/faiss_index/
-data/synthetic/*
-
-# Key pipeline artifacts — travel with git
-!data/processed/all_positive_spans.json
-!data/processed/training_dataset.json
-!data/processed/splits.json
-!data/synthetic/gold_set.json
-!data/synthetic/synthetic_risk_labels_qwen.json
-!data/synthetic/synthetic_risk_labels_gemini.json
-
-# Model weights (don't commit)
-models/
-*.bin
-*.pt
-*.safetensors
-*.gguf
-
-# Jupyter
-.ipynb_checkpoints/
-
-# IDE
-.vscode/settings.json
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Windows / OneDrive sync artifacts (alternate data streams, sync GUIDs)
-*:Zone.Identifier
-*:[0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F]-*
-
-# Secrets
+# ============================================================
+# Environment Config
+# ⚠️  .env holds secrets — NEVER commit it. Use .env.example
+# ============================================================
 .env
-*.key
+!.env.example
 
-# Experiment tracking
-wandb/
+# ============================================================
+# Jupyter Notebooks
+# ============================================================
+.ipynb_checkpoints/
+*.ipynb
 
+# ============================================================
 # Logs
+# ============================================================
 *.log
 logs/
 
-# HuggingFace training outputs
-checkpoints/
-*.ckpt
-outputs/
-runs/
+# ============================================================
+# macOS
+# ============================================================
+.DS_Store
+.AppleDouble
+.LSOverride
 
+# ============================================================
+# IDEs & Editors
+# ============================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.suo
+
+# ============================================================
+# ML Model Weights
+# ⚠️  These are large binary files — distribute via DVC or shared drive
+# ============================================================
+*.pt
+*.pth
+*.safetensors
+*.bin
+*.onnx
+*.pkl
+*.h5
+*.ckpt
+
+# Ignore the entire local DeBERTa model directory
+stage1_2_deberta/
+
+# ============================================================
+# Data Directories
+# Track folder structure via .gitkeep, ignore actual content
+# ============================================================
+data/raw/*
+!data/raw/.gitkeep
+
+data/processed/*
+!data/processed/.gitkeep
+
+data/synthetic/*
+!data/synthetic/.gitkeep
+
+# ============================================================
+# Build / Distribution
+# ============================================================
+dist/
+build/
+*.egg-info/
+*.egg
+.eggs/
+
+# ============================================================
+# Misc Output & Temp Files
+# ============================================================
+
+tmp/
+temp/
+*.tmp
+refrences.txt
+
+# Instructions 
+.github/
