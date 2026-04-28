@@ -1,27 +1,24 @@
 """
 Report quality evaluation for Stage 4.
 
-Three evaluators:
+Two evaluators under the new design:
 
-  1. ROUGE — text overlap between generated explanations and gold references.
-     Wraps the `rouge-score` package (soft dependency). Returns rouge1 / rouge2
-     / rougeL F-measures.
+  1. ROUGE — text overlap between Mistral-generated `contract_summary` and
+     a gold reference summary, when one is available. Wraps `rouge-score`
+     (soft dependency).
 
-  2. Structural completeness — schema-level checks on the assembled report
-     (required fields populated, score in valid range, recommendations
-     present for HIGH-risk clauses, etc.).
+  2. Structural completeness — schema-level checks on the assembled report:
+     metadata block present, three risk-table buckets exist, conclusion
+     populated, disclaimer non-empty, score in valid range.
 
-  3. Recommendation coverage — how many HIGH-risk clauses got a curated
-     (non-fallback) recommendation versus the generic default.
+`recommendation_coverage` is removed — the new design has no per-clause
+recommendation lookup table to measure coverage of.
 """
 
 from __future__ import annotations
 
 import logging
 from typing import Any
-
-from src.common.schema import RiskReport
-from src.stage4_report_gen.recommender import DEFAULT_RECOMMENDATIONS
 
 logger = logging.getLogger(__name__)
 
@@ -30,31 +27,29 @@ logger = logging.getLogger(__name__)
 # Schema-agnostic dict access
 # ---------------------------------------------------------------------------
 
-def _to_dict(report: RiskReport | dict) -> dict:
+def _to_dict(report: Any) -> dict:
     if hasattr(report, "to_dict"):
         return report.to_dict()
     return dict(report)
 
 
 # ---------------------------------------------------------------------------
-# ROUGE — text quality of generated explanations
+# ROUGE — text quality of generated summaries
 # ---------------------------------------------------------------------------
 
-def evaluate_explanations(
+def evaluate_summaries(
     generated: list[str],
     reference: list[str],
 ) -> dict[str, float]:
-    """Compute rouge1 / rouge2 / rougeL F-measures.
+    """Compute rouge1 / rouge2 / rougeL F-measures over a batch.
 
     Args:
-        generated: Model-generated explanation strings.
-        reference: Reference (gold) explanation strings. Must be the same
-            length as `generated`.
+        generated: Model-generated summary strings (one per contract).
+        reference: Reference (gold) summary strings.
 
     Returns:
-        Dict with keys `rouge1`, `rouge2`, `rougeL`, all in [0, 1]. Returns
-        zeros for an empty input or when the rouge-score package is missing
-        (with a warning log line — the rest of Stage 4 evaluation still runs).
+        Dict with rouge1, rouge2, rougeL (all in [0, 1]). Returns zeros for
+        an empty input or when `rouge-score` is missing.
     """
     if len(generated) != len(reference):
         raise ValueError(
@@ -90,29 +85,19 @@ def evaluate_explanations(
 # Structural completeness
 # ---------------------------------------------------------------------------
 
-def evaluate_report_completeness(report: RiskReport | dict) -> dict[str, bool]:
-    """Schema-level structural checks. Pure dict inspection.
+def evaluate_report_completeness(report: Any) -> dict[str, bool]:
+    """Schema-level structural checks.
 
-    Checks (each maps to True/False in the result):
-      - has_summary               : non-empty `summary` string
-      - has_document_id           : non-empty `document_id`
-      - score_in_range            : `overall_risk_score` is in [0, 10]
-      - high_risk_have_recs       : every high-risk entry has a non-empty
-                                    `recommendation`
-      - medium_risk_have_recs     : every medium-risk entry has a non-empty
-                                    `recommendation`
-      - high_risk_have_explanations : every high-risk entry has a non-empty
-                                      `explanation`
-      - missing_protections_listed : `missing_protections` is a list (may be empty)
-      - total_matches_buckets       : `total_clauses` ≥ |high| + |medium|
-                                      (LOW bucket is summarized, not enumerated,
-                                      so equality is not expected)
+    Validates the new Stage 4 schema. Returns a dict mapping check name
+    to True/False — all True is a healthy report.
     """
     r = _to_dict(report)
     checks: dict[str, bool] = {}
 
-    checks["has_summary"] = bool(r.get("summary"))
-    checks["has_document_id"] = bool(r.get("document_id"))
+    checks["has_document_id"]    = bool(r.get("document_id"))
+    checks["has_metadata"]       = isinstance(r.get("metadata"), dict) and bool(r.get("metadata"))
+    checks["has_summary"]        = bool(r.get("contract_summary"))
+    checks["has_summary_header"] = bool(r.get("summary_header"))
 
     score = r.get("overall_risk_score", -1)
     try:
@@ -121,53 +106,28 @@ def evaluate_report_completeness(report: RiskReport | dict) -> dict[str, bool]:
         score_f = -1.0
     checks["score_in_range"] = 0.0 <= score_f <= 10.0
 
-    high = r.get("high_risk", []) or []
-    medium = r.get("medium_risk", []) or []
+    risk_tables = r.get("risk_tables", {}) or {}
+    checks["has_three_risk_tiers"] = (
+        isinstance(risk_tables, dict)
+        and set(risk_tables.keys()) >= {"HIGH", "MEDIUM", "LOW"}
+    )
+    checks["risk_rows_well_formed"] = all(
+        isinstance(row, dict)
+        and set(row.keys()) >= {"clause_type", "clause_text", "reasoning", "confidence"}
+        for tier_rows in risk_tables.values()
+        for row in tier_rows
+    ) if risk_tables else True
 
-    def _all_have(entries: list[dict], key: str) -> bool:
-        return all(bool(e.get(key)) for e in entries) if entries else True
-
-    checks["high_risk_have_recs"] = _all_have(high, "recommendation")
-    checks["medium_risk_have_recs"] = _all_have(medium, "recommendation")
-    checks["high_risk_have_explanations"] = _all_have(high, "explanation")
-    checks["missing_protections_listed"] = isinstance(
-        r.get("missing_protections"), list,
+    conclusion = r.get("conclusion") or {}
+    checks["has_conclusion"] = (
+        isinstance(conclusion, dict)
+        and bool(conclusion.get("overall_assessment"))
     )
 
+    checks["has_disclaimer"] = bool(r.get("disclaimer"))
+
     total = int(r.get("total_clauses", 0) or 0)
-    checks["total_matches_buckets"] = total >= len(high) + len(medium)
+    rt_total = sum(len(v) for v in risk_tables.values()) if risk_tables else 0
+    checks["totals_match"] = total == rt_total
 
     return checks
-
-
-# ---------------------------------------------------------------------------
-# Recommendation coverage
-# ---------------------------------------------------------------------------
-
-def recommendation_coverage(report: RiskReport | dict) -> dict[str, Any]:
-    """How many HIGH-risk clauses got a curated (non-default) recommendation.
-
-    Useful for tracking the lookup-table's coverage on real reports.
-
-    Returns dict:
-      - total_high           : int
-      - curated              : int   (recommendation is not in DEFAULT_RECOMMENDATIONS)
-      - default              : int   (recommendation matches DEFAULT_RECOMMENDATIONS["HIGH"])
-      - coverage             : float in [0, 1] = curated / total_high
-    """
-    r = _to_dict(report)
-    high = r.get("high_risk", []) or []
-    total = len(high)
-    if total == 0:
-        return {"total_high": 0, "curated": 0, "default": 0, "coverage": 0.0}
-
-    default_text = DEFAULT_RECOMMENDATIONS["HIGH"]
-    default_count = sum(1 for e in high if e.get("recommendation") == default_text)
-    curated = total - default_count
-
-    return {
-        "total_high": total,
-        "curated": curated,
-        "default": default_count,
-        "coverage": round(curated / total, 3),
-    }

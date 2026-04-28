@@ -1,16 +1,21 @@
 """
-Aggregation of risk-assessed clauses for report generation.
+Aggregation helpers for Stage 4.
 
-Pure Python — groups clauses by risk level, computes a contract-level
-risk score, identifies the top-N risks, and detects missing standard
-protections. No ML model needed here; the LLM-driven explanation work
-lives in `explainer.py`.
+Pure Python — no ML model. Two responsibilities under the new design:
 
-Schema-agnostic by design: every helper reads attributes via `_get`, so
-it accepts either the dataclass form (`src.common.schema.RiskAssessedClause`)
-or the pydantic form (`app.schemas.domain.RiskAssessedClause`). The two
-schemas use different field names for the explanation text — `risk_explanation`
-vs `risk_reason` — and `_get` normalizes that.
+  - `group_by_risk_level(clauses)`         → bucket clauses for the report's
+                                              HIGH / MEDIUM / LOW tables.
+  - `compute_contract_risk_score(clauses)` → contract-level numeric score
+                                              shown in the report header.
+
+Schema-agnostic by design: every helper reads attributes via `_get`, so it
+accepts the dataclass form (`src.common.schema.RiskAssessedClause`) or the
+pydantic form (`app.schemas.domain.RiskAssessedClause`) interchangeably.
+
+Removed under the new design (per plan): `find_missing_protections`,
+`get_top_risks`, `low_risk_summary`, and the EXPECTED_PROTECTIONS constant —
+the redesigned report does not surface "missing" / "top-N" sections, and
+LOW clauses are now enumerated in a table rather than summarized.
 """
 
 from __future__ import annotations
@@ -30,28 +35,13 @@ _RISK_WEIGHTS: dict[str, float] = {
     "LOW": 0.1,
 }
 
-# Severity ordering used for sorting top risks. Higher = more severe.
-_SEVERITY_RANK: dict[str, int] = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
-
-# CUAD clause types that any well-formed commercial contract should contain.
-# Used by `find_missing_protections`. List intentionally short — flagging too
-# many "missing" clauses creates noise in the report. Source: review of CUAD
-# v1 high-frequency types and the Atticus category descriptions.
-EXPECTED_PROTECTIONS: tuple[str, ...] = (
-    "Governing Law",
-    "Cap On Liability",
-    "Indemnification",
-    "Termination For Convenience",
-    "Insurance",
-    "Warranty Duration",
-)
-
 
 def _get(clause: Any, *names: str, default: Any = None) -> Any:
     """Read the first attribute that exists on `clause`.
 
-    Tries each name in order. Falls back through `__getitem__` for dicts
-    and pydantic `model_dump`-style objects.
+    Tolerates dataclass attrs, pydantic attrs, and dict keys. Treats `None`
+    as missing so partially-populated objects still resolve through to the
+    default sensibly.
     """
     for name in names:
         if hasattr(clause, name):
@@ -101,8 +91,7 @@ def compute_contract_risk_score(clauses: Iterable[Any]) -> float:
     """Compute an overall contract risk score in [0, 10].
 
     Confidence-weighted average of per-clause severity weights, scaled by 10
-    for human readability (matches the example in ARCHITECTURE.md
-    §"Stage 4 Output").
+    for human readability:
 
         score = 10 * Σ(severity[c] * confidence[c]) / Σ(confidence[c])
 
@@ -128,68 +117,3 @@ def compute_contract_risk_score(clauses: Iterable[Any]) -> float:
     if total_weight == 0:
         return 0.0
     return round(10.0 * weighted_sum / total_weight, 2)
-
-
-# ---------------------------------------------------------------------------
-# Top risks
-# ---------------------------------------------------------------------------
-
-def get_top_risks(clauses: Iterable[Any], n: int = 5) -> list[Any]:
-    """Return the top-N most severe clauses.
-
-    Sort key (descending):
-      1. severity rank (HIGH=3, MEDIUM=2, LOW=1)
-      2. confidence (higher = more certain)
-
-    Args:
-        clauses: All risk-assessed clauses.
-        n: Maximum number of clauses to return.
-
-    Returns:
-        List of up to `n` clauses, most-severe first. If the input has fewer
-        than `n` clauses, returns all of them.
-    """
-    def sort_key(c: Any) -> tuple[int, float]:
-        rank = _SEVERITY_RANK.get(_normalize_risk(_get(c, "risk_level")), 0)
-        conf = float(_get(c, "confidence", default=0.0) or 0.0)
-        return (rank, conf)
-
-    return sorted(clauses, key=sort_key, reverse=True)[:n]
-
-
-# ---------------------------------------------------------------------------
-# Missing-protection detection (gap analysis)
-# ---------------------------------------------------------------------------
-
-def find_missing_protections(
-    clauses: Iterable[Any],
-    expected_types: tuple[str, ...] = EXPECTED_PROTECTIONS,
-) -> list[str]:
-    """Identify standard protective clause types absent from the contract.
-
-    Compares the set of clause types present in `clauses` against
-    `expected_types` (case-insensitive). Returns the missing types in the
-    original order of `expected_types`.
-
-    Note: this is a lightweight gap analysis. It does not look at clause
-    content — only presence by type. Stage 1+2 already filtered out
-    low-confidence detections, so absence here means "DeBERTa did not find a
-    matching span", which is a reasonable proxy for "the contract lacks this
-    protection".
-    """
-    present = {(_get(c, "clause_type") or "").strip().lower() for c in clauses}
-    return [t for t in expected_types if t.strip().lower() not in present]
-
-
-# ---------------------------------------------------------------------------
-# Convenience: low-risk summary text
-# ---------------------------------------------------------------------------
-
-def low_risk_summary(low_risk_clauses: list[Any]) -> str:
-    """One-line natural-language summary of the LOW-risk bucket."""
-    n = len(low_risk_clauses)
-    if n == 0:
-        return "No low-risk clauses identified."
-    if n == 1:
-        return "1 clause was assessed as standard / low risk."
-    return f"{n} clauses were assessed as standard / low risk."
