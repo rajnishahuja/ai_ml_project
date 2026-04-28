@@ -1,0 +1,84 @@
+{
+  "document_id": "synthetic_demo_contract_001",
+  "summary": "This contract contains 11 assessed clause(s) with an overall risk score of 4.7/10. 3 high-risk, 4 medium-risk, and 4 low-risk clause(s) were identified.",
+  "high_risk": [
+    {
+      "clause_id": "c1",
+      "clause_type": "Indemnification",
+      "risk_level": "HIGH",
+      "explanation": "One-sided indemnification with no liability cap and broad scope.",
+      "recommendation": "Negotiate mutual indemnification. Cap liability at contract value. Add carve-outs for gross negligence and willful misconduct.",
+      "page_no": "3",
+      "content_label": "Section 9.1"
+    },
+    {
+      "clause_id": "c3",
+      "clause_type": "Uncapped Liability",
+      "risk_level": "HIGH",
+      "explanation": "Uncapped exposure for both IP and confidentiality is asymmetric in vendor's favor.",
+      "recommendation": "Convert to a capped liability clause with mutual exclusions for consequential damages. Reserve uncapped exposure only for IP infringement and gross negligence.",
+      "page_no": "7",
+      "content_label": "Section 11.3"
+    },
+    {
+      "clause_id": "c2",
+      "clause_type": "Irrevocable Or Perpetual License",
+      "risk_level": "HIGH",
+      "explanation": "Perpetual license with no revocation rights blocks future flexibility.",
+      "recommendation": "Replace with a fixed-term license with renewal terms. Add revocation rights on material breach or insolvency.",
+      "page_no": "5",
+      "content_label": "Section 4.2"
+    }
+  ],
+  "medium_risk": [
+    {
+      "clause_id": "c11",
+      "clause_type": "Warranty Duration",
+      "risk_level": "MEDIUM",
+      "explanation": "24-month warranty is acceptable but longer than typical 12-month industry norm \u2014 minor cost exposure.",
+      "recommendation": "Have legal counsel review this clause. Confirm scope and obligations are commercially reasonable.",
+      "page_no": "15",
+      "content_label": "Section 8.1"
+    },
+    {
+      "clause_id": "c4",
+      "clause_type": "Termination For Convenience",
+      "risk_level": "MEDIUM",
+      "explanation": "30-day notice is shorter than typical 60-90 day industry standard for multi-year deals.",
+      "recommendation": "Confirm the notice period is workable and that payment for in-progress work is preserved.",
+      "page_no": "8",
+      "content_label": "Section 12.1"
+    },
+    {
+      "clause_id": "c5",
+      "clause_type": "Non-Compete",
+      "risk_level": "MEDIUM",
+      "explanation": "5-year non-compete is at the upper boundary of enforceability; geographic scope reasonable.",
+      "recommendation": "Tighten geographic / temporal scope. Add carve-outs for pre-existing business lines.",
+      "page_no": "9",
+      "content_label": "Section 13.4"
+    },
+    {
+      "clause_id": "c6",
+      "clause_type": "Exclusivity",
+      "risk_level": "MEDIUM",
+      "explanation": "Exclusive dealing without minimum-volume off-ramps creates downside risk.",
+      "recommendation": "Verify exclusivity is bounded by field of use and contains minimum-performance off-ramps.",
+      "page_no": "10",
+      "content_label": "Section 5.2"
+    }
+  ],
+  "low_risk_summary": "4 clauses were assessed as standard / low risk.",
+  "missing_protections": [],
+  "overall_risk_score": 4.73,
+  "total_clauses": 11,
+  "metadata": {
+    "generated_at": "2026-04-28T03:55:42.239707+00:00",
+    "models_used": {
+      "extraction": "microsoft/deberta-base",
+      "risk_classification": "models/stage3_risk_deberta_v3",
+      "explanation": "(stage3 risk_reason verbatim)",
+      "report_explanation": "google/flan-t5-base (not loaded in this run)"
+    }
+  }
+}

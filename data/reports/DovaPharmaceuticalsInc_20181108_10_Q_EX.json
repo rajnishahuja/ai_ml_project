@@ -1,0 +1,103 @@
+{
+  "document_id": "DovaPharmaceuticalsInc_20181108_10_Q_EX",
+  "metadata": {
+    "Document Name": "CO-PROMOTION AGREEMENT",
+    "Parties": "Valeant",
+    "Agreement Date": "September 26, 2018",
+    "Effective Date": "\"Effective Date\" shall have the meaning set forth in the preamble to this Agreement.",
+    "Expiration Date": "This Agreement shall become effective as of the Effective Date and, unless earlier terminated as provided in this ARTICLE 12, shall extend until the four (4) year anniversary of the Effective Date (the \"Term\")."
+  },
+  "contract_summary": "[Agreement Date] September 26, 2018 [Parties] Valeant [Document Name] CO-PROMOTION AGREEMENT [Effective Date] \"Effective Date\" shall have the meaning set forth in the preamble to this Agreement. This contract was assessed across 10 clause(s), with 3 flagged as high risk, 4 as medium risk, and 3 as low risk.",
+  "overall_risk_score": 5.11,
+  "total_clauses": 10,
+  "summary_header": "This contract contains 10 assessed clause(s) with an overall risk score of 5.1/10. 3 high-risk, 4 medium-risk, and 3 low-risk clause(s) were identified.",
+  "risk_tables": {
+    "HIGH": [
+      {
+        "clause_type": "Exclusivity",
+        "clause_text": "During the Term, subject to the terms and conditions of this Agreement, Dova hereby grants to Valeant the right, on a co-exclusive basis (solely with Dova and its Affiliates), to Detail and promote the Product in the Specialty in the Territory in the Field, and to conduct the Valeant Activities and the activities of the institutional account management team (pursuant to and subject to the terms of Section 4.1.5) for the Product in the Territory in the Field in accordance with the terms and conditions of this Agreement.",
+        "reasoning": "Exclusive dealing in North America with no minimum-volume off-ramps.",
+        "confidence": 0.82
+      },
+      {
+        "clause_type": "Non-Compete",
+        "clause_text": "[***], neither Valeant nor its Affiliates shall, directly or indirectly, [***] in the Territory other than the Product; provided that if the Agreement is terminated by Dova pursuant to [***], then any Tail Period shall be immediately terminated if either Valeant or any of its Affiliates, directly or indirectly, [***] in the Territory other than the Product during such Tail Period.",
+        "reasoning": "Geographic scope unbounded; 5-year tail extends well past contract term.",
+        "confidence": 0.8
+      },
+      {
+        "clause_type": "Uncapped Liability",
+        "clause_text": "THE FOREGOING SENTENCE SHALL NOT LIMIT (1) THE OBLIGATIONS OF EITHER PARTY TO INDEMNIFY THE OTHER PARTY FROM AND AGAINST THIRD PARTY CLAIMS UNDER SECTION 11.1 OR 11.2, AS APPLICABLE, OR (2) DAMAGES AVAILABLE FOR A PARTY'S BREACH OF THE CONFIDENTIALITY AND NON-USE OBLIGATIONS IN ARTICLE 9.",
+        "reasoning": "Uncapped exposure for IP indemnity is one-sided and creates material liability for Dova.",
+        "confidence": 0.78
+      }
+    ],
+    "MEDIUM": [
+      {
+        "clause_type": "Covenant Not To Sue",
+        "clause_text": "Valeant shall not at any time during the Term knowingly do or allow to be done any act or thing which will in any way impair or diminish the rights of Dova in or to the Dova Trademarks and Copyrights.",
+        "reasoning": "Broad waiver scope; could limit Dova's IP defense rights against Valeant.",
+        "confidence": 0.66
+      },
+      {
+        "clause_type": "Termination For Convenience",
+        "clause_text": "Either Party shall have the right to terminate this Agreement before the end of the Term for its convenience upon [***] written notice to the other Party (and any such termination shall become effective at the end of such [***]); [***].",
+        "reasoning": "30-day notice is short for a multi-year promotion deal of this scale.",
+        "confidence": 0.74
+      },
+      {
+        "clause_type": "Liquidated Damages",
+        "clause_text": "Solely in the event that Dova has terminated this Agreement pursuant to Section 12.3.1 and notwithstanding anything else herein, in consideration of the promotion services performed by Valeant during the Term, with respect to the Tail Period, Dova shall make payments to Valeant in an amount equal to [***] of the amounts that would have been payable by Dova to Valeant with respect to such Tail Period pursuant to Section 6.1 had the Agreement not been so terminated.",
+        "reasoning": "Termination fee triggers only on Dova's breach \u2014 asymmetric remedy.",
+        "confidence": 0.71
+      },
+      {
+        "clause_type": "Anti-Assignment",
+        "clause_text": "In the event either Party desires to make such an assignment or other transfer of this Agreement or any rights or obligations hereunder, such Party shall deliver a written notice to the other Party requesting the other Party's written consent in accordance with this Section 13.2, and the other Party shall provide such Party written notice of its determination whether to provide such written consent within [***] following its receipt of such written notice from such Party.",
+        "reasoning": "No affiliate carve-out; blocks routine corporate restructuring.",
+        "confidence": 0.69
+      }
+    ],
+    "LOW": [
+      {
+        "clause_type": "Cap On Liability",
+        "clause_text": "Notwithstanding the above, the sole remedy of Dova for breach of this Section 4.1.2 shall be (i) the adjustment to the promotion fee as set forth in Section 6.1.2 and (ii) the termination right set out in Section 12.2.2.",
+        "reasoning": "Standard 12-month-fees cap; mutual; commercially reasonable.",
+        "confidence": 0.91
+      },
+      {
+        "clause_type": "Audit Rights",
+        "clause_text": "Dova shall have the right, at its own expense, during normal business hours and upon reasonable prior notice, through a certified public accounting firm or other auditor selected by Dova and reasonably acceptable to Valeant and upon execution of a confidentiality agreement reasonably satisfactory to Valeant in form and substance, to inspect and audit the applicable records and books maintained by Valeant relating to the Valeant Activities for purposes of verifying Valeant's compliance with the terms of this Agreement, provided that (i) such examination shall not take place more often than once per every twelve (12) months during the Term and once during the one (1) year period following the end of the Term, and (ii) such examination shall not cover a period of time that has previously been audited; provided that Dova shall have the right to conduct additional \"for cause\" audits to the extent necessary to address significant compliance problems relating to Valeant's obligations hereunder or in response to any inquiry, inspection, investigation or other requirements of a Government Authority in the Territory relating to the Valeant Activities.",
+        "reasoning": "Annual audit cadence with reasonable advance notice; standard.",
+        "confidence": 0.93
+      },
+      {
+        "clause_type": "Insurance",
+        "clause_text": "Each Party acknowledges and agrees that during the Term, it shall maintain, through purchase or self- insurance, adequate insurance, including products liability coverage and comprehensive general liability insurance, adequate to cover its obligations under this Agreement and which are consistent with normal business practices of prudent companies similarly situated.",
+        "reasoning": "Both parties carry $5M coverage; standard for the industry.",
+        "confidence": 0.95
+      }
+    ]
+  },
+  "conclusion": {
+    "overall_assessment": "The contract carries elevated risk in 3 area(s); legal review of high-risk clauses is strongly recommended before signing.",
+    "high_priority_actions": [
+      "Review and negotiate the exclusivity clause to limit counterparty exposure.",
+      "Review and negotiate the non-compete clause to limit counterparty exposure.",
+      "Review and negotiate the uncapped liability clause to limit counterparty exposure."
+    ],
+    "medium_priority_actions": [
+      "Confirm the covenant not to sue clause is commercially reasonable with legal counsel.",
+      "Confirm the termination for convenience clause is commercially reasonable with legal counsel.",
+      "Confirm the liquidated damages clause is commercially reasonable with legal counsel.",
+      "Confirm the anti-assignment clause is commercially reasonable with legal counsel."
+    ]
+  },
+  "disclaimer": "This automated risk analysis is intended as a decision-support tool and does not constitute legal advice. All findings should be reviewed and confirmed by licensed legal counsel before relying on this document for any contract decision, negotiation, or signing.",
+  "generated_at": "2026-04-28T09:11:17.676395+00:00",
+  "models_used": {
+    "summary": "mock-llm"
+  },
+  "docx_path": "data/reports/DovaPharmaceuticalsInc_20181108_10_Q_EX.docx",
+  "pdf_path": null
+}
