@@ -1,0 +1,252 @@
+[
+  {
+    "row_num": 5404,
+    "label": "LOW",
+    "reason": "Signing party IS the Sponsor, so the Sponsor-specific exception is a benefit, not a risk. Mutual NRW consent for general assignments, symmetric M&A exception for successors, PLUS an extra carve-out allowing Sponsor to assign to any entity operating their website. Qwen is right; Gemini misread who benefits from the Sponsor exception."
+  },
+  {
+    "row_num": 5405,
+    "label": "LOW",
+    "reason": "Assignment only requires written notice to Transporter \u2014 no consent needed. This is the minimal possible restriction. Gemini is right: a notice-only requirement does not materially restrict the signing party's ability to assign."
+  },
+  {
+    "row_num": 5406,
+    "label": "LOW",
+    "reason": "Fully mutual with an explicit 'not unreasonably withheld' standard \u2014 the standard balanced anti-assignment clause. Qwen is right. Gemini's MEDIUM overstates the friction from a well-qualified mutual consent requirement."
+  },
+  {
+    "row_num": 5407,
+    "label": "LOW",
+    "reason": "One-sided restriction on the Distributor, but the 'not unreasonably withheld' qualifier is the key protection against arbitrary denial. Qwen is right: NRW provides an enforceable standard. Gemini's MEDIUM overstates the residual friction from a well-qualified consent requirement in a distributor context."
+  },
+  {
+    "row_num": 5408,
+    "label": "LOW",
+    "reason": "From the Adviser's (signing party's) perspective, this is favorable: the POA automatically benefits their successors and assigns. FASC's restriction on appointing a substitute attorney protects the Adviser's interests, not restricts them. Gemini correctly identifies this as low risk for the Adviser."
+  },
+  {
+    "row_num": 5409,
+    "label": "HIGH",
+    "reason": "One-sided restriction on the Subcontractor/signing party with no 'not unreasonably withheld' qualifier and no exceptions for affiliates or M&A. EDGE has absolute discretion to block assignment. The payment carve-out is minimal mitigation. Qwen is right that the structural imbalance and missing NRW create significant risk."
+  },
+  {
+    "row_num": 5410,
+    "label": "MEDIUM",
+    "reason": "Enforcement clause referencing permissions 'above' \u2014 the 'as permitted above' language implies some valid assignment cases exist. Risk depends on what those permissions are. MEDIUM appropriately reflects the fragment nature of this clause; Gemini's HIGH overreaches for an enforcement-only clause when prior permissions are implied."
+  },
+  {
+    "row_num": 5411,
+    "label": "LOW",
+    "reason": "Signing party is Fox (the licensor). Restricting the Licensee's ability to assign protects Fox's IP interests. The M&A carve-out provides Licensee adequate flexibility for critical corporate transactions. From Fox's perspective as licensor, this clause is protective and well-structured. Qwen's MEDIUM misreads the signing party's position."
+  },
+  {
+    "row_num": 5412,
+    "label": "MEDIUM",
+    "reason": "Fragment enforcement clause voiding assignments violating Section 11.7, whose content is not provided. Risk depends entirely on whether Section 11.7 includes NRW or adequate exceptions. Void-from-outset is more severe than merely void, but the risk level is contingent on the undisclosed substantive restriction."
+  },
+  {
+    "row_num": 5413,
+    "label": "LOW",
+    "reason": "Signing party is NFLA (the licensor of the marks). The clause protects NFLA \u2014 Company cannot sublicense NFLA marks without NFLA's prior written consent. Both models analyzed this from Company's perspective. From NFLA's perspective, this is a strong IP protection clause that preserves their brand control."
+  },
+  {
+    "row_num": 5414,
+    "label": "LOW",
+    "reason": "Signing party is Smith (the endorser). The clause requires Smith's approval for TDA's M&A-related assignments \u2014 this protects Smith from being bound to an unknown corporate successor. From Smith's perspective, this is protective. Gemini incorrectly analyzed this as TDA being the signing party. Text truncation is a data limitation, not a contractual risk for Smith."
+  },
+  {
+    "row_num": 5415,
+    "label": "HIGH",
+    "reason": "One-sided restriction on HealthGate (signing party) with no 'not unreasonably withheld' qualifier. Publishers have absolute discretion to block any assignment including in M&A events. No exceptions stated. Qwen is right; HealthGate's corporate flexibility is significantly constrained by this unqualified unilateral restriction."
+  },
+  {
+    "row_num": 5416,
+    "label": "HIGH",
+    "reason": "Gemini is right. Absolute mutual prohibition with zero exceptions \u2014 no affiliates, no M&A successors, no operation of law, no consent mechanism whatsoever. This completely eliminates all assignment flexibility for both parties including in standard corporate reorganizations. Qwen's MEDIUM underweights a total prohibition."
+  },
+  {
+    "row_num": 5417,
+    "label": "HIGH",
+    "reason": "Developer (counterparty) can assign to affiliates or upon IP sale without Delteq's consent; Delteq (signing party) needs the Developer's consent for any assignment. This is significant asymmetry \u2014 Developer has two unilateral carve-outs while Delteq has none. Qwen correctly identifies the structural imbalance."
+  },
+  {
+    "row_num": 5418,
+    "label": "MEDIUM",
+    "reason": "Fragment void enforcement clause referencing Section 13.4 whose content is not shown. 'Void and of no effect' is standard consequence language. Risk depends on whether Section 13.4 includes NRW or M&A exceptions. MEDIUM appropriately reflects assessment uncertainty without the substantive restriction text."
+  },
+  {
+    "row_num": 5419,
+    "label": "MEDIUM",
+    "reason": "Fragment void enforcement clause for an unspecified subsection. Standard analysis: void consequence is typical, but risk depends on the undisclosed substantive restriction in the referenced subsection. MEDIUM reflects appropriate uncertainty."
+  },
+  {
+    "row_num": 5420,
+    "label": "HIGH",
+    "reason": "Gemini is right. Licensee (signing party) cannot assign without Licensor's prior written consent \u2014 no NRW qualifier, so Licensor has absolute discretion. Any unauthorized attempt is void. No exceptions for M&A, affiliates, or operation of law. This gives the Licensor complete control over the Licensee's corporate transactions."
+  },
+  {
+    "row_num": 5421,
+    "label": "LOW",
+    "reason": "Signing party is Janssen, not Company. The clause requires Janssen's consent before Company can use its affiliates \u2014 this is protective for Janssen, giving them oversight of who performs work under the contract. Both models incorrectly analyzed this from Company's perspective. From Janssen's viewpoint, this is a favorable control provision."
+  },
+  {
+    "row_num": 5422,
+    "label": "LOW",
+    "reason": "LBIO IS the signing party here, and the clause explicitly gives LBIO the right to assign without MD Anderson's consent \u2014 only notice is required. This is highly favorable for LBIO. Both models analyzed this as if LBIO were the counterparty rather than the signing party who benefits from this permissive assignment right."
+  },
+  {
+    "row_num": 5423,
+    "label": "LOW",
+    "reason": "Fully mutual with 'not unreasonably withheld or delayed' \u2014 the gold standard balanced anti-assignment clause. Qwen is right. Gemini's MEDIUM overstates the friction from a well-qualified mutual consent requirement."
+  },
+  {
+    "row_num": 5424,
+    "label": "MEDIUM",
+    "reason": "The word 'unauthorized' presupposes some authorization mechanism exists elsewhere in the agreement. Unlike 'any assignment without consent is void,' this is more nuanced. Void consequence is standard. Risk depends on the underlying authorization standard, which this fragment does not disclose. MEDIUM appropriately reflects the uncertainty."
+  },
+  {
+    "row_num": 5425,
+    "label": "HIGH",
+    "reason": "Gemini is right. One-sided restriction on the Distributor/signing party with no NRW, no exceptions for affiliates or M&A, and explicitly covers 'by operation of law' assignments. JRVS has absolute and complete discretion. The operation-of-law coverage makes this particularly onerous as even involuntary transfers trigger the requirement."
+  },
+  {
+    "row_num": 5426,
+    "label": "LOW",
+    "reason": "Fully mutual with 'not unreasonably withheld or delayed.' Standard, well-balanced anti-assignment clause. Qwen is right. Gemini's MEDIUM overstates the residual friction from this gold-standard bilateral provision."
+  },
+  {
+    "row_num": 5427,
+    "label": "LOW",
+    "reason": "Gemini is right. The restriction is on Erchonia (the counterparty), not on the Distributor (signing party). Erchonia can only assign in an asset-sale M&A context, which preserves continuity for the Distributor. From Distributor's perspective, this clause is protective \u2014 they retain their original contracting party or a qualified M&A successor."
+  },
+  {
+    "row_num": 5428,
+    "label": "LOW",
+    "reason": "Signing party is iPass (the drafter). The clause requires Channel Partner to obtain iPass's consent for any assignment. From iPass's perspective, this is protective \u2014 they retain control over who operates as their channel partner. Both models analyzed this from Channel Partner's perspective. From iPass's viewpoint, this clause is favorable."
+  },
+  {
+    "row_num": 5429,
+    "label": "MEDIUM",
+    "reason": "Assignment conditions governed by FERC Gas Tariff Article III, Section 11 \u2014 a federal regulatory document with standardized conditions, not arbitrary drafter-controlled terms. FERC tariffs are public and regulated, making this less arbitrary than pure drafter consent. But the unknown specific conditions and regulatory complexity create meaningful uncertainty. MEDIUM is appropriate."
+  },
+  {
+    "row_num": 5430,
+    "label": "MEDIUM",
+    "reason": "Fragment clause: 'any attempted assignment without consent shall be void.' Consent is confirmed as required; no NRW stated. But this is a fragment enforcement clause without the underlying substantive restriction that would reveal whether NRW or exceptions exist. MEDIUM reflects appropriate uncertainty about the complete consent standard."
+  },
+  {
+    "row_num": 5431,
+    "label": "MEDIUM",
+    "reason": "Fragment void enforcement clause referencing 'this section' whose substantive content is not provided. Standard void consequence. Risk depends on whether the full section includes NRW or M&A exceptions. MEDIUM appropriately reflects assessment uncertainty for a standalone enforcement clause."
+  },
+  {
+    "row_num": 5432,
+    "label": "MEDIUM",
+    "reason": "Fragment enforcement clause making assignments in violation of an unspecified section null and void. Cannot assess the underlying substantive restriction. Both void and null-and-void are standard enforcement language. MEDIUM reflects the uncertainty about the complete consent standard that governs this enforcement clause."
+  },
+  {
+    "row_num": 5433,
+    "label": "LOW",
+    "reason": "Qwen is right. Fully mutual with 'not unreasonably conditioned, withheld or delayed' \u2014 stronger than standard NRW because it also prevents imposing unreasonable conditions on consent. This is a gold-standard provision. Gemini's MEDIUM overstates the friction from an exceptionally well-balanced bilateral clause."
+  },
+  {
+    "row_num": 5434,
+    "label": "HIGH",
+    "reason": "Qwen is right. The 'presently conducted business' standard is subjective and narrow \u2014 it effectively prohibits assignment to any acquirer planning business integration, pivot, or strategic change. This creates an almost unworkable condition in M&A contexts and gives the other party leverage to block legitimate transactions using a vague and potentially arbitrary standard."
+  },
+  {
+    "row_num": 5435,
+    "label": "LOW",
+    "reason": "Fully mutual NRW covering assignment, transfer, and subcontracting. Standard, comprehensive, balanced provision. Qwen is right. Gemini's MEDIUM overstates the friction from a well-qualified mutual consent requirement with explicit NRW protection."
+  },
+  {
+    "row_num": 5436,
+    "label": "LOW",
+    "reason": "Mutual consent with 'not unreasonably withheld' qualifier plus explicit successors/assigns binding for continuity. Standard balanced provision. Qwen is right. Gemini's MEDIUM overstates the residual friction from a well-qualified bilateral NRW clause."
+  },
+  {
+    "row_num": 5437,
+    "label": "MEDIUM",
+    "reason": "Text truncated before identifying who holds consent authority ('consent of the...'). The mutual structure is apparent from context, but the absence of visible NRW and the truncation prevent confirming protections. Qwen's HIGH overreaches given likely mutual structure; Gemini's MEDIUM correctly reflects the gap absent confirmed NRW language."
+  },
+  {
+    "row_num": 5438,
+    "label": "MEDIUM",
+    "reason": "Fragment void enforcement clause referencing Section 13.2 (which at least is labeled 'Assignment,' suggesting it specifically addresses the subject). Risk depends on Section 13.2's substantive terms. Microgenics is both drafter and signing party, making self-protective provisions likely. MEDIUM reflects appropriate uncertainty without Section 13.2's content."
+  },
+  {
+    "row_num": 5439,
+    "label": "MEDIUM",
+    "reason": "Same as Row 5410 \u2014 enforcement clause with 'as permitted above' language implying prior permissions exist. The existence of permitted exceptions elsewhere makes Gemini's HIGH too strong. MEDIUM reflects uncertainty about the scope of those permissions while acknowledging the null-and-void consequence."
+  },
+  {
+    "row_num": 5440,
+    "label": "LOW",
+    "reason": "Qwen is right. Mutual NRW + not delayed, plus 'voidable' rather than 'void' for unauthorized assignments \u2014 'voidable' is actually more protective because assignments can be ratified. This is a well-balanced, signing-party-favorable provision. Gemini's MEDIUM overstates the friction from this well-drafted mutual clause."
+  },
+  {
+    "row_num": 5441,
+    "label": "HIGH",
+    "reason": "Gemini is right. Contractor (signing party) is completely prohibited from any assignment while NICE has unilateral right to assign to affiliates at its own discretion. Complete asymmetry. NICE's joint and several liability mitigates the Contractor's performance risk but does not address the fundamental structural imbalance in the Contractor's corporate flexibility."
+  },
+  {
+    "row_num": 5442,
+    "label": "LOW",
+    "reason": "Signing party is the Fund, not the Remarketing Agent. The restriction is on the Remarketing Agent \u2014 they cannot assign without the Fund's consent. From the Fund's perspective, this is highly protective: they retain absolute consent authority over who acts as their Remarketing Agent. Both models analyzed from the wrong party's perspective."
+  },
+  {
+    "row_num": 5443,
+    "label": "HIGH",
+    "reason": "Qwen is right. One-sided restriction on the Sub-Advisor/signing party (Oaktree International) requiring Oaktree US's prior written consent with no NRW qualifier. Oaktree US has absolute and unconstrained discretion. Even in a related-party context, the Sub-Advisor has zero flexibility for corporate restructuring or M&A without Oaktree US's unrestricted approval."
+  },
+  {
+    "row_num": 5444,
+    "label": "LOW",
+    "reason": "Gemini is right. Mutual restriction with a symmetric Change of Control exception for both parties \u2014 either party can assign in a CoC without consent. This covers the most critical corporate scenario. The void ab initio consequence for non-CoC unauthorized assignments is standard. The absence of NRW for non-CoC cases is a minor gap given the broad CoC carve-out."
+  },
+  {
+    "row_num": 5445,
+    "label": "MEDIUM",
+    "reason": "Express prior written consent required for delegation of obligations, with 'except as follows' indicating carve-outs exist but are truncated. No NRW visible. Qwen's MEDIUM appropriately captures the restriction without NRW; Gemini's HIGH overreaches given that carve-outs exist (even if unknown). Assessment uncertainty from truncation justifies MEDIUM."
+  },
+  {
+    "row_num": 5446,
+    "label": "MEDIUM",
+    "reason": "One-sided restriction on CRO (signing party) requiring Client's consent with no NRW qualifier. No exceptions stated. However, in a clinical research context, client oversight of CRO assignment is contextually standard practice. This is less severe than similar commercial agreements where such restrictions are more unusual. Qwen's MEDIUM is appropriate."
+  },
+  {
+    "row_num": 5447,
+    "label": "MEDIUM",
+    "reason": "Fragment enforcement clause \u2014 'such prior written consent' confirms consent was required but the substantive consent standard (including whether NRW applies) is not shown in this fragment. Risk depends on the full consent provision. MEDIUM reflects appropriate uncertainty; Gemini's HIGH overreaches for a standalone enforcement clause."
+  },
+  {
+    "row_num": 5448,
+    "label": "LOW",
+    "reason": "Signing party is ABG. The clause requires Papa John's to obtain ABG's approval before subcontracting \u2014 this gives ABG control over brand execution quality, which is critical in an endorsement agreement. From ABG's perspective, this is a protective clause. Both models analyzed from Papa John's perspective. ABG benefits from this approval right."
+  },
+  {
+    "row_num": 5449,
+    "label": "MEDIUM",
+    "reason": "One-sided restriction on Broker Dealer (signing party) requiring consent from TWO separate parties (Issuer and Distributor). While NRW applies, the dual-consent requirement raises the bar significantly \u2014 both Issuer and Distributor must agree. Qwen's MEDIUM appropriately reflects the higher-than-usual burden of dual consent even with NRW protection."
+  },
+  {
+    "row_num": 5450,
+    "label": "LOW",
+    "reason": "Qwen is right. Fully mutual with 'not unreasonably withheld or delayed' plus standard null-and-void enforcement. Well-drafted, balanced provision. Gemini's MEDIUM overstates friction from an excellently balanced bilateral clause with explicit non-delay protection."
+  },
+  {
+    "row_num": 5451,
+    "label": "LOW",
+    "reason": "Gemini is right. Assignment to US affiliates OR to M&A successors requires no consent at all. This is highly permissive and favorable \u2014 the two most common corporate assignment scenarios are explicitly exempt from consent requirements. Qwen's MEDIUM overweights a theoretical risk from unknown affiliates when the provision is broadly favorable."
+  },
+  {
+    "row_num": 5452,
+    "label": "MEDIUM",
+    "reason": "Fragment enforcement clause: 'such consent' confirms consent was required but the substantive consent standard is not shown. Null and void is standard enforcement consequence. Risk depends on the complete consent provision. MEDIUM reflects appropriate uncertainty; Gemini's HIGH overreaches for a standalone enforcement clause."
+  },
+  {
+    "row_num": 5453,
+    "label": "MEDIUM",
+    "reason": "Sponsor (signing party) can assign to affiliates but remains obligated \u2014 limiting the practical benefit of that right. SDBF has a broader carve-out (franchise transferee or affiliate) without Sponsor's consent. The asymmetric carve-outs give SDBF more flexibility than Sponsor, and Sponsor cannot vet SDBF's franchise-related assignees. Qwen overstates the risk; MEDIUM is appropriate."
+  }
+]

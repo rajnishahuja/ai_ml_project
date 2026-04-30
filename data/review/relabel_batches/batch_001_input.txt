@@ -1,0 +1,1740 @@
+# Relabeling batch 1 — rows 100–199 of 1327 total
+
+Label each clause LOW / MEDIUM / HIGH from the perspective of the SIGNING PARTY (named in 'Signing party' below). They are reviewing this contract before signing and assessing whether each clause poses risk to them.
+
+Qwen and Gemini disagreed on these rows. Read both arguments and the calibration examples, decide who is right (or whether both are wrong), and give a definitive label.
+
+OUTPUT: a single JSON array, one object per row, in the same order:
+  [{"row_num": N, "label": "LOW"|"MEDIUM"|"HIGH", "reason": "...max 80 words..."}, ...]
+Output ONLY the JSON array. No preamble, no markdown, no explanation.
+
+---
+
+**Anti-Assignment — calibration examples from this dataset:**
+  LOW: "Title to all Joint Venture Property will remain in the name of the Joint Venture."
+  MEDIUM: "Neither party may assign this Agreement without the prior written consent of the other."
+  HIGH: "Neither this Agreement nor any right created by it shall"
+
+## Row 5454  [1/100]
+Clause type:   Anti-Assignment
+Document:      TRANSITION SERVICES AGREEMENT
+Drafter:       ReynoldsConsumerProductsInc
+Signing party: Reynolds Group Holdings Inc.
+
+**Clause text:**
+Any attempted assignment of this Agreement, or the rights or obligations herein, not in accordance with the terms of this Section 10.10 shall be void.
+
+Qwen → **HIGH** (conf 0.85)
+  The clause imposes a strict 'void' consequence for any assignment that does not strictly follow the referenced section, without explicitly stating that consent cannot be unreasonably withheld or that notice is sufficient. This creates a significant risk that the signing party could be locked into the contract with an undesirable counterparty or unable to transfer rights in a merger or acquisition if the specific terms of Section 10.10 are ambiguous or overly restrictive.
+
+Gemini → **MEDIUM** (conf 0.8)
+  This clause, while not explicitly stating a consent requirement, implies that there are specific terms in Section 10.10 that govern assignment. If those terms are restrictive (e.g., requiring the drafter's consent without a 'not to be unreasonably withheld' standard), the signing party's ability to assign could be severely limited. The 'void' consequence for non-compliance is a strong deterrent and could invalidate a crucial transaction for the signing party. Without knowing the full text of Section 10.10, it's a potential medium risk.
+
+---
+
+## Row 5455  [2/100]
+Clause type:   Anti-Assignment
+Document:      OPERATIONS AND MAINTENANCE AGREEMENT
+Drafter:       SANDRIDGEENERGYINC
+Signing party: Piñon Gathering Company, LLC
+
+**Clause text:**
+Operator shall not make any assignment of all or any part of this Agreement or any of the rights or obligations hereunder unless there first shall  have been obtained the written consent thereto of Owner, which consent shall not be unreasonably withheld, conditioned, or delayed.
+
+Qwen → **LOW** (conf 1.0)
+  The clause imposes a standard 'not unreasonably withheld' standard on the consent requirement, which prevents the Owner from arbitrarily blocking the Operator's assignment and aligns with common market practice for balanced commercial agreements.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause requires the Operator (signing party) to obtain written consent from the Owner for any assignment. While the 'not unreasonably withheld' language provides some protection and a path for assignment, it still introduces a dependency on the Owner and potential for delay or dispute, making it a moderate restriction on the Operator's flexibility.
+
+---
+
+## Row 5456  [3/100]
+Clause type:   Anti-Assignment
+Document:      Sponsorship Agreement
+Drafter:       STAMPSCOMINC
+Signing party: Intuit Inc.
+
+**Clause text:**
+Any attempt to assign this Agreement      other than as permitted above will be null and void.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a strict prohibition on assignment without explicitly stating that consent cannot be unreasonably withheld, which could allow the drafter to arbitrarily block a transfer even in standard scenarios like corporate restructuring or sale of assets.
+
+Gemini → **HIGH** (conf 0.8)
+  The clause states that any assignment not 'permitted above' will be null and void, but the provided text does not specify what is 'permitted above'. This creates significant uncertainty and potentially eliminates the signing party's ability to assign the agreement, which is highly restrictive and one-sided.
+
+---
+
+## Row 5457  [4/100]
+Clause type:   Anti-Assignment
+Document:      OUTSOURCING AGREEMENT
+Drafter:       SYKESHEALTHPLANSERVICESINC
+Signing party: HPS
+
+**Clause text:**
+This Agreement shall be binding on the parties and their respective successors and assigns, but neither party may, or shall have the power to, assign this Agreement without the prior written consent of the other, which consent shall not be unreasonably withheld.
+
+Qwen → **LOW** (conf 1.0)
+  The clause includes a standard 'not unreasonably withheld' qualifier, which prevents the other party from arbitrarily blocking an assignment and provides the signing party with a clear, enforceable path to assign the agreement if consent is denied without valid commercial justification.
+
+Gemini → **MEDIUM** (conf 1.0)
+  This clause requires mutual consent for assignment, which limits the signing party's flexibility. However, the 'not unreasonably withheld' standard provides a reasonable path for assignment, making it a manageable restriction rather than a severe one.
+
+---
+
+## Row 5458  [5/100]
+Clause type:   Anti-Assignment
+Document:      DISTRIBUTORSHIP AGREEMENT
+Drafter:       StaarSurgicalCompany
+Signing party: Distributor
+
+**Clause text:**
+Neither party may, directly or indirectly (including in connection with a change of control transaction), transfer or assign this Agreement or any of the rights or obligations hereunder without the prior written consent of the other; provided that STAAR may assign any of its rights and delegate any of its obligations hereunder to its subsidiaries and affiliated companies or in connection with a sale or transfer of all or substantially all of its business to which this Agreement relates, whether by merger, sale of assets or otherwise, without Distributor's prior written consent.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause creates a significant one-sided imbalance by granting the drafter (STAAR) an unrestricted right to transfer the contract to third parties, including subsidiaries or in connection with a sale of business, while the signing party (Distributor) is strictly prohibited from assigning without consent. This exposes the Distributor to the risk of dealing with an unknown or less capable counterparty without any recourse or approval authority.
+
+Gemini → **MEDIUM** (conf 1.0)
+  While the initial clause requires mutual consent for assignment, the significant carve-out for STAAR (the drafter/counterparty) allows them to assign or delegate to affiliates or in a change of control without the signing party's (Distributor's) consent. This creates an imbalance where the signing party's assignment rights are restricted, but STAAR retains broad flexibility, which could lead to the signing party dealing with a new, unknown entity without their approval.
+
+---
+
+## Row 5459  [6/100]
+Clause type:   Anti-Assignment
+Document:      MANIFEST SYSTEM SERVICES AND CO-BRANDING AGREEMENT
+Drafter:       StampscomInc
+Signing party: Company
+
+**Clause text:**
+obligations and privileges hereunder to an assignee in connection with any merger, acquisition or sale of all or substantially all of the business to which this Agreement relates.
+
+Qwen → **MEDIUM** (conf 0.75)
+  The clause appears to be a fragment that permits assignment only in specific corporate transaction scenarios (merger, acquisition, sale of substantially all assets) but lacks explicit language regarding the requirement for consent or notice. This ambiguity creates uncertainty for the signing party regarding whether they must seek approval for such assignments or if they are automatically bound to an assignee without their input, potentially limiting their ability to control who they do business with in a change of control event.
+
+Gemini → **LOW** (conf 0.9)
+  This clause explicitly permits the signing party to assign the contract in connection with a merger, acquisition, or sale of its business, which is a common and important carve-out for business continuity. It does not require counterparty consent for these specific, critical events, which is favorable to the signing party.
+
+---
+
+## Row 5460  [7/100]
+Clause type:   Anti-Assignment
+Document:      DEVELOPMENT AGREEMENT ("
+Drafter:       TRUENORTHENERGYCORP
+Signing party: BP
+
+**Clause text:**
+Any assignment of the rights and obligations under this Agreement by Company without the consent of BP shall be voidable by BP.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause grants BP unilateral discretion to void the agreement if the Company assigns it without consent, creating a significant risk of contract termination for the signing party (BP) due to the Company's potential corporate restructuring or sale, while offering no reciprocal protection or 'not unreasonably withheld' standard.
+
+Gemini → **MEDIUM** (conf 0.9)
+  This clause is one-sided as it only restricts the Company's (the signing party's) ability to assign without BP's consent, making such an assignment voidable by BP. It does not impose a similar restriction on BP, nor does it include a 'not to be unreasonably withheld' standard, which limits the signing party's flexibility.
+
+---
+
+## Row 5461  [8/100]
+Clause type:   Anti-Assignment
+Document:      CO-BRANDING Agreement
+Drafter:       TheglobeComInc
+Signing party: The Boxlot Company
+
+**Clause text:**
+Neither party may assign its rights or delegate its duties hereunder (except to an affiliated company, or to a successor in interest in the event of a merger, sale of assets of the business to which this Agreement is related, or consolidation) without the other party's prior written consent, and any purported attempt to do so is null and void.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a mutual restriction on assignment requiring prior written consent, which limits the signing party's flexibility to transfer rights or delegate duties. While the exceptions for affiliates and successors in interest provide some relief, the requirement for consent without an explicit 'not unreasonably withheld' standard creates a potential bottleneck that could be used to block legitimate business transactions.
+
+Gemini → **LOW** (conf 1.0)
+  The clause is mutual and includes standard exceptions for assignments to affiliates or successors in interest due to corporate events (merger, asset sale, consolidation). This provides reasonable flexibility for the signing party's corporate restructuring without requiring the counterparty's consent, which is a common and favorable carve-out.
+
+---
+
+## Row 5462  [9/100]
+Clause type:   Anti-Assignment
+Document:      MARKETING AND RESELLER AGREEMENT
+Drafter:       TodosMedicalLtd
+Signing party: Todos Medical Ltd.
+
+**Clause text:**
+This Agreement and the rights granted hereunder shall not be assigned, encumbered by security interest or otherwise transferred by the Reseller without the prior written consent of Todos, except for the assignment or transfer of rights to a subsidiary company or an affiliated company.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause imposes a unilateral restriction on the Reseller (the signing party) requiring prior written consent for assignment, while granting no reciprocal right to Todos. Furthermore, the exception for subsidiaries is one-sided, allowing Todos to assign freely to affiliates without restriction, creating a significant imbalance in flexibility and control.
+
+Gemini → **MEDIUM** (conf 1.0)
+  The clause restricts the Reseller's (signing party's) ability to assign, encumber, or transfer the agreement without Todos's prior written consent. While it allows for assignment to subsidiaries or affiliates, it does not include a 'not to be unreasonably withheld' standard for other assignments, giving Todos broad discretion to block potential transfers. This limits the Reseller's flexibility in corporate restructuring or sale scenarios beyond direct affiliates.
+
+---
+
+## Row 5463  [10/100]
+Clause type:   Anti-Assignment
+Document:      Manufacturing and Supply Agreement
+Drafter:       VAPOTHERM, INC. - Manufacturing and Supply Agreement
+Signing party: MEDICA S.p.A.
+
+**Clause text:**
+Neither party may assign any of its rights or obligations under this Agreement without the prior written consent of the other except that: (1) Vapotherm may assign this Agreement or transfer its rights and obligations under this Agreement to an Affiliate of Vapotherm or a successor to all or substantially all of its assets or business relating to this-Agreement, whether by sale, merger, operation of law, or otherwise.
+
+Qwen → **HIGH** (conf 0.0)
+  The clause creates a significant one-sided imbalance by granting the drafter (Vapotherm) an unrestricted right to assign the contract to affiliates or successors without the signing party's consent, while the signing party remains strictly prohibited from assigning without consent. This exposes the signing party to being bound to a new, potentially unknown entity without any recourse or negotiation power.
+
+Gemini → **MEDIUM** (conf 1.0)
+  While the clause generally requires mutual consent for assignment, it creates a significant carve-out for Vapotherm, allowing them to assign to an affiliate or successor without the signing party's consent. This makes the clause one-sided, as the signing party does not have a reciprocal right to assign without consent, limiting their flexibility while giving Vapotherm broad assignment rights.
+
+---
+
+## Row 5464  [11/100]
+Clause type:   Anti-Assignment
+Document:      SUPPLY AGREEMENT
+Drafter:       VAXCYTE,INC
+Signing party: Sutro Biopharma, Inc.
+
+**Clause text:**
+Neither Party may assign or transfer this Supply Agreement, including by merger, operation of law, or otherwise, without the other Party's prior written consent (which shall not be withheld unreasonably) except each Party may assign this Supply Agreement without the other Party's consent in the case of assignment or transfer to a Third Party that succeeds to all or substantially all of the assigning Party's business and assets relating to the subject matter of this Supply Agreement, whether by sale, merger, operation of law or otherwise. Any attempted assignment by a Party in violation of this Section without the written consent of the other Party will be null and void.
+
+Qwen → **LOW** (conf 1.0)
+  The clause imposes a mutual restriction on assignment but includes the critical standard that consent 'shall not be withheld unreasonably,' which prevents the counterparty from arbitrarily blocking a transfer. Additionally, it explicitly allows assignment in the event of a merger or sale of substantially all assets without consent, providing a standard and balanced path for corporate restructuring.
+
+Gemini → **MEDIUM** (conf 1.0)
+  The clause generally requires mutual consent for assignment, which limits the signing party's flexibility. While the 'not unreasonably withheld' standard provides some protection, the exception for assignment to a successor of 'all or substantially all' of the business and assets is specific and may not cover all desired assignment scenarios, making it less flexible than a clause allowing assignment to affiliates without consent.
+
+---
+
+## Row 5465  [12/100]
+Clause type:   Anti-Assignment
+Document:      OPERATIONS AND MAINTENANCE AGREEMENT
+Drafter:       VERTEXENERGYINC
+Signing party: "Omega" or "Operator"
+
+**Clause text:**
+Operator shall not make any assignment of all or any part of this Agreement or any of the rights or obligations hereunder unless there first shall have been obtained the written consent thereto of Owner, which consent shall not be unreasonably withheld, conditioned, or delayed.
+
+Qwen → **LOW** (conf 1.0)
+  The clause imposes a standard 'not unreasonably withheld' standard on the consent requirement, which prevents the Owner from arbitrarily blocking the Operator's assignment and aligns with common market practice for balanced commercial agreements.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause requires the Operator (signing party) to obtain written consent from the Owner for any assignment. While the 'not unreasonably withheld' language provides some protection and a path for assignment, it still introduces a dependency on the Owner and potential for delay or dispute, making it a moderate restriction on the Operator's flexibility.
+
+---
+
+## Row 5466  [13/100]
+Clause type:   Anti-Assignment
+Document:      SPONSORSHIP AGREEMENT
+Drafter:       VITAMINSHOPPECOMINC
+Signing party: Excite, Inc.
+
+**Clause text:**
+Any attempt to                           assign this Agreement other than as permitted above                           will be null and void.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a strict prohibition on assignment without explicitly stating that consent cannot be unreasonably withheld, which could allow the drafter to arbitrarily block a transfer even in standard scenarios like corporate restructuring or sale of assets.
+
+Gemini → **HIGH** (conf 0.8)
+  The clause states that any assignment not 'permitted above' will be null and void, but the provided text does not specify what is 'permitted above'. This creates significant uncertainty and potentially eliminates the signing party's ability to assign the agreement, which is highly restrictive and one-sided.
+
+---
+
+## Row 5467  [14/100]
+Clause type:   Anti-Assignment
+Document:      JOINT SUPPLY AND MARKETING AGREEMENT
+Drafter:       VertexEnergyInc
+Signing party: Bunker One
+
+**Clause text:**
+Neither Party shall assign or transfer any rights or obligations hereunder without the express prior written consent of the other Party, which may not be unreasonably withheld.
+
+Qwen → **LOW** (conf 1.0)
+  The clause is mutual and includes the standard 'not unreasonably withheld' qualifier, which prevents the other party from arbitrarily blocking an assignment and provides a clear legal path for the signing party to transfer rights if needed.
+
+Gemini → **MEDIUM** (conf 1.0)
+  This clause requires mutual consent for assignment, which limits the signing party's flexibility. However, the crucial phrase 'which may not be unreasonably withheld' provides a reasonable standard, preventing the counterparty from arbitrarily blocking an assignment. This makes the clause manageable but still a point to note for future strategic planning.
+
+---
+
+## Row 5468  [15/100]
+Clause type:   Anti-Assignment
+Document:      NON-EXCLUSIVE LICENSE AGREEMENT- FOR SALES
+Drafter:       VirtuosoSurgicalInc
+Signing party: The Johns Hopkins University
+
+**Clause text:**
+Company shall not sublicense to others under this Agreement, nor extend the rights granted hereunder to any affiliated company.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a unilateral restriction on the signing party (Company) preventing assignment to affiliates without consent, which limits operational flexibility and potential corporate restructuring options, though it does not explicitly ban all assignments or impose severe penalties.
+
+Gemini → **HIGH** (conf 1.0)
+  This clause severely restricts the signing party's ability to leverage the agreement by prohibiting both sublicensing and extending rights to affiliates. This is highly restrictive and limits the signing party's operational flexibility and potential for growth or internal restructuring, disproportionately benefiting the drafter.
+
+---
+
+## Row 5469  [16/100]
+Clause type:   Anti-Assignment
+Document:      ENDORSEMENT AGREEMENT
+Drafter:       WARNINGMANAGEMENTSERVICESINC
+Signing party: PEY DIRT, INC.
+
+**Clause text:**
+In the event of the merger or consolidation of Company with any other entity, Pey Dirt shall have the right to terminate the Contract Period by so notifying Company in writing on or before sixty (60) days after Pey Dirt has received notice of such merger or consolidation.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause grants the drafter (Pey Dirt) a unilateral right to terminate the agreement solely due to a change of control, without requiring the signing party's (Company) consent or providing any compensation for the loss of the contract. This creates significant business uncertainty and potential disruption for the signing party if they are acquired or merged.
+
+Gemini → **MEDIUM** (conf 0.9)
+  This clause grants the counterparty (Pey Dirt) a unilateral right to terminate the contract if the signing party (Company) undergoes a merger or consolidation. This creates a risk for the signing party as a change of control event, which is often strategic and necessary, could lead to the termination of a valuable contract at the counterparty's discretion. While the 60-day notice period provides some clarity, the lack of mutuality (the signing party does not have a reciprocal right) makes it a one-sided provision that warrants attention.
+
+---
+
+## Row 5470  [17/100]
+Clause type:   Anti-Assignment
+Document:      EXCLUSIVE DISTRIBUTOR AGREEMENT
+Drafter:       WaterNowInc
+Signing party: BESTEV MANAGEMENT, LLC
+
+**Clause text:**
+Any attempted assignment without such consent shall be void and of no effect.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a strict prohibition on assignment without consent and renders unauthorized attempts void, but the text does not explicitly state that consent cannot be unreasonably withheld, creating potential for the drafter to arbitrarily block transfers.
+
+Gemini → **HIGH** (conf 1.0)
+  This clause makes any assignment by the signing party without consent completely invalid, which is highly restrictive. It does not include any language that consent cannot be unreasonably withheld, giving the drafter absolute control over the signing party's ability to assign the contract. This severely limits the signing party's flexibility in potential mergers, acquisitions, or other corporate restructuring.
+
+---
+
+## Row 5471  [18/100]
+Clause type:   Anti-Assignment
+Document:      SPONSORSHIP AGREEMENT
+Drafter:       XYBERNAUTCORP
+Signing party: XYBERNAUT CORPORATION
+
+**Clause text:**
+Any such  assignment or delegation  made without the written consent of the  other  party  hereto  shall  be ab  inito  null and void and of no force or effect.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a strict requirement for written consent from the counterparty for any assignment, which creates a potential bottleneck for the signing party's ability to transfer rights or obligations. While the consequence of voiding unauthorized assignments is standard, the lack of an explicit 'not unreasonably withheld' qualifier means the counterparty could theoretically withhold consent arbitrarily, limiting the signing party's operational flexibility.
+
+Gemini → **HIGH** (conf 1.0)
+  This clause gives the drafting party absolute control over any assignment or delegation by the signing party, with no standard of reasonableness. Any attempt to assign without consent is explicitly stated to be null and void, which severely restricts the signing party's flexibility in corporate transactions (e.g., M&A) or internal restructuring.
+
+---
+
+## Row 5472  [19/100]
+Clause type:   Anti-Assignment
+Document:      PRODUCT SALE AND MARKETING AGREEMENT
+Drafter:       XpresspaGroupInc
+Signing party: Calm
+
+**Clause text:**
+Neither Party shall assign or transfer this Agreement or its rights hereunder without first obtaining the consent of the other, in writing, which consent shall not unreasonably be withheld or delayed.
+
+Qwen → **LOW** (conf 1.0)
+  The clause includes a standard 'not unreasonably withheld' qualifier, which prevents the other party from arbitrarily blocking an assignment and provides the signing party with a clear, enforceable path to transfer rights if the consent is denied without valid commercial justification.
+
+Gemini → **MEDIUM** (conf 1.0)
+  This clause requires mutual consent for assignment, which limits the signing party's flexibility. While the 'not unreasonably withheld or delayed' standard provides some protection, it still introduces a potential hurdle for future assignments, such as in a merger or acquisition scenario.
+
+---
+
+## Row 5473  [20/100]
+Clause type:   Anti-Assignment
+Document:      DISTRIBUTORSHIP AGREEMENT
+Drafter:       ZogenixInc
+Signing party: Zogenix and Distributor may be referred to individually as a "Party" and collectively as the "Parties".
+
+**Clause text:**
+For the avoidance of doubt, in the event that either Party assigns this Agreement pursuant to this Section 14.3(a), the other Party shall have the right to terminate this Agreement pursuant to Section 12.2(i).
+
+Qwen → **MEDIUM** (conf 0.9)
+  While the clause acknowledges the right to assign, it grants the counterparty an automatic right to terminate the agreement upon assignment. This creates a significant risk of losing the contract due to a corporate restructuring or sale, which is a common but potentially disruptive outcome for the signing party.
+
+Gemini → **HIGH** (conf 1.0)
+  This clause grants the counterparty an automatic right to terminate the agreement if the signing party assigns it, even if the assignment is otherwise permitted by the contract. This significantly restricts the signing party's ability to assign the agreement, as any assignment could immediately lead to termination, creating substantial business risk.
+
+---
+
+**Audit Rights — calibration examples from this dataset:**
+  LOW: "The frequency of such audits shall not exceed one audit per site within three years"
+  MEDIUM: "CHT shall provide to Ehave and its Auditors any assistance they may reasonably require to conduct such Audits."
+  HIGH: "Merchant shall make its books and records available to Purchaser at all times"
+
+## Row 5474  [21/100]
+Clause type:   Audit Rights
+Document:      Reseller Agreement
+Drafter:       ADIANUTRITION,INC
+Signing party: Detto
+
+**Clause text:**
+In addition, Detto shall make its offices and equipment available in person, upon reasonable notice, and to the extent feasible, remotely, to PivX to inspect and test Detto's physical and technical set-up to ensure that Detto is complying with its obligations under this Section.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the counterparty (PivX) broad rights to physically inspect and test the signing party's (Detto) infrastructure and equipment, which imposes operational disruption and potential security risks. While the terms 'reasonable notice' and 'to the extent feasible' provide some mitigation, the requirement to allow in-person access to physical assets is more intrusive than a standard document audit and creates a significant operational burden for the signing party.
+
+Gemini → **LOW** (conf 0.9)
+  This clause grants the counterparty (PivX) audit rights over the signing party (Detto) to ensure compliance. While it is an audit right, it is limited to 'physical and technical set-up' and requires 'reasonable notice' and remote access 'to the extent feasible', which are standard and reasonable limitations from the perspective of the party being audited. It does not grant broad access to financial records or sensitive business information, making the risk manageable and common for ensuring operational compliance.
+
+---
+
+## Row 5475  [22/100]
+Clause type:   Audit Rights
+Document:      FRANCHISE AGREEMENT
+Drafter:       AIRTECHINTERNATIONALGROUPINC
+Signing party: (hereinafter "You" or by reference "Franchisee", or "Your")
+
+**Clause text:**
+AIRSOPURE or its designated agents shall have the right at all reasonable times to examine and copy, at its expense, all books, records, receipts and tax returns of Yours related to the Franchise and, at its option, to have an independent audit made, and thereupon be allowed to search Your computer accounting files.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause grants the counterparty (AIRSOPURE) unilateral discretion to trigger an independent audit and access computer files without requiring a specific trigger event (such as a suspected breach) or a reasonable belief of non-compliance, creating a significant risk of intrusive, disruptive, and costly audits at the signing party's expense.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause grants broad audit rights to the counterparty, including the ability to examine and copy all books, records, receipts, and tax returns, and to search computer accounting files. While the 'at all reasonable times' and 'at its expense' provisions offer some protection, the scope of information accessible and the ability to search computer files is extensive, creating a potential burden and privacy concern for the signing party. It's one-sided in favor of the drafter but manageable with proper internal controls.
+
+---
+
+## Row 5476  [23/100]
+Clause type:   Audit Rights
+Document:      SITE DEVELOPMENT AND HOSTING AGREEMENT (
+Drafter:       AMERICASSHOPPINGMALLINC
+Signing party: Hanover Direct, Inc.
+
+**Clause text:**
+HDI's General Manager (as hereinafter defined), may upon no less than thirty (30) days prior written notice to the Company, have the right to inspect the records of the Company's General Manager reasonably related to the calculation of such payments during the Company's normal business hours.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The audit right is unilateral, granting only the counterparty (HDI) the authority to inspect records while the signing party (Company) has no reciprocal right to audit HDI. Additionally, the scope is limited to records 'reasonably related to the calculation of such payments,' which may be ambiguous and restrict the signing party's ability to verify other compliance areas.
+
+Gemini → **LOW** (conf 1.0)
+  The clause grants the counterparty (HDI) audit rights, which is a common and reasonable provision. The scope is limited to records 'reasonably related to the calculation of such payments,' which is a standard and appropriate limitation. The requirement of 'no less than thirty (30) days prior written notice' and inspection during 'normal business hours' provides adequate protection for the signing party (the Company) to prepare and minimize disruption.
+
+---
+
+## Row 5477  [24/100]
+Clause type:   Audit Rights
+Document:      Network Build and Maintenance Agreement
+Drafter:       AtnInternationalInc
+Signing party: Vendor
+
+**Clause text:**
+The scope of AT&T Audits shall also include:
+
+(i) practices and procedures used in performing the Services;
+
+(ii) systems, communications and information technology used in performing the Services;
+
+(iii) general controls and security practices and procedures;
+
+(iv) supporting information and calculations regarding invoices and compliance with service requirements;
+
+(v) quality initiatives and quality assurance; and
+
+(vi) compliance with the terms of this Agreement.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (AT&T) broad audit rights covering internal practices, IT systems, and security controls, which may expose the signing party to operational disruption and confidentiality risks without explicit limitations on frequency, notice, or scope of the audit.
+
+Gemini → **HIGH** (conf 0.9)
+  This clause grants AT&T an extremely broad audit scope, covering not just financial records but also operational practices, systems, technology, security, and quality initiatives. This level of access is highly intrusive and goes beyond typical financial compliance audits, potentially exposing proprietary operational details and creating a significant burden for the signing party to manage and respond to such extensive audits.
+
+---
+
+## Row 5478  [25/100]
+Clause type:   Audit Rights
+Document:      GLOBAL MAINTENANCE AGREEMENT (
+Drafter:       AzulSa
+Signing party: AVIONS DE TRANSPORT REGIONAL
+
+**Clause text:**
+The Company shall provide full access to enable the Repairer to conduct periodic inventory inspection of the Advanced Pool Stock.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the counterparty (Repairer) broad, unilateral rights to conduct 'periodic' inspections with 'full access' to the signing party's (Company) stock without specifying notice periods, frequency limits, or scope restrictions, creating potential operational disruption and privacy risks.
+
+Gemini → **HIGH** (conf 0.9)
+  This clause grants the counterparty (Repairer) broad 'full access' for 'periodic inventory inspection' of the signing party's (Company's) 'Advanced Pool Stock' without specifying limitations on frequency, scope, notice requirements, or confidentiality protections. This creates significant operational and proprietary information risk for the Company.
+
+---
+
+## Row 5479  [26/100]
+Clause type:   Audit Rights
+Document:      MASTER SUPPLY AGREEMENT
+Drafter:       BELLRINGBRANDS,INC
+Signing party: Premier Nutrition Company, LLC
+
+**Clause text:**
+in a way that is inconsistent with the Specifications, in which case an audit may be performed at any time during the Term.
+
+Qwen → **HIGH** (conf 0.9)
+  The clause grants the counterparty unrestricted, immediate access to audit the signing party's books or records without any notice period, frequency limits, or scope constraints, creating significant operational disruption and privacy risks for the signing party.
+
+Gemini → **MEDIUM** (conf 0.0)
+  The clause allows for audits 'at any time during the Term' without specifying notice periods, frequency limits, or reasonable cause beyond an 'inconsistency with the Specifications.' This could lead to disruptive and frequent audits for the signing party, creating an operational burden. While the trigger is specific, the lack of limitations on the audit itself makes it moderately risky.
+
+---
+
+## Row 5480  [27/100]
+Clause type:   Audit Rights
+Document:      COLLABORATION AGREEMENT
+Drafter:       BERKELEYLIGHTS,INC
+Signing party: BLI
+
+**Clause text:**
+Each Party shall have the right, during normal business hours and upon reasonable notice, to inspect all such records of the other Party, its Affiliates or Permitted Subcontractors.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause extends audit rights to 'Affiliates or Permitted Subcontractors' without defining the scope of records or limiting the audit to specific compliance areas, creating a broad and potentially burdensome obligation for the signing party to expose third-party data.
+
+Gemini → **LOW** (conf 1.0)
+  This clause grants mutual audit rights, meaning the signing party also has the right to audit the counterparty. The conditions ('normal business hours' and 'reasonable notice') are standard and protect both parties from undue disruption.
+
+---
+
+## Row 5481  [28/100]
+Clause type:   Audit Rights
+Document:      COLLABORATION AGREEMENT
+Drafter:       CERES,INC
+Signing party: INSTITUTE OF GRASSLAND AND ENVIRONMENTAL RESEARCH
+
+**Clause text:**
+CERES shall allow an independent auditor, reasonably acceptable to CERES, appointed by and paid for by IGER to inspect the records of  CERES and any AFFILIATED COMPANY pertaining to the LICENSED VARIETY for the exclusive purpose of verifying the accuracy of the  reports provided.
+
+Qwen → **MEDIUM** (conf 0.0)
+  The clause grants the counterparty (IGER) the unilateral right to select and fund the independent auditor, which creates a potential for excessive audit costs and the selection of an auditor with a conflict of interest or aggressive stance, lacking a standard requirement for mutual agreement on the auditor's identity or a cap on costs.
+
+Gemini → **LOW** (conf 1.0)
+  The clause grants audit rights to the counterparty (IGER), which is standard for verifying reports. However, it includes several protections for the signing party (CERES): the auditor must be 'reasonably acceptable to CERES', the audit is paid for by IGER, and the scope is limited to 'records...pertaining to the LICENSED VARIETY' and 'for the exclusive purpose of verifying the accuracy of the reports provided'. These limitations make the clause balanced and mitigate potential burdens or overreach, making it a low risk.
+
+---
+
+## Row 5482  [29/100]
+Clause type:   Audit Rights
+Document:      License and Hosting Agreement
+Drafter:       CORIOINC
+Signing party: CORIO
+
+**Clause text:**
+In addition, if         any such inspection reveals an underpayment of more than five percent         (5%) for the period under audit, Corio shall reimburse Commerce One for         the reasonable cost of the examination.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a financial penalty on the signing party (Corio) to pay the counterparty's audit costs if an underpayment exceeds 5%, which is a one-sided cost-shifting mechanism that creates liability exposure for the signing party even if the audit reveals no significant error.
+
+Gemini → **LOW** (conf 0.9)
+  This clause only requires the signing party (Corio) to reimburse the counterparty (Commerce One) for audit costs if a significant underpayment (more than 5%) is found. This is a standard and reasonable provision that incentivizes accurate reporting and only shifts costs when a material discrepancy is discovered, which is a common market practice.
+
+---
+
+## Row 5483  [30/100]
+Clause type:   Audit Rights
+Document:      Software License, Customization and Maintenance Agreement
+Drafter:       CardlyticsInc
+Signing party: Bank of America, N.A.
+
+**Clause text:**
+Upon request from Bank of America, Supplier shall provide to Bank of America (or a Representative designated by Bank of America) access to such Records for the purpose of auditing such Records during normal business hours.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the counterparty (Bank of America) unilateral discretion to trigger an audit 'upon request' without requiring prior written notice, a specific reason, or a defined frequency limit, which imposes an administrative burden and potential operational disruption on the signing party (Supplier).
+
+Gemini → **HIGH** (conf 0.9)
+  This clause grants Bank of America broad audit rights 'upon request' without specifying any triggers, frequency limits, or notice periods. It also allows Bank of America to designate any 'Representative,' which could include competitors or third parties without clear confidentiality obligations. This creates significant operational burden and potential for disruption for the Supplier, as well as exposure of sensitive records without adequate protection.
+
+---
+
+## Row 5484  [31/100]
+Clause type:   Audit Rights
+Document:      Development Agreement
+Drafter:       CnsPharmaceuticalsInc
+Signing party: CNS and WPD are sometimes referred to herein individually as a "Party" and collectively as the "Parties."
+
+**Clause text:**
+WPD shall, and shall cause its respective affiliates, to permit CNS and its respective designated representatives, at reasonable times and upon reasonable prior notice to such parties, to review the books and records of WPD and any of its affiliates and to discuss the affairs, finances and condition of such party and any of its affiliates with the officers of such entities and any of their affiliates in relation to their compliance with this section, as applicable.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes an audit obligation on WPD that extends to its affiliates, which may be outside WPD's direct control or knowledge, creating potential operational friction and liability exposure for third-party entities not directly party to the agreement.
+
+Gemini → **LOW** (conf 1.0)
+  The clause grants the counterparty (CNS) audit rights, which is standard for ensuring compliance. The key protections for the signing party (WPD) are the requirements for 'reasonable times' and 'reasonable prior notice', which mitigate the burden and potential disruption of an audit. This is a balanced approach to audit rights.
+
+---
+
+## Row 5485  [32/100]
+Clause type:   Audit Rights
+Document:      AMENDMENT NO. 2 TO MANUFACTURING AND SUPPLY AGREEMENT
+Drafter:       Columbia Laboratories, (Bermuda) Ltd. - AMEND NO. 2 TO MANUFACTURING AND SUPPLY AGREEMENT
+Signing party: Fleet Laboratories Limited
+
+**Clause text:**
+Columbia or any other person appointed by Columbia shall have the right, in connection with any such audit, to inspect and obtain copies of any records or other documents and materials associated with or related to the manufacture of the Product.
+
+Qwen → **HIGH** (conf 0.9)
+  The clause grants the drafter (Columbia) unilateral authority to appoint third parties to conduct audits without requiring prior notice, limiting the scope to specific documents, or imposing confidentiality obligations on those third parties. This creates significant exposure to operational disruption and potential data leakage, as the signing party has no control over who accesses their records or the conditions under which the audit occurs.
+
+Gemini → **MEDIUM** (conf 0.9)
+  This clause grants broad audit rights to Columbia, including the ability for 'any other person appointed by Columbia' to inspect and obtain copies of records. While audit rights are common, the lack of limitations on frequency, notice period, scope (beyond 'associated with or related to the manufacture of the Product'), or confidentiality obligations for the auditors makes it somewhat one-sided. It could lead to operational disruption and potential exposure of sensitive information without adequate safeguards for the signing party.
+
+---
+
+## Row 5486  [33/100]
+Clause type:   Audit Rights
+Document:      Online Hosting Agreement
+Drafter:       DYNTEKINC
+Signing party: Tadeo
+
+**Clause text:**
+Diplomat will be required to notify Tadeo at least five business days before the date of planned examination.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause imposes a unilateral five-business-day advance notice requirement on the auditing party (Tadeo), which creates a potential window for the counterparty to alter records or delay access, lacking standard protections like audit frequency limits, cost allocation, or scope definitions.
+
+Gemini → **LOW** (conf 0.9)
+  This clause, from the perspective of Tadeo (the party being audited), provides a reasonable notice period for an audit. Five business days is a standard and manageable timeframe, allowing Tadeo to prepare without undue burden. It does not introduce any unusual or onerous obligations beyond typical audit preparation.
+
+---
+
+## Row 5487  [34/100]
+Clause type:   Audit Rights
+Document:      NETWORK AFFILIATE AGREEMENT
+Drafter:       DigitalCinemaDestinationsCorp
+Signing party: Digital Cinema Destinations Corp.
+
+**Clause text:**
+Any audit with respect to  amounts payable by either party to the other party under this Agreement shall be limited to an audit with respect to amounts to be paid in the  current calendar year and immediately preceding calendar year only.
+
+Qwen → **LOW** (conf 0.95)
+  The clause restricts the audit scope to a standard two-year lookback period, which is a common and balanced market practice that prevents indefinite liability exposure for the signing party.
+
+Gemini → **MEDIUM** (conf 0.9)
+  This clause limits the audit scope to the current and immediately preceding calendar year. While it provides some certainty, it restricts the signing party's ability to audit for potential underpayments or overpayments that occurred more than one year prior, which could be a disadvantage if discrepancies are discovered later.
+
+---
+
+## Row 5488  [35/100]
+Clause type:   Audit Rights
+Document:      CO-PROMOTION AGREEMENT
+Drafter:       DovaPharmaceuticalsInc
+Signing party: Valeant
+
+**Clause text:**
+Dova shall have the right, at its own expense, during normal business hours and upon reasonable prior notice, through a certified public accounting firm or other auditor selected by Dova and reasonably acceptable to Valeant and upon execution of a confidentiality agreement reasonably satisfactory to Valeant in form and substance, to inspect and audit the applicable records and books maintained by Valeant relating to the Valeant Activities for purposes of verifying Valeant's compliance with the terms of this Agreement, provided that (i) such examination shall not take place more often than once per every twelve (12) months during the Term and once during the one (1) year period following the end of the Term, and (ii) such examination shall not cover a period of time that has previously been audited; provided that Dova shall have the right to conduct additional "for cause" audits to the extent necessary to address significant compliance problems relating to Valeant's obligations hereunder or in response to any inquiry, inspection, investigation or other requirements of a Government Authority in the Territory relating to the Valeant Activities.
+
+Qwen → **LOW** (conf 0.95)
+  The clause imposes standard frequency limits (annual) and includes a post-term window, while explicitly requiring the auditor to be 'reasonably acceptable' to the signing party and subject to a confidentiality agreement, ensuring the audit rights are balanced and not overly burdensome.
+
+Gemini → **MEDIUM** (conf 0.9)
+  While the clause sets reasonable limits on routine audits (once every 12 months, not covering previously audited periods), the 'for cause' audit provision is broad. It allows Dova to conduct additional audits for 'significant compliance problems' or in response to 'any inquiry, inspection, investigation or other requirements of a Government Authority.' This broad trigger for 'for cause' audits could lead to frequent and potentially burdensome audits for Valeant, even if the initial issue is minor or speculative, increasing operational disruption and cost beyond the standard audit frequency.
+
+---
+
+## Row 5489  [36/100]
+Clause type:   Audit Rights
+Document:      DISTRIBUTOR AGREEMENT
+Drafter:       EUROPEANMICROHOLDINGSINC
+Signing party: Distributor
+
+**Clause text:**
+Upon WGT's request, Distributor will      provide access to such records for examination, reproduction, and audit by      WGT or its representatives. Any such audit will be conducted at such times      and in such a manner so as not to unreasonably interfere with Distributor's      normal operations.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the counterparty (WGT) unilateral discretion to initiate audits 'upon request' without requiring a specific trigger such as reasonable suspicion of non-compliance or a defined frequency limit, which creates an operational burden and potential for harassment for the signing party (Distributor).
+
+Gemini → **LOW** (conf 1.0)
+  The clause grants audit rights to WGT, which is standard for a counterparty seeking to ensure compliance. However, it includes a crucial protection for the Distributor by stipulating that audits must not 'unreasonably interfere' with normal operations, balancing the audit right with the Distributor's business continuity.
+
+---
+
+## Row 5490  [37/100]
+Clause type:   Audit Rights
+Document:      SERVICES AGREEMENT
+Drafter:       FEDERATEDGOVERNMENTINCOMESECURITIESINC
+Signing party: FEDERATED INVESTMENT MANAGEMENT COMPANY
+
+**Clause text:**
+Upon reasonable request, copies of any such books and records shall be provided promptly by FASC to the Account or the Account's owners or authorized representatives.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the signing party the right to receive records but lacks critical procedural safeguards typically found in audit clauses, such as a requirement for reasonable notice, a defined scope of the audit, confidentiality obligations, or a mechanism to resolve disputes regarding the records. The term 'promptly' is also vague and could lead to operational friction without a clear timeline.
+
+Gemini → **LOW** (conf 0.9)
+  This clause grants the signing party (the Account) the right to receive copies of books and records from FASC upon reasonable request, which is a favorable audit right. It allows the signing party to review relevant documentation without needing to conduct an on-site audit, which is less intrusive and more efficient.
+
+---
+
+## Row 5491  [38/100]
+Clause type:   Audit Rights
+Document:      INTELLECTUAL PROPERTY AGREEMENT
+Drafter:       FIDELITYNATIONALINFORMATIONSERVICES,INC
+Signing party: ("Certegy")
+
+**Clause text:**
+access is reasonably required by the other, including without limitation, for audit, accounting and litigation purposes.
+
+Qwen → **HIGH** (conf 0.9)
+  The clause grants the counterparty a unilateral right to access records for 'audit, accounting and litigation purposes' based solely on a vague 'reasonably required' standard. It lacks critical protections typically found in balanced audit clauses, such as advance written notice, specific scope limitations, confidentiality obligations, cost allocation (e.g., counterparty pays unless material breach found), and a requirement to use a third-party auditor, exposing the signing party to intrusive, uncontrolled, and potentially costly investigations.
+
+Gemini → **MEDIUM** (conf 0.8)
+  This clause grants broad access rights to the counterparty for various purposes, including audit, accounting, and litigation, whenever 'reasonably required'. While 'reasonably required' offers some limitation, the 'without limitation' phrase and the specific examples make it a broad grant of access that could be intrusive for the signing party. It's not explicitly mutual, and the scope of 'accounting and litigation purposes' could extend beyond typical audit rights, creating potential for significant operational disruption or exposure of sensitive information.
+
+---
+
+## Row 5492  [39/100]
+Clause type:   Audit Rights
+Document:      Collaboration Agreement
+Drafter:       FOUNDATIONMEDICINE,INC
+Signing party: Roche Basel
+
+**Clause text:**
+At the expense of the auditing Party, the auditing Party shall have the right to engage an internationally recognized, independent public accountant reasonably accept able to the other Party to perform, on behalf of such Party an audit of such books and records of the audited Party and its Affiliates, its licensees and Sublicensees, that are deemed necessary for the period or periods requested by the auditing Party and the correctness of any financial report or payments made under this Agreement, including with respect to benefits and terms complying with the most favored
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause extends audit rights to the audited party's affiliates, licensees, and sublicensees, which significantly broadens the scope of potential disruption and data exposure beyond the immediate contracting entity, creating a one-sided burden on the signing party.
+
+Gemini → **LOW** (conf 0.9)
+  This clause grants the signing party (as the auditing party) broad audit rights, allowing them to engage an independent accountant at their own expense to review necessary books and records of the counterparty and its affiliates, licensees, and sublicensees. The scope covers financial reports and payments, including 'most favored' terms, which is favorable for ensuring compliance and verifying financial obligations. The requirement for the accountant to be 'reasonably acceptable' to the audited party is a standard and reasonable protection for the audited party, but does not diminish the overall benefit to the signing party.
+
+---
+
+## Row 5493  [40/100]
+Clause type:   Audit Rights
+Document:      STRATEGIC ALLIANCE AGREEMENT
+Drafter:       FTENETWORKS,INC
+Signing party: FTE Networks, Inc.
+
+**Clause text:**
+As set forth in the Exhibit, EDGE shall have the opportunity to review and inspect all elements of the Work in a reasonable manner.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (EDGE) a unilateral right to inspect 'all elements' of the work, which is broader than a standard financial audit and could impose operational burdens or expose proprietary details without explicit limitations on scope, frequency, or confidentiality safeguards.
+
+Gemini → **LOW** (conf 0.9)
+  The clause grants audit rights to the counterparty (EDGE) but limits the scope to 'elements of the Work' and requires the review to be conducted 'in a reasonable manner.' This is a standard and reasonable provision for a party receiving 'Work' to ensure quality and compliance, and it does not impose an overly broad or burdensome audit obligation on the signing party.
+
+---
+
+## Row 5494  [41/100]
+Clause type:   Audit Rights
+Document:      SUPPLY AGREEMENT
+Drafter:       FUSIONPHARMACEUTICALSINC
+Signing party: CPDC
+
+**Clause text:**
+FUSION shall have the right within [***] of receipt of such notice to request that CPDC maintain such records in an off-site storage facility for such longer periods as FUSION requests, provided that FUSION pays all costs associated with such off-site storage.
+
+Qwen → **LOW** (conf 0.0)
+  The clause imposes a financial burden on the requesting party (FUSION) rather than the signing party (CPDC), ensuring that the signing party incurs no additional costs for the requested service. This is a balanced and favorable term for the signing party.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause allows the counterparty (FUSION) to unilaterally request that the signing party (CPDC) maintain records for 'longer periods as FUSION requests,' which could be indefinite. While FUSION pays for the off-site storage, the signing party still bears the operational burden and potential liability of maintaining these records for an unspecified, potentially very long, duration at the counterparty's sole discretion. This is more burdensome than a standard record retention clause with defined periods.
+
+---
+
+## Row 5495  [42/100]
+Clause type:   Audit Rights
+Document:      JOINT DEVELOPMENT AGREEMENT
+Drafter:       FuelcellEnergyInc
+Signing party: ExxonMobil Research and Engineering Company
+
+**Clause text:**
+FCE will cause any subcontractors to preserve documentation and allow ExxonMobil to audit such books, records, and accounts of subcontractors by way of auditing FCE.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (ExxonMobil) the right to audit the signing party's (FCE) records specifically to access subcontractor data, creating a potential compliance burden and operational friction if FCE cannot compel its subcontractors to cooperate or if the audit scope is not clearly limited to FCE's own records.
+
+Gemini → **LOW** (conf 0.9)
+  The clause grants audit rights to ExxonMobil over subcontractors' records, but explicitly states this will occur 'by way of auditing FCE'. This means FCE (the signing party) maintains control over the audit process and is the primary point of contact, which is a standard and manageable approach for a party responsible for its subcontractors.
+
+---
+
+## Row 5496  [43/100]
+Clause type:   Audit Rights
+Document:      Distributorship agreement
+Drafter:       FuseMedicalInc
+Signing party: Signature Orthopaedics Pty Ltd
+
+**Clause text:**
+allow the Supplier, on reasonable notice, access to its accounts and records relating to the sale or distribution of the Products for inspection but not more than once in each year.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the Supplier (drafter) unilateral access to the signing party's confidential financial records, creating a potential burden and privacy risk; while the 'reasonable notice' and 'once in each year' limits mitigate the frequency, the obligation to disclose internal accounts remains a one-sided exposure for the signing party.
+
+Gemini → **HIGH** (conf 0.9)
+  This clause grants the Supplier (the drafter's counterparty) audit rights over the signing party's accounts and records. From the signing party's perspective, this is a significant risk as it allows the other party to inspect their sensitive financial and sales data. The clause does not grant reciprocal audit rights to the signing party, making it one-sided. While 'reasonable notice' and 'not more than once in each year' offer some minor limitations, the fundamental right to audit is given to the Supplier, not the signing party, creating an imbalance and potential for intrusive oversight.
+
+---
+
+## Row 5497  [44/100]
+Clause type:   Audit Rights
+Document:      Promotion Agreement
+Drafter:       GOCALLINC
+Signing party: Go Call
+
+**Clause text:**
+Such examination shall                be made at the regular place of business of PageMaster                Corporation where such books and records are maintained during                normal business hours and shall be conducted at Go Call's expense                by a certified public accountant or other Go Call executive so                designated by Go Call.
+
+Qwen → **MEDIUM** (conf 0.0)
+  The clause imposes the financial burden of the audit on the signing party (Go Call), which is a one-sided cost allocation that deviates from standard balanced practices where the auditing party typically bears their own costs unless a material discrepancy is found.
+
+Gemini → **LOW** (conf 1.0)
+  The clause specifies that audits will occur at the counterparty's regular place of business during normal hours and at the auditing party's expense. This is standard and reasonable, minimizing disruption and cost for the signing party (PageMaster Corporation).
+
+---
+
+## Row 5498  [45/100]
+Clause type:   Audit Rights
+Document:      Sales, Marketing, Distribution, and Supply Agreement
+Drafter:       HEMISPHERX - Sales, Marketing, Distribution, and Supply Agreement
+Signing party: Hemispherx Biopharma, Inc.
+
+**Clause text:**
+Such routine and general oversight review is to be requested at least twenty (20) business days in advance, limited to two (2) persons, completed within one (1) to two (2) business days and shall be offered to HEMISPHERX one (1) time each calendar year.
+
+Qwen → **MEDIUM** (conf 0.0)
+  The clause limits the signing party's audit rights to a single occurrence per year, which may be insufficient to detect compliance issues that arise later in the calendar year or require follow-up, creating a one-sided constraint compared to standard market practice which often allows for reasonable notice without a strict annual cap or permits additional audits for cause.
+
+Gemini → **LOW** (conf 0.9)
+  From the perspective of the party being audited (HEMISPHERX), the clause sets clear and reasonable limitations on the audit process, including the number of auditors, duration, and frequency. This predictability and constraint on the auditing party reduces the operational burden and potential disruption for HEMISPHERX, making it a low risk.
+
+---
+
+## Row 5499  [46/100]
+Clause type:   Audit Rights
+Document:      Strategic Alliance Agreement
+Drafter:       ICORECONNECTINC
+Signing party: USA MCO
+
+**Clause text:**
+IMedicor will make its records available for audit purposes at any time by USA MCO during regular business hours at the headquarters of iMedicor.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The phrase 'at any time' grants the counterparty (USA MCO) unrestricted access to audit without requiring prior notice, a specific frequency limit, or a defined scope, which creates operational disruption risk and potential confidentiality exposure for the signing party (iMedicor).
+
+Gemini → **LOW** (conf 0.9)
+  This clause grants the counterparty (USA MCO) audit rights, which is a standard provision for ensuring compliance. The audit is limited to regular business hours and the headquarters, which are reasonable restrictions on the signing party (iMedicor). This is a common and generally balanced audit right from the perspective of the party being audited.
+
+---
+
+## Row 5500  [47/100]
+Clause type:   Audit Rights
+Document:      Joint Venture Agreement
+Drafter:       IGENEBIOTECHNOLOGYINC
+Signing party: Igene Biotechnology, Inc.
+
+**Clause text:**
+From time to time, each Party shall have the right to have its own internal or external auditors review the books and records of the Joint Venture.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants broad audit rights over the Joint Venture's records without specifying limitations on notice periods, scope, frequency, or cost allocation, which could lead to operational disruption or unexpected expenses for the signing party.
+
+Gemini → **LOW** (conf 1.0)
+  This clause grants reciprocal audit rights to both parties, allowing the signing party to audit the Joint Venture's records. This is a balanced and standard provision for a joint venture agreement, providing transparency and ensuring compliance for both sides.
+
+---
+
+## Row 5501  [48/100]
+Clause type:   Audit Rights
+Document:      JOINT VENTURE AGREEMENT
+Drafter:       IMPCOTECHNOLOGIESINC
+Signing party: 'IMPCO', which terms shall unless repugnant to the subject or context mean and include its successors and permitted assigns
+
+**Clause text:**
+During reasonable business hours IMPCO and MIL/MINDA will have the right to inspect, and make copies of any and all of the JVC 's business records, including but not limited to financial records, books, accounts and reports. In exercising such right IMPCO and MIL/MINDA will be reasonable.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (IMPCO and MIL/MINDA) broad access to 'any and all' records without specifying a defined scope, purpose, or frequency limit, creating a potential burden on the signing party (JVC) despite the general 'reasonable' qualifier.
+
+Gemini → **HIGH** (conf 0.9)
+  This clause grants broad audit rights to the counterparty, allowing them to inspect and copy 'any and all' business records, including financial records, without specifying a clear purpose related to contract compliance or limiting the scope to relevant records. While 'reasonable business hours' and 'reasonable' exercise of the right are mentioned, the scope of 'any and all' records is highly intrusive and could expose sensitive, non-relevant information of the JVC.
+
+---
+
+## Row 5502  [49/100]
+Clause type:   Audit Rights
+Document:      COLLABORATION AGREEMENT ("
+Drafter:       INNOVIVA,INC
+Signing party: GLAXO GROUP LIMITED
+
+**Clause text:**
+Agreement; provided, however that such audits may not be performed by Theravance more than once per Calendar Year.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a specific frequency cap (once per year) on the audit right, which may be insufficient for the signing party to detect and remediate compliance issues that could arise or persist between annual intervals, creating a potential gap in oversight.
+
+Gemini → **LOW** (conf 0.9)
+  The clause limits the frequency of audits by the counterparty (Theravance) to once per calendar year, which is a reasonable and common restriction, preventing excessive disruption to the signing party's operations. This is a favorable term for the signing party.
+
+---
+
+## Row 5503  [50/100]
+Clause type:   Audit Rights
+Document:      Sponsorship Agreement
+Drafter:       IVILLAGEINC
+Signing party: FMM
+
+**Clause text:**
+All traffic reports shall be audited by the third party traffic auditor selected pursuant to Section 2.C.(ii).
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause mandates an audit by a third party selected by the counterparty (implied by 'selected pursuant to Section 2.C.(ii)' which typically grants selection rights to the reporting party), which creates a risk of bias or lack of independence in the audit process for the signing party.
+
+Gemini → **LOW** (conf 0.9)
+  This clause mandates an audit of traffic reports by a third-party auditor. From the perspective of the signing party (the counterparty to the drafter), this is a neutral or potentially beneficial provision as it ensures transparency and accuracy of reporting, which is often in the interest of both parties. The audit is performed by a third party, suggesting impartiality, and the selection process is referenced, implying a defined and agreed-upon method. This does not impose an undue burden or risk on the signing party.
+
+---
+
+## Row 5504  [51/100]
+Clause type:   Audit Rights
+Document:      CO-BRANDING AGREEMENT
+Drafter:       ImpresseCorp
+Signing party: VerticalNet, Inc.
+
+**Clause text:**
+During the term of this Agreement and for one year thereafter, VerticalNet shall have the right to appoint a certified public accountant to audit Impresse's financial records relating to such payment to verify the accuracy of Impresse's financial records in order to verify the amount of the payments owed and/or paid hereunder, but no more frequently than once per year.
+
+Qwen → **LOW** (conf 1.0)
+  The audit right is limited to a standard frequency of once per year and is restricted to verifying payment accuracy, which is a common and balanced commercial provision that does not impose undue burden or open-ended liability on the signing party.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause allows the counterparty to audit the signing party's financial records for one year post-termination. While the 'once per year' frequency limit is reasonable, the post-termination audit right itself creates an ongoing obligation and potential for dispute after the contract has ended, which is a moderate burden on the signing party.
+
+---
+
+## Row 5505  [52/100]
+Clause type:   Audit Rights
+Document:      EXCLUSIVE DISTRIBUTOR AGREEMENT
+Drafter:       InnerscopeHearingTechnologiesInc
+Signing party: Distributor
+
+**Clause text:**
+All such information shall be available for inspection by Erchonia, upon reasonable notice.
+
+Qwen → **HIGH** (conf 0.9)
+  The clause grants the counterparty (Erchonia) an unrestricted right to inspect 'all such information' with only a vague 'reasonable notice' requirement, lacking critical protections such as limiting the scope to specific records, requiring confidentiality, or defining 'reasonable notice' to prevent operational disruption.
+
+Gemini → **MEDIUM** (conf 0.8)
+  The clause grants Erchonia (the counterparty) a broad right to inspect 'all such information' without specifying what 'such information' refers to, which could lead to an overly broad interpretation. While 'upon reasonable notice' offers some protection, the scope of information subject to inspection is undefined, creating potential for intrusive audits. From the signing party's perspective, this is one-sided as it only grants audit rights to Erchonia and the scope is vague.
+
+---
+
+## Row 5506  [53/100]
+Clause type:   Audit Rights
+Document:      CO-BRANDING AGREEMENT
+Drafter:       InvendaCorp
+Signing party: At Home Corporation ("Excite@Home" or "Excite")
+
+**Clause text:**
+Once every 12 months, the         party receiving payment and/or User Data records or its designee may         inspect such records to verify for accuracy.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (the party receiving payment) the unilateral right to audit the signing party's records, but fails to specify critical protections such as notice periods, scope limitations, or confidentiality obligations, creating potential operational disruption and data exposure risks for the signing party.
+
+Gemini → **HIGH** (conf 0.9)
+  This clause grants audit rights exclusively to the counterparty (the party receiving payment and/or User Data), allowing them to inspect the signing party's records. It does not grant reciprocal audit rights to the signing party, making it one-sided and potentially burdensome as the signing party is subject to audit without the ability to audit the counterparty.
+
+---
+
+## Row 5507  [54/100]
+Clause type:   Audit Rights
+Document:      STRATEGIC ALLIANCE AGREEMENT
+Drafter:       KALLOINC
+Signing party: Petro data Management Services Limited.
+
+**Clause text:**
+Kallo shall permit Agent or its  designated Agent(s) to inspect Kallo's books upon Agent's request at Agent's expense during normal business hours  of Kallo.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the counterparty (Agent) broad, unilateral discretion to request audits 'upon Agent's request' without requiring a specific trigger such as reasonable suspicion of non-compliance or a defined scope, creating an operational burden and potential for harassment for the signing party (Kallo).
+
+Gemini → **LOW** (conf 0.9)
+  The clause grants audit rights to the Agent, which is standard for this type of clause. Crucially, the audit is at the Agent's expense and limited to normal business hours, minimizing disruption and cost for Kallo (the signing party). This is a balanced and common market practice.
+
+---
+
+## Row 5508  [55/100]
+Clause type:   Audit Rights
+Document:      PROMOTION AGREEMENT
+Drafter:       KINGPHARMACEUTICALSINC
+Signing party: Depomed, Inc.
+
+**Clause text:**
+The audit will be conducted during normal business hours, at convenient times.
+
+Qwen → **MEDIUM** (conf 0.0)
+  The phrase 'at convenient times' is ambiguous and typically interpreted by the counterparty (the audited party) to mean their convenience, which could allow them to delay or restrict the audit schedule, thereby undermining the signing party's right to timely verification of compliance.
+
+Gemini → **LOW** (conf 0.9)
+  This clause sets reasonable parameters for an audit, ensuring it occurs during normal business hours and at convenient times, which is standard and protects the signing party from undue disruption. It does not grant the counterparty overly broad or intrusive audit rights.
+
+---
+
+## Row 5509  [56/100]
+Clause type:   Audit Rights
+Document:      Distribution Agreement
+Drafter:       LOYALTYPOINTINC
+Signing party: Schoolpop
+
+**Clause text:**
+AEIS and/or their appointed representatives of AEIS or                   American Express Travel Related Services Inc. as solely                   determined by AEIS, shall be entitled to inspect and approve                   Seller's safekeeping facilities at any time during normal                   business hours.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause grants the counterparty (AEIS) unilateral discretion to appoint representatives without the signing party's consent, creating a significant risk of intrusive or unvetted audits. Additionally, the right to inspect 'at any time' lacks standard limitations such as reasonable notice or specific business hour constraints, exposing the signing party to operational disruption and privacy risks.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause grants broad inspection rights to AEIS, including the ability to inspect and approve 'safekeeping facilities' at any time during normal business hours, with AEIS solely determining its representatives. While limited to 'normal business hours,' the 'at any time' and 'solely determined by AEIS' aspects give the counterparty significant control over the timing and personnel of inspections, which could be disruptive or intrusive for the Seller. It is not a mutual right and is specific to 'safekeeping facilities' which may or may not cover all relevant audit areas.
+
+---
+
+## Row 5510  [57/100]
+Clause type:   Audit Rights
+Document:      CO-BRANDING AGREEMENT
+Drafter:       LeadersonlineInc
+Signing party: LeadersOnline
+
+**Clause text:**
+During the 12 month period following the payment of any amount due under this Article 6, VerticalNet or its representative shall have the right to audit LeadersOnline's financial and other pertinent records relating to such payment in order to verify the amount of the payments owed and/or paid.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the counterparty (VerticalNet) the unilateral right to audit the signing party's (LeadersOnline) records without specifying limitations on notice periods, scope of the audit, or cost allocation, which creates potential operational disruption and administrative burden for the signing party.
+
+Gemini → **LOW** (conf 1.0)
+  This clause grants the counterparty (VerticalNet) audit rights, which is standard practice when payments are based on the signing party's (LeadersOnline's) records. The scope is limited to verifying payments, and the timeframe is reasonable (12 months after payment). This is a common and generally accepted provision to ensure payment accuracy, posing low risk to the signing party.
+
+---
+
+## Row 5511  [58/100]
+Clause type:   Audit Rights
+Document:      TALENT ENDORSEMENT AGREEMENT
+Drafter:       LegacyEducationAllianceInc
+Signing party: CSA
+
+**Clause text:**
+CSA shall have the right to request an independent audit of the sales of the Product containing the Property which the Company agrees to assist within a reasonable period of time of such request.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (CSA) the unilateral right to initiate an audit, imposing an administrative burden and potential disruption on the signing party (Company). While the requirement to assist within a 'reasonable period of time' offers some protection, the lack of specific limitations on audit frequency, scope, or cost allocation creates a risk of excessive or burdensome requests.
+
+Gemini → **LOW** (conf 0.9)
+  This clause grants the counterparty (CSA) audit rights, which is standard for ensuring compliance, especially regarding sales-based payments. The audit is independent, which adds a layer of fairness, and the signing party's obligation to assist is reasonable. This is a common and generally acceptable provision from the perspective of the party being audited.
+
+---
+
+## Row 5512  [59/100]
+Clause type:   Audit Rights
+Document:      BUSINESS DEVELOPMENT AGREEMENT
+Drafter:       LiquidmetalTechnologiesInc
+Signing party: LIQUIDMETAL TECHNOLOGIES, INC.
+
+**Clause text:**
+Upon reasonable prior notice to Eutectix and at Liquidmetal's expense, no more than once per year, during the Term of this Agreement and for one (1) year following the expiration or termination of this Agreement, Liquidmetal or its designee shall have the right from time to time to confirm and validate: (a) that Eutectix has complied with the pricing provisions of this Agreement; (b) Eutectix's financial condition, successorship planning, and ability to continue operations; (c) that Eutectix's performance is consistent with the Agreement; (d) that Eutectix has complied with Article 10 (Compliance) of this Agreement. Upon reasonable and prior notice to Eutectix, Eutectix will also provide Liquidmetal or its designee from time to time with reasonable access to Eutectix's facility and the facilities of its sub-suppliers and other subcontractors to permit Liquidmetal to inspect the production, handling, and storage of Liquidmetal Products and the Licensed Equipment and inventories of raw materials and components. Eutectix shall maintain an orderly storage bookkeeping so that the respective inventory of the Licensed Equipment, Liquidmetal Products and property of Liquidmetal can be immediately recognized; and (e) such confirmation and validation to be conducted with minimal disruption to Eutectix's business operations and all information disclosed during such exercise to be deemed to be Confidential Information.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the counterparty the right to audit the signing party's financial condition and succession planning, which is an unusually broad scope for a standard compliance audit and could expose sensitive strategic data beyond simple pricing or performance verification.
+
+Gemini → **LOW** (conf 1.0)
+  This clause grants the counterparty (Liquidmetal) broad audit rights, which is generally favorable to the signing party (Eutectix) as it allows Eutectix to ensure the counterparty's compliance and operational stability. The audit is limited to once per year, at Liquidmetal's expense, and requires reasonable prior notice, minimizing disruption to Eutectix. The information disclosed is also deemed Confidential Information, providing protection for Eutectix's sensitive data.
+
+---
+
+## Row 5513  [60/100]
+Clause type:   Audit Rights
+Document:      Collaboration Agreement
+Drafter:       MACROGENICSINC
+Signing party: Green Cross Corp.
+
+**Clause text:**
+This right to audit shall remain in effect throughout the life of this Agreement and for a period of three (3) years after the termination of this Agreement.
+
+Qwen → **LOW** (conf 0.95)
+  The clause establishes a standard and balanced audit window covering the entire contract duration plus a reasonable post-termination period, which is common market practice and does not impose unusual or excessive burdens on the signing party.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause extends the audit right for three years post-termination, which is a common but still somewhat burdensome term for the signing party, as it requires them to maintain records and potentially be subject to audits long after the contract has ended. While not excessively long, it's not entirely favorable to the signing party.
+
+---
+
+## Row 5514  [61/100]
+Clause type:   Audit Rights
+Document:      Outsourcing Base Agreement
+Drafter:       MANUFACTURERSSERVICESLTD
+Signing party: MSL
+
+**Clause text:**
+IBM shall have the right at all reasonable times to audit and             inspect the consigned Products.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (IBM) a unilateral right to audit and inspect without specifying notice periods, frequency limits, or scope restrictions beyond 'reasonable times', which could lead to operational disruption or privacy concerns for the signing party.
+
+Gemini → **LOW** (conf 0.9)
+  This clause grants IBM audit rights, which is standard for consigned goods to ensure proper handling and inventory. The 'at all reasonable times' limitation provides a degree of protection against undue disruption for the signing party.
+
+---
+
+## Row 5515  [62/100]
+Clause type:   Audit Rights
+Document:      Promotion Agreement
+Drafter:       MIDDLEBROOKPHARMACEUTICALS,INC
+Signing party: "Parties" means DD and MBRK collectively.
+
+**Clause text:**
+DD shall also make its records and other documents relevant to MBRK and  this Agreement available for audit or review by MBRK upon MBRK's request at a mutually agreed upon time.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (MBRK) the unilateral right to request an audit 'upon MBRK's request' without explicitly requiring a specific cause, reasonable notice period, or limiting the scope to 'relevant' documents in a way that prevents fishing expeditions, creating potential operational disruption and confidentiality risks for the signing party (DD).
+
+Gemini → **LOW** (conf 0.9)
+  The clause grants the signing party (MBRK) the right to audit the counterparty (DD), which is a favorable protection for the signing party. The requirement for a 'mutually agreed upon time' provides a reasonable balance, preventing the audit right from being overly disruptive to the counterparty while still ensuring the signing party's ability to conduct audits.
+
+---
+
+## Row 5516  [63/100]
+Clause type:   Audit Rights
+Document:      JOINT VENTURE AGREEMEN
+Drafter:       MJBIOTECH,INC
+Signing party: SIMPLY HERBAL
+
+**Clause text:**
+Not more than one (1) audit will be required by any or all of the Participants for any fiscal year.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a strict annual cap of a single audit, which may prevent the signing party from conducting necessary follow-up audits if significant discrepancies are found during the initial review, limiting their ability to fully verify compliance.
+
+Gemini → **LOW** (conf 1.0)
+  This clause limits the number of audits the signing party can be subjected to by all participants to one per fiscal year, which is a reasonable and protective cap from the perspective of the party being audited. It prevents excessive disruption from multiple audit requests.
+
+---
+
+## Row 5517  [64/100]
+Clause type:   Audit Rights
+Document:      Collaborative Development and Commercialization Agreement
+Drafter:       Microgenics Corporation - Collaborative Development and Commercialization Agreement
+Signing party: Microgenics Corporation
+
+**Clause text:**
+Achaogen shall have the right to arrange for its employee(s) and/or consultant(s) involved in the activities contemplated hereunder, during normal business hours and upon reasonable notice, to discuss the development activities and results contemplated under this Agreement in detail with the technical personnel and consultant(s) of Microgenics.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (Achaogen) a unilateral right to access the signing party's (Microgenics) technical personnel and discuss detailed development activities, which functions as a limited audit or inspection right. While it includes mitigating factors like 'normal business hours' and 'reasonable notice', it lacks explicit confidentiality safeguards, scope limitations on the discussion topics, or a requirement for the audit to be for a specific compliance purpose, creating a potential risk of operational disruption or unintended disclosure of proprietary information.
+
+Gemini → **LOW** (conf 0.9)
+  This clause grants Achaogen the right to discuss development activities and results with Microgenics' personnel, which is a form of information sharing rather than a full audit of books, records, or physical locations. It is limited to discussions and does not impose the more intrusive obligations typically associated with audit rights, such as access to financial records or physical inspections. The 'during normal business hours and upon reasonable notice' further mitigates any potential burden on Microgenics.
+
+---
+
+## Row 5518  [65/100]
+Clause type:   Audit Rights
+Document:      SPONSORSHIP AGREEMENT
+Drafter:       NETGROCERINC
+Signing party: Excite, Inc.
+
+**Clause text:**
+NetGrocer may, upon no less than thirty (30) days prior                   written notice to Excite cause an independent Certified                   Public Accountant to inspect the records of Excite reasonably
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (NetGrocer) the unilateral right to initiate an audit with only a 30-day notice, but the text is fragmentary and omits critical protections for the signing party (Excite) such as cost allocation, confidentiality safeguards, or a cap on the frequency of audits, creating potential for operational disruption and expense.
+
+Gemini → **LOW** (conf 1.0)
+  This clause grants the counterparty (NetGrocer) audit rights, which is a common and reasonable provision. The requirement for 30 days prior written notice and the use of an independent Certified Public Accountant are standard protections for the signing party (Excite), ensuring audits are not disruptive and are conducted professionally.
+
+---
+
+## Row 5519  [66/100]
+Clause type:   Audit Rights
+Document:      OUTSOURCING AGREEMENT
+Drafter:       NEXSTARFINANCEHOLDINGSINC
+Signing party: WYZZ, Inc.
+
+**Clause text:**
+At all times during the Term and for six (6) months following the termination of this Agreement, WYZZ shall have the right, upon prior written request to Nexstar, to review all of the books and records of Nexstar relating to the BCF Report and the Distributions.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the counterparty (WYZZ) an unfettered right to audit 'all' books and records without specifying limitations on scope, frequency, or the requirement that the audit be for cause or limited to specific discrepancies, creating potential operational burden and privacy exposure for the signing party (Nexstar).
+
+Gemini → **LOW** (conf 0.9)
+  The clause grants the counterparty (WYZZ) audit rights, which is standard for ensuring compliance, especially regarding financial reports and distributions. The audit right is limited to specific records ('relating to the BCF Report and the Distributions') and requires prior written request, which are reasonable limitations from the signing party's perspective.
+
+---
+
+## Row 5520  [67/100]
+Clause type:   Audit Rights
+Document:      MANUFACTURING OUTSOURCING AGREEMENT
+Drafter:       NICELTD
+Signing party: CONTRACTOR
+
+**Clause text:**
+NICE shall have the rights to conduct audits of the           Manufacturing Outsourcing Services and related facilities, systems,           and records as set forth in this Section 10 for the purpose of           auditing Contractor's compliance with the provisions of this           Agreement, all subject to the limitations below.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the drafter (NICE) unilateral access to the signing party's facilities, systems, and records without explicitly stating limitations on frequency, notice period, or scope in the provided text, creating potential operational disruption and confidentiality exposure.
+
+Gemini → **HIGH** (conf 0.9)
+  This clause grants the counterparty (NICE) broad audit rights over the signing party's (Contractor's) manufacturing services, facilities, systems, and records. While audits for compliance are common, the clause does not specify any limitations on the scope, frequency, notice period, or confidentiality obligations for NICE, which could lead to significant operational disruption and exposure of sensitive information for the Contractor. The phrase 'subject to the limitations below' is noted, but without those limitations, the current text presents a high risk.
+
+---
+
+## Row 5521  [68/100]
+Clause type:   Audit Rights
+Document:      STRATEGIC ALLIANCE AGREEMENT
+Drafter:       PHLVARIABLEINSURANCECOCT
+Signing party: PHOENIX LIFE INSURANCE COMPANY
+
+**Clause text:**
+To monitor for Licensee's adherence to such obligations, Licensor shall have the right to inspect such  materials from time to time through duly authorized representatives.
+
+Qwen → **HIGH** (conf 0.9)
+  The clause grants the Licensor (drafter) an unrestricted right to inspect the Licensee's (signing party) materials without defining scope, frequency limits, notice requirements, or confidentiality safeguards, creating significant operational disruption and privacy risks for the signing party.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause grants the Licensor an audit right to inspect materials, which is a common provision. However, it lacks specific limitations on the frequency, scope, or notice period for such inspections, which could lead to disruptive or overly broad audits for the Licensee. It also doesn't specify who bears the cost of such audits, which could fall to the Licensee.
+
+---
+
+## Row 5522  [69/100]
+Clause type:   Audit Rights
+Document:      STRATEGIC ALLIANCE AGREEMENT
+Drafter:       PHREESIA,INC
+Signing party: the "Company" or "Phreesia"
+
+**Clause text:**
+The auditing Party will furnish the audited Party with written notice at least [***] prior to the date that it desires to commence such audit.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause imposes a mandatory notice period requirement that creates a procedural hurdle for the signing party; the placeholder '[***]' indicates an undefined duration which could be set unreasonably high by the drafter, potentially delaying or preventing necessary audits.
+
+Gemini → **LOW** (conf 0.9)
+  This clause establishes a notice period for audits, which is a standard and reasonable protection for the audited party (the signing party in this context). While the specific duration is left blank, the requirement for prior written notice itself is a favorable term, allowing the signing party time to prepare for the audit.
+
+---
+
+## Row 5523  [70/100]
+Clause type:   Audit Rights
+Document:      Outsourcing Agreement
+Drafter:       ParatekPharmaceuticalsInc
+Signing party: Paratek Pharmaceuticals, Inc.
+
+**Clause text:**
+Supplier shall have the right to reasonably restrict such observation access to prevent undue interference with Supplier's business operations or compromise Supplier's confidentiality obligations to Third Parties; provided, however, Customer's observation access shall be absolute with regard to the Manufacturing Process for the Product.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the Supplier (drafter) the unilateral right to restrict the Customer's (signing party) audit access based on vague criteria like 'undue interference' or 'confidentiality obligations,' which could be used to deny necessary oversight. While the exception for the Manufacturing Process provides some protection, the broad restriction power creates an imbalance favoring the drafter.
+
+Gemini → **LOW** (conf 0.9)
+  While the Supplier can generally restrict observation access, the critical exception for the Customer's 'absolute' access to the manufacturing process for the product is highly favorable. This ensures the signing party has full visibility where it matters most, mitigating the risk of the general restriction.
+
+---
+
+## Row 5524  [71/100]
+Clause type:   Audit Rights
+Document:      ENDORSEMENT AGREEMENT
+Drafter:       PerformanceSportsBrandsInc
+Signing party: North
+
+**Clause text:**
+Company shall make said books available to North or North's representative on reasonable notice during  the Term of this Agreement and the two (2) year period immediately following thereafter.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the counterparty (North) the right to audit the signing party's (Company) books without specifying limitations on the scope of the audit, the types of records subject to review, or who bears the cost of the audit, creating potential for broad and costly intrusions.
+
+Gemini → **LOW** (conf 1.0)
+  This clause grants the counterparty (North) audit rights, which is standard for ensuring compliance. The requirement for 'reasonable notice' and the defined audit period (during the term and two years post-termination) are common and provide predictability for the signing party (Company), mitigating the risk of disruptive or indefinite audits.
+
+---
+
+## Row 5525  [72/100]
+Clause type:   Audit Rights
+Document:      FORM OF FRANCHISE AGREEMENT
+Drafter:       PfHospitalityGroupInc
+Signing party: Pizza Fusion Holding, Inc.
+
+**Clause text:**
+We reserve the right to reinspect the facilities and products of any approved supplier and to revoke approval if we find that the supplier fails to meet any of our then-current criteria.
+
+Qwen → **HIGH** (conf 0.9)
+  The clause grants the drafter unilateral discretion to terminate the business relationship based on 'then-current criteria' which are not defined or fixed in the contract. This creates significant uncertainty and risk for the signing party (supplier), as they could lose their approved status and contract rights due to arbitrary or retroactively applied standards without notice or a cure period.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause grants the drafter broad audit rights over the signing party's facilities and products, with the power to revoke approval based on 'then-current criteria' which may change and are not defined. This creates potential for subjective and evolving standards, placing the signing party at a disadvantage.
+
+---
+
+## Row 5526  [73/100]
+Clause type:   Audit Rights
+Document:      CONTENT LICENSE AGREEMENT
+Drafter:       RemarkHoldingsInc
+Signing party: World Book, Inc.
+
+**Clause text:**
+HSWI shall also provide reasonable assistance to World Book or its designated agent to conduct audits to confirm the payments hereunder.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (World Book) the right to appoint a 'designated agent' without specifying that such appointment requires prior notice or consent, and the obligation to provide 'reasonable assistance' is broad and undefined, potentially exposing HSWI to uncontrolled third-party access and operational disruption.
+
+Gemini → **LOW** (conf 1.0)
+  The clause grants the signing party (World Book) the right to audit the counterparty (HSWI) to confirm payments, which is a standard and favorable protection for the signing party. The requirement for 'reasonable assistance' is also a common and balanced term.
+
+---
+
+## Row 5527  [74/100]
+Clause type:   Audit Rights
+Document:      TRANSITION SERVICES AGREEMENT
+Drafter:       ReynoldsConsumerProductsInc
+Signing party: Reynolds Group Holdings Inc.
+
+**Clause text:**
+Access to such TSA Records shall be exercised by a Party and its Affiliates and their authorized representatives in a manner that shall not interfere unreasonably with the normal operations of the Party maintaining the TSA Records.
+
+Qwen → **LOW** (conf 0.9)
+  The clause includes a standard 'not unreasonably interfere' limitation, which protects the signing party's business operations while granting audit access, representing a balanced and common market practice.
+
+Gemini → **MEDIUM** (conf 0.0)
+  This clause, from the perspective of the party being audited (the signing party), limits the auditor's access to not 'unreasonably interfere' with operations. While this provides some protection, it is a subjective standard that could lead to disputes. It doesn't specify audit frequency, notice periods, or cost allocation, which are common protections for the audited party. The lack of these details makes it less favorable than a clause with more explicit safeguards.
+
+---
+
+## Row 5528  [75/100]
+Clause type:   Audit Rights
+Document:      DISTRIBUTION AND DEVELOPMENT AGREEMENT
+Drafter:       RitterPharmaceuticalsInc
+Signing party: Sekisui Diagnostics, LLC and its Affiliates
+
+**Clause text:**
+If Qualigen does not pass such audit and the reasons for such failure can be remedied within a reasonable period of time (which shall not be less than sixty (60) days), then Sekisui shall provide Qualigen with a list of proposed remedial action items and a proposed timeframe within which to accomplish such action items
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause creates a one-sided obligation where the signing party (Qualigen) must first fail an audit before triggering a remediation process, and the definition of 'failure' and 'reasonable period' relies on the counterparty's discretion without explicit audit scope or notice requirements for the signing party.
+
+Gemini → **LOW** (conf 0.9)
+  This clause outlines a remedial process for Qualigen (the signing party) if an audit is not passed. It provides a minimum 60-day period for remediation and requires the auditing party (Sekisui) to provide a list of proposed remedial actions and a timeframe. This structure is favorable to the signing party as it ensures a clear path to cure any deficiencies rather than immediate penalties or termination, offering protection and a chance to rectify issues.
+
+---
+
+## Row 5529  [76/100]
+Clause type:   Audit Rights
+Document:      SOFTWARE LICENSE AND MAINTENANCE AGREEMENT
+Drafter:       SFGFINANCIALCORP
+Signing party: E-Path FX
+
+**Clause text:**
+Any  such audit shall be permitted by Licensee within 30 days of Licensee's receipt of a written request of Licensor.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause grants the Licensor (drafter) the sole discretion to initiate an audit by requesting it, while the Licensee (signing party) has no independent right to audit the Licensor's books or records to verify compliance, creating a significant one-sided exposure where the signing party cannot independently verify the counterparty's obligations.
+
+Gemini → **MEDIUM** (conf 0.9)
+  This clause grants the Licensor an audit right, which is common in licensing agreements. However, it does not specify any limitations on the frequency, scope, or duration of audits, nor does it require the Licensor to bear the costs of such audits unless discrepancies are found. While 30 days' notice is reasonable, the lack of other protective terms for the Licensee makes this a medium risk, as it could lead to disruptive or frequent audits without clear boundaries.
+
+---
+
+## Row 5530  [77/100]
+Clause type:   Audit Rights
+Document:      Sponsorship Agreement
+Drafter:       STAMPSCOMINC
+Signing party: Intuit Inc.
+
+**Clause text:**
+The audit      rights set forth herein shall continue for one (1) year following the      termination of this Agreement for any reason.
+
+Qwen → **MEDIUM** (conf 0.9)
+  Extends the drafter's right to audit the signing party's records for a full year after the contract ends, creating ongoing administrative burden and potential liability exposure without a defined scope or sunset condition for the audit itself.
+
+Gemini → **LOW** (conf 1.0)
+  The clause extends audit rights for a reasonable and limited period (one year) post-termination. This is a standard provision to ensure proper accounting and compliance for past activities, and the duration is not unduly burdensome for the signing party.
+
+---
+
+## Row 5531  [78/100]
+Clause type:   Audit Rights
+Document:      CONSTRUCTION AND MAINTENANCE AGREEMENT
+Drafter:       STARTECGLOBALCOMMUNICATIONSCORP
+Signing party: Energis Communications Limited
+
+**Clause text:**
+Each Party, at its own expense,  and upon reasonable  advance notice to          the relevant Maintenance  Authorities,  shall have the right to inspect          from time to time the operation and  maintenance  of any part of TAT-14          and to obtain copies of the maintenance records.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The audit right is conditioned on obtaining notice to third-party 'Maintenance Authorities' rather than the counterparty itself, which introduces an external dependency that could delay or obstruct the signing party's ability to exercise their inspection rights.
+
+Gemini → **LOW** (conf 0.9)
+  The audit right is mutual ('Each Party') and is exercised 'at its own expense' and 'upon reasonable advance notice'. This is a balanced and standard approach to audit rights, providing transparency without imposing undue burden or cost on the signing party.
+
+---
+
+## Row 5532  [79/100]
+Clause type:   Audit Rights
+Document:      PROMOTION AGREEMENT
+Drafter:       SigaTechnologiesInc
+Signing party: MMT
+
+**Clause text:**
+Reports of the results of any such examination (each an "Audit Report") will be (a) limited to details of any discrepancies in MMT's records relating to the Product together with an explanation of the discrepancy and the circumstances giving rise to the discrepancy (b) made available to both Parties and (c) subject to ARTICLE 10.
+
+Qwen → **LOW** (conf 0.0)
+  The clause restricts the scope of the audit report to specific discrepancies rather than allowing a broad, unfettered review of all records, which protects the signing party from excessive intrusion and limits liability to actual errors found.
+
+Gemini → **MEDIUM** (conf 0.8)
+  The clause limits the scope of audit reports to discrepancies in MMT's records, which could restrict the signing party's ability to obtain a full understanding of compliance if the audit uncovers issues beyond simple record discrepancies. While it provides some information, the limitation could be problematic if broader compliance issues are suspected.
+
+---
+
+## Row 5533  [80/100]
+Clause type:   Audit Rights
+Document:      MASTER FRANCHISE AGREEMENT
+Drafter:       SimplicityEsportsGamingCompany
+Signing party: I-AM Capital Acquisition Company
+
+**Clause text:**
+Franchisee shall be under an obligation to provide any information as may be requested by Franchisor with respect to the Smaaash Centres, including the books of accounts and other relevant documents or records maintained in relation to the Smaaash Centres.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause grants the Franchisor unlimited discretion to request 'any information' without defining scope, purpose, or frequency, creating a significant burden and potential for harassment or data privacy violations for the Franchisee.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause grants the Franchisor broad, unqualified access to 'any information as may be requested' without specifying limitations on scope, frequency, or purpose, or requiring reasonable notice. This could lead to burdensome and frequent requests for information, impacting the Franchisee's operational efficiency and privacy. While providing information is expected in a franchise relationship, the lack of specific boundaries makes this clause one-sided.
+
+---
+
+## Row 5534  [81/100]
+Clause type:   Audit Rights
+Document:      EXCLUSIVE DISTRIBUTOR AGREEMENT
+Drafter:       SmartRxSystemsInc
+Signing party: Distributor
+
+**Clause text:**
+These records shall be available for examination during normal business hours by accountants representing the other Party, who shall be entitled to perform an audit and to make copies and extracts, and receive any explanations that may reasonably be requested.
+
+Qwen → **MEDIUM** (conf 0.0)
+  The clause grants the counterparty the right to appoint their own accountants to conduct audits without requiring prior written consent or limiting the scope to specific triggers (e.g., suspected breach), which creates an administrative burden and potential for intrusive, unannounced examinations by third parties.
+
+Gemini → **HIGH** (conf 0.9)
+  This clause grants broad audit rights to the counterparty, allowing their accountants to perform audits, make copies, extract information, and demand explanations. There are no stated limitations on the scope, frequency, or notice period for these audits, nor any confidentiality obligations for the information obtained. This creates significant operational burden and potential exposure of sensitive information for the signing party.
+
+---
+
+## Row 5535  [82/100]
+Clause type:   Audit Rights
+Document:      MANIFEST SYSTEM SERVICES AND CO-BRANDING AGREEMENT
+Drafter:       StampscomInc
+Signing party: Company
+
+**Clause text:**
+MBE will also permit the Company to enter any of MBE's premises during regular business hours to inspect the use of the Service in any reasonable manner.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the counterparty (Company) broad, unilateral access to the signing party's (MBE) physical premises without specifying notice periods, limiting the scope to specific records, or requiring a legitimate compliance trigger, which creates operational disruption and potential confidentiality risks.
+
+Gemini → **LOW** (conf 0.9)
+  This clause grants the Company (the counterparty to MBE, and likely the drafter) audit rights over MBE's premises during regular business hours for a reasonable inspection of service use. From MBE's perspective (the signing party), this is a standard and generally acceptable audit right, as it is limited to business hours, requires reasonable conduct, and is tied to the use of the service. It does not impose overly burdensome or intrusive conditions.
+
+---
+
+## Row 5536  [83/100]
+Clause type:   Audit Rights
+Document:      MARKETING AFFILIATE AGREEMENT
+Drafter:       SteelVaultCorp
+Signing party: Equidata
+
+**Clause text:**
+Equidata may audit, at Equidata's expense, the Marketing Affiliate's marketing, practices and activities for the  purpose of assuring compliance with this Agreement.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (Equidata) the unilateral right to audit the signing party's operations without specifying notice periods, frequency limits, or scope restrictions, creating potential for operational disruption and privacy intrusion, though the expense being borne by the auditor mitigates some financial risk.
+
+Gemini → **LOW** (conf 1.0)
+  The clause grants the counterparty (Equidata) audit rights, which is standard for compliance. Crucially, the audit is at Equidata's expense, which is favorable to the signing party (Marketing Affiliate) as it avoids unexpected costs. The scope is limited to compliance with the agreement, which is a reasonable purpose.
+
+---
+
+## Row 5537  [84/100]
+Clause type:   Audit Rights
+Document:      Endorsement Agreement
+Drafter:       TEARDROPGOLFCO
+Signing party: Consolidated Artists  Inc.
+
+**Clause text:**
+Consolidated Artists and Advantage, at Consolidated Artists' expense, shall have the right during the Contract Period and until two (2) years after the termination of this Agreement to inspect and make copies of the books and records of TPC insofar as they relate to the computation of royalty payments due and owing to Consolidated Artists hereunder.
+
+Qwen → **LOW** (conf 0.0)
+  The clause is favorable to the signing party (Consolidated Artists) as it explicitly places the financial burden of the audit on the counterparty, preventing unexpected costs. The scope is also reasonably limited to records relevant to royalty computations and includes a defined post-termination window.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause grants the counterparty (Consolidated Artists) broad audit rights over TPC's books and records related to royalty computations, extending for two years post-termination. While limited to royalty computations and at the counterparty's expense, it still allows the counterparty to inspect and copy records, which could be disruptive and expose sensitive financial information. The 'insofar as they relate' qualifier provides some scope limitation, but the right to 'inspect and make copies' is quite strong.
+
+---
+
+## Row 5538  [85/100]
+Clause type:   Audit Rights
+Document:      CO-BRANDING Agreement
+Drafter:       TheglobeComInc
+Signing party: The Boxlot Company
+
+**Clause text:**
+Once every 12 months, the party receiving payment or its designee may inspect such records to verify reports.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants audit rights exclusively to the party receiving payment, creating a one-sided obligation where the signing party (likely the payer) must submit to inspections without reciprocal rights or explicit limitations on scope, frequency beyond the annual cap, or cost allocation.
+
+Gemini → **LOW** (conf 0.9)
+  This clause grants audit rights to the party receiving payment, which is typically the drafter (vendor/licensor). From the perspective of the signing party (customer/licensee), this means the counterparty can audit them. However, the audit right is limited to 'once every 12 months' and for the specific purpose of 'verify reports', which is a reasonable and common limitation. It does not impose excessive burdens or broad audit scopes on the signing party.
+
+---
+
+## Row 5539  [86/100]
+Clause type:   Audit Rights
+Document:      BUSINESS AFFILIATE AGREEMENT
+Drafter:       UnionDentalHoldingsInc
+Signing party: collectively,  Business Affiliate and UDC may be referred to collectively as the "Parties" and singularly as a ("Party")
+
+**Clause text:**
+Make available,  during normal business hours, at a Party=s offices      all records, books, agreements, policies and procedures relating to the use      and/or  disclosure  of  Confidential  Information  that is  subject to this      Agreement,  to the other  Party  within ten (10) days of a Party's  written      request,  for the purpose of  enabling a Party to verify the other  Party=s      compliance with the terms of this Agreement
+
+Qwen → **MEDIUM** (conf 0.0)
+  The clause grants a broad right to audit 'all records' and 'policies' without limiting the scope to specific financial data or restricting the audit to a reasonable frequency, creating potential operational burden and privacy exposure for the signing party.
+
+Gemini → **LOW** (conf 1.0)
+  This clause establishes a mutual audit right, allowing either party to verify compliance with confidentiality obligations. The scope is limited to confidential information, and the audit is conducted at the party's offices during normal business hours, which are standard and reasonable terms. The 10-day response time is also typical.
+
+---
+
+## Row 5540  [87/100]
+Clause type:   Audit Rights
+Document:      AFFILIATE OFFICE AGREEMENT
+Drafter:       UsioInc
+Signing party: Payment Data  Systems,  Inc.
+
+**Clause text:**
+Network  1  shall  have  the right to inspect the Local Offices  during  normal business hours to insure compliance by Affiliate with is obligations  pursuant  to  Section  1.02  [LOCAL OFFICE (AFFILIATE OFFICE)].
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (Network 1) a unilateral right to inspect the signing party's physical locations without requiring prior notice, limiting the scope of inspection to a specific section, or defining the frequency of such visits, which creates operational disruption risk and potential for overreach.
+
+Gemini → **HIGH** (conf 0.9)
+  This clause grants the counterparty (Network 1) a broad right to inspect the signing party's (Affiliate's) physical locations ('Local Offices') to ensure compliance. It lacks common protective provisions for the signing party, such as requiring reasonable prior notice, limiting the scope of inspection to relevant records or areas, specifying the frequency of audits, or requiring confidentiality of information obtained during the audit. The absence of these safeguards creates significant operational and privacy risks for the signing party.
+
+---
+
+## Row 5541  [88/100]
+Clause type:   Audit Rights
+Document:      JOINT VENTURE CONTRACT
+Drafter:       VALENCETECHNOLOGYINC
+Signing party: Baoding Fengfan Group Limited Liability Company
+
+**Clause text:**
+Reasonable access to the Joint Venture Company's financial records shall be given to such auditor and such auditor shall keep confidential all documents under his auditing.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants audit rights but lacks critical procedural safeguards such as a requirement for prior written notice, a defined frequency or time window for audits, or a limitation to 'reasonable' access, which could allow the counterparty to demand intrusive or frequent audits without clear boundaries.
+
+Gemini → **LOW** (conf 0.9)
+  This clause grants the signing party (as a member of the Joint Venture Company, or a party with audit rights over it) reasonable access to financial records, which is a standard and necessary protection for ensuring transparency and compliance in a joint venture. The confidentiality requirement for the auditor is also a standard and balanced protection.
+
+---
+
+## Row 5542  [89/100]
+Clause type:   Audit Rights
+Document:      SUPPLY AGREEMENT
+Drafter:       VAXCYTE,INC
+Signing party: Sutro Biopharma, Inc.
+
+**Clause text:**
+Without limiting the foregoing; Sutro is responsible for auditing the facilities of the suppliers of Components, if any, periodically, and Sutro agrees to provide SutroVax, upon SutroVax's request with a current copy of the audit report of such facilities and to incorporate SutroVax's comments with respect to any corrective action plan related to the Product.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause creates a unilateral obligation for the signing party (Sutro) to share audit reports with the counterparty (SutroVax) upon request, without specifying limitations on frequency, scope, or confidentiality, which could lead to administrative burden or unintended disclosure of sensitive supplier information.
+
+Gemini → **LOW** (conf 0.9)
+  This clause grants SutroVax (the signing party) the right to receive audit reports from Sutro regarding its suppliers' facilities and to provide comments on corrective action plans. This is a favorable provision for SutroVax, as it provides transparency and influence over the quality and compliance of components without requiring SutroVax to conduct the audits themselves, thus reducing their operational burden.
+
+---
+
+## Row 5543  [90/100]
+Clause type:   Audit Rights
+Document:      PRODUCT SALE AND MARKETING AGREEMENT
+Drafter:       XpresspaGroupInc
+Signing party: Calm
+
+**Clause text:**
+Upon termination or expiration of this Agreement, Calm (at its sole expense) may engage a third party to audit XSPA's inventory of any and all Product Collateral then on hand at each Store and XSPA shall promptly return or dispose of such inventory as instructed by Calm at Calm's sole expense.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the counterparty (Calm) the unilateral right to audit the signing party's (XSPA) inventory upon termination, which imposes an administrative burden and potential disruption. While the cost is borne by Calm, the lack of specific limitations on the scope, frequency, or notice period of the audit creates a risk of overreach or operational interference for XSPA.
+
+Gemini → **LOW** (conf 1.0)
+  The audit right is limited to inventory of 'Product Collateral' upon termination or expiration, and the auditing party (Calm) bears all expenses, including the cost of the audit and the disposal/return of inventory. This is a reasonable and standard provision for managing inventory post-contract, with no financial burden on the signing party (XSPA).
+
+---
+
+## Row 5544  [91/100]
+Clause type:   Audit Rights
+Document:      DISTRIBUTORSHIP AGREEMENT
+Drafter:       ZogenixInc
+Signing party: Zogenix and Distributor may be referred to individually as a "Party" and collectively as the "Parties".
+
+**Clause text:**
+Such audit may be made no more than once each Fiscal Year (unless an audit reveals a violation under this Agreement, in which case an additional audit may be conducted within such Fiscal Year);
+
+Qwen → **LOW** (conf 0.95)
+  The clause limits audit frequency to once per fiscal year, which is a standard and balanced restriction that prevents excessive disruption while still allowing for necessary compliance checks.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause allows for an additional audit within the same fiscal year if a violation is found, which could lead to increased disruption and cost for the signing party. While a standard audit frequency is once per year, the exception creates a potential for more frequent audits based on the auditor's findings, which could be subjective or minor.
+
+---
+
+**Cap On Liability (includes monetary caps AND time limits on bringing claims) — calibration examples from this dataset:**
+  LOW: "Except for claims arising under section 6, in no event will either party be liable for any special, indirect,…"
+  MEDIUM: "In no event shall Carrier be liable for any lost profits or special, indirect or consequential damages."
+  HIGH: "EXCEPT FOR [*] CAUSED BY A [*] OF"
+
+## Row 5545  [92/100]
+Clause type:   Cap On Liability (includes monetary caps AND time limits on bringing claims)
+Document:      CO-BRANDING AND ADVERTISING AGREEMENT
+Drafter:       2ThemartComInc
+Signing party: 2THEMART.COM, INC.
+
+**Clause text:**
+EXCEPT IN THE EVENT OF A BREACH OF SECTION 11, NEITHER PARTY SHALL BE LIABLE FOR SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES OR LOST PROFITS (HOWEVER ARISING, INCLUDING NEGLIGENCE) ARISING OUT OF OR IN CONNECTION WITH THIS AGREEMENT, EVEN IF THE PARTIES ARE AWARE OF THE POSSIBILITY OF SUCH DAMAGES.
+
+Qwen → **LOW** (conf 1.0)
+  The clause establishes a mutual exclusion of consequential damages and lost profits for both parties, which is a standard and balanced commercial practice that protects the signing party from unlimited liability exposure.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause generally excludes special, incidental, consequential damages, and lost profits for both parties, which is a common limitation. However, the carve-out for 'a breach of Section 11' means that for breaches of that specific section, these types of damages (which can be substantial and uncapped) are not excluded. Without knowing the content of Section 11, this presents an unknown but potentially significant uncapped liability exposure for the signing party, making it a MEDIUM risk.
+
+---
+
+## Row 5546  [93/100]
+Clause type:   Cap On Liability (includes monetary caps AND time limits on bringing claims)
+Document:      STRATEGIC ALLIANCE AGREEMENT
+Drafter:       ADAPTIMMUNETHERAPEUTICSPLC
+Signing party: Adaptimmune LLC
+
+**Clause text:**
+NEITHER PARTY SHALL BE LIABLE FOR ANY INDIRECT OR CONSEQUENTIAL DAMAGES SUFFERED BY THE OTHER PARTY AS A RESULT OF PERFORMANCE OF ANY STUDY UNDER THIS AGREEMENT.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause creates a mutual exclusion of consequential damages, which is standard market practice for service agreements; however, it removes a significant category of potential recovery for the signing party in the event of a breach, representing a manageable but notable limitation on liability.
+
+Gemini → **LOW** (conf 1.0)
+  This clause mutually excludes indirect and consequential damages, which is a standard limitation of liability in commercial contracts. Since it applies equally to both parties, it does not disproportionately disadvantage the signing party.
+
+---
+
+## Row 5547  [94/100]
+Clause type:   Cap On Liability (includes monetary caps AND time limits on bringing claims)
+Document:      Reseller Agreement
+Drafter:       ADIANUTRITION,INC
+Signing party: Detto
+
+**Clause text:**
+EXCEPT FOR PIVX'S OBLIGATIONS UNDER SECTION 4.2, IN NO EVENT SHALL PIVX'S OR ITS LICENSORS' LIABILITY TO DETTO OR ANY THIRD PARTY ARISING OUT OF THIS AGREEMENT EXCEED THE TOTAL AMOUNT ACTUALLY RECEIVED BY PIVX HEREUNDER DURING THE PREVIOUS SIX (6) MONTHS.
+
+Qwen → **LOW** (conf 1.0)
+  The clause imposes a clear monetary cap on liability based on fees received, which is a standard and balanced commercial practice that protects the signing party (Detto) from unlimited exposure while remaining within common market norms.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause caps PIVX's liability to the amount received in the previous six months, which could be significantly less than the actual damages incurred by Detto (the signing party) in the event of a breach. While there is an exception for 'PIVX's obligations under Section 4.2', the specific nature of these uncapped obligations is unknown without the full contract. This creates a potential for Detto to bear substantial unrecoverable losses if PIVX's breach falls outside the uncapped exception.
+
+---
+
+## Row 5548  [95/100]
+Clause type:   Cap On Liability (includes monetary caps AND time limits on bringing claims)
+Document:      STRATEGIC ALLIANCE AGREEMENT
+Drafter:       AURASYSTEMSINC
+Signing party: Aura
+
+**Clause text:**
+NEITHER PARTY SHALL NOT BE LIABLE TO THE OTHER FOR ANY DAMAGES, LOSSES OR EXPENSES RESULTING FROM ANY  TERMINATION OR EXPIRATION OF THIS AGREEMENT ARISING FROM ANY CLAIMS ASSERTED WHICH ARE BASED UPON  LOSS OF GOODWILL, PROSPECTIVE PROFITS OR ANTICIPATED ORDERS, OR ON ACCOUNT OF ANY EXPENDITURES,  INVESTMENTS, LEASES OR COMMITMENTS MADE BY SUCH PARTY;
+
+Qwen → **HIGH** (conf 0.85)
+  The clause contains a double negative ('SHALL NOT BE LIABLE' following 'NEITHER PARTY SHALL NOT') which creates significant ambiguity regarding whether liability is actually excluded or affirmed. Furthermore, it broadly excludes liability for termination-related losses including goodwill and prospective profits for both parties, potentially leaving the signing party without recourse for damages caused by the other party's termination of the agreement.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause uses a double negative ('NEITHER PARTY SHALL NOT BE LIABLE'), which creates ambiguity regarding liability. Assuming it intends to exclude liability for specific types of damages (loss of goodwill, prospective profits, etc.) upon termination or expiration, this is a mutual exclusion. However, the broad exclusion of 'any expenditures, investments, leases or commitments made by such party' could significantly limit the signing party's ability to recover actual costs incurred in reliance on the agreement, which is a common claim in wrongful termination scenarios. While mutual, the scope of excluded damages is quite broad and could leave the signing party with unrecoverable losses.
+
+---
+
+## Row 5549  [96/100]
+Clause type:   Cap On Liability (includes monetary caps AND time limits on bringing claims)
+Document:      LICENSE, DEVELOPMENT AND COMMERCIALIZATION AGREEMENT
+Drafter:       AimmuneTherapeuticsInc
+Signing party: Aimmune
+
+**Clause text:**
+NEITHER PARTY SHALL BE LIABLE TO THE OTHER PARTY FOR ANY LOST PROFITS, OR ANY SPECIAL, CONSEQUENTIAL, INCIDENTAL, OR INDIRECT DAMAGES ARISING FROM OR RELATING TO ANY BREACH OF THIS AGREEMENT, REGARDLESS OF ANY NOTICE OF THE POSSIBILITY OF SUCH DAMAGES. NOTWITHSTANDING THE FOREGOING,
+
+Qwen → **HIGH** (conf 0.95)
+  The clause imposes a broad, mutual exclusion of consequential and lost profit damages regardless of notice, which significantly limits the signing party's ability to recover substantial damages in the event of a breach, creating a disproportionate risk exposure compared to standard market practices that often carve out exceptions for gross negligence or willful misconduct.
+
+Gemini → **MEDIUM** (conf 0.8)
+  This clause mutually excludes certain types of damages, which is common in commercial contracts. However, the exclusion of 'lost profits' and 'consequential damages' can significantly limit the signing party's ability to recover full damages in the event of a breach, especially if the signing party's primary damages would fall into these categories. The 'NOTWITHSTANDING THE FOREGOING,' suggests there might be carve-outs or exceptions that could mitigate this risk, but without the full text, the current exclusion presents a moderate risk.
+
+---
+
+## Row 5550  [97/100]
+Clause type:   Cap On Liability (includes monetary caps AND time limits on bringing claims)
+Document:      Manufacturing Agreement
+Drafter:       Antares Pharma, Inc. - Manufacturing Agreement
+Signing party: Antares and AMAG are sometimes referred to herein individually as a "Party" and collectively as the "Parties".
+
+**Clause text:**
+The Parties acknowledge and agree that title to and risk of loss of all Prefilled Syringes shall at all times belong to and remain in AMAG; provided that, subject to the limitations on liability set forth in this Section 2.2(b), in the event of loss or damage of any Prefilled Syringes while they are at the Manufacturing Site, Antares shall be only responsible for the replacement costs (as evidenced by AMAG invoices) of such Prefilled Syringes if the damage, loss, theft or destruction was caused by the negligent act or omission or the willful misconduct of Antares or its Subcontractor.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause strictly limits Antares' liability to replacement costs even in cases of its own negligence or willful misconduct, excluding consequential damages, lost profits, or other standard recoveries that would typically be available. This creates a significant imbalance by capping recovery at a fraction of the actual potential loss.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause limits Antares' liability to replacement costs for lost or damaged syringes, and only if caused by Antares' or its subcontractor's negligence or willful misconduct. This is a cap on liability that could leave AMAG (the signing party) exposed to other potential damages beyond replacement costs, such as lost profits or business interruption, even in cases of Antares' fault. While it does assign responsibility for negligence/willful misconduct, the 'only responsible for replacement costs' significantly limits recovery for AMAG.
+
+---
+
+## Row 5551  [98/100]
+Clause type:   Cap On Liability (includes monetary caps AND time limits on bringing claims)
+Document:      Network Build and Maintenance Agreement
+Drafter:       AtnInternationalInc
+Signing party: Vendor
+
+**Clause text:**
+AT&T may elect to, after consultation with Vendor and good faith discussion to negotiate another resolution:
+
+(i) terminate its obligations solely with respect to each Cell Site affected by or related to such Permitting Delay under this Agreement and exercise any of the Termination Remedies set forth in the Build Addendum, without liability to Vendor; provided that AT&T shall pay to Vendor, an amount equal to the demonstrated costs incurred by Vendor for any Work completed (in accordance with applicable Specifications and requirements) to the extent such Work is transferred to AT&T as of the effective time of termination of the applicable terminated Cell Site, which amount shall not exceed $[***]
+
+Qwen → **HIGH** (conf 0.0)
+  The clause grants AT&T the unilateral right to terminate specific obligations and exit the agreement without any liability to the Vendor, even in the event of a breach or delay caused by AT&T, while only capping the Vendor's recovery to demonstrated costs for completed work. This creates a significant one-sided exposure where the Vendor bears the risk of non-performance or delays without recourse for consequential damages or lost profits.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause limits AT&T's liability to the demonstrated costs incurred by Vendor for completed work, up to a capped amount. While it ensures some recovery for work performed, the cap itself (represented by '[***]') could be a significant limitation on Vendor's potential recovery, especially if actual damages or costs exceed this undisclosed cap. This is a one-sided cap on AT&T's liability, which warrants attention from the Vendor's perspective.
+
+---
+
+## Row 5552  [99/100]
+Clause type:   Cap On Liability (includes monetary caps AND time limits on bringing claims)
+Document:      CO-BRANDING, MARKETING AND DISTRIBUTION AGREEMENT
+Drafter:       AudibleInc
+Signing party: Audible Inc.
+
+**Clause text:**
+EXCEPT TO THE EXTENT AWARDED TO A THIRD PARTY IN A JUDGMENT AGAINST WHICH A PARTY IS ENTITLED TO INDEMNIFICATION PURSUANT TO SECTION 7.2  [Indemnity], OR TO THE EXTENT ARISING OUT OF ANY BREACH OF SECTION 11.4  [Nondisclosure], NEITHER PARTY WILL BE LIABLE (WHETHER IN CONTRACT, WARRANTY, TORT (INCLUDING, BUT NOT LIMITED TO, NEGLIGENCE), PRODUCT LIABILITY OR OTHER THEORY), TO THE OTHER PARTY OR ANY OTHER PERSON OR ENTITY FOR COST OF COVER OR FOR ANY INDIRECT, INCIDENTAL, SPECIAL OR CONSEQUENTIAL DAMAGES (INCLUDING WITHOUT LIMITATION DAMAGES FOR LOSS OF PROFIT, REVENUE, BUSINESS OR DATA) ARISING OUT OF THIS AGREEMENT, EVEN IF SUCH PARTY HAS BEEN ADVISEDOF THE POSSIBILITY OF SUCH COSTS OR DAMAGES.
+
+Qwen → **LOW** (conf 0.0)
+  The clause imposes a mutual cap on liability for indirect and consequential damages, which is standard market practice and provides balanced protection for the signing party against unlimited exposure.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause generally excludes indirect, incidental, special, or consequential damages, which is favorable. However, it carves out uncapped liability for indemnification obligations (which depend on Section 7.2) and, more significantly, for breaches of Section 11.4 (Nondisclosure). This means that while most liability is capped, the signing party could face uncapped liability for confidentiality breaches, which is a common carve-out but still represents a significant potential exposure.
+
+---
+
+## Row 5553  [100/100]
+Clause type:   Cap On Liability (includes monetary caps AND time limits on bringing claims)
+Document:      MASTER SUPPLY AGREEMENT
+Drafter:       BELLRINGBRANDS,INC
+Signing party: Premier Nutrition Company, LLC
+
+**Clause text:**
+The maximum liability of one Party to the other Party and its affiliates in relation to this Agreement will be [***] ("Liability Cap"), provided however that:
+
+Qwen → **LOW** (conf 0.95)
+  The clause explicitly establishes a liability cap, which is a standard and favorable protection for the signing party that limits financial exposure to a defined amount rather than leaving it uncapped.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause indicates a liability cap, which is generally favorable to the signing party as it limits their exposure. However, the actual cap amount is unspecified ('[***]'), making it impossible to assess if the cap is reasonable or if it truly protects the signing party from significant risk. Without knowing the cap, it's a potential area of concern that needs to be negotiated.
+
+---

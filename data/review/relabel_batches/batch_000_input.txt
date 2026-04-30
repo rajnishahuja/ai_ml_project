@@ -1,0 +1,882 @@
+# Relabeling batch 0 — rows 0–49 of 1327 total
+
+Label each clause LOW / MEDIUM / HIGH from the perspective of the SIGNING PARTY (named in 'Signing party' below). They are reviewing this contract before signing and assessing whether each clause poses risk to them.
+
+Qwen and Gemini disagreed on these rows. Read both arguments and the calibration examples, decide who is right (or whether both are wrong), and give a definitive label.
+
+OUTPUT: a single JSON array, one object per row, in the same order:
+  [{"row_num": N, "label": "LOW"|"MEDIUM"|"HIGH", "reason": "...max 80 words..."}, ...]
+Output ONLY the JSON array. No preamble, no markdown, no explanation.
+
+---
+
+**Affiliate License-Licensee (license grant TO the licensee's affiliates) — calibration examples from this dataset:**
+  LOW: "All rights granted to HSWI under this Agreement may be exercised by or through HSWI and/or its Affiliates."
+  MEDIUM: "Each such subcontractor listed on Exhibit A attached hereto and any Affiliate or Third Party approved by SIGA as an MMT…"
+  HIGH: "Customer hereby grants to IBM, its Affiliates and Subcontractors all rights and licenses to, or agrees to promptly…"
+
+## Row 5354  [1/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      INTELLECTUAL PROPERTY AGREEMENT
+Drafter:       ARMSTRONGFLOORING,INC
+Signing party: "Licensing" and together with Seller, "Arizona"
+
+**Clause text:**
+Arizona may sublicense the licenses granted herein to its Affiliates and Third Parties in the ordinary course of business in support of its and its Affiliates' business, but not for the independent use of Third Parties, and the Company may sublicense the licenses granted herein to Third Parties, its Subsidiaries, AWP, controlled Affiliates, or any holding company that is a direct or indirect parent of the Company in the ordinary course of business in support of its and its Subsidiaries' or controlled Affiliates' business, but not for the independent use of Third Parties (each such Affiliate, Third Party, AWP or Subsidiary, a "Sublicensee").
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the drafter (Arizona) broad rights to sublicense to third parties, which could dilute the signing party's exclusivity or create competitive friction, although the restriction against 'independent use' provides some mitigation.
+
+Gemini → **LOW** (conf 0.9)
+  The clause explicitly grants the signing party (Arizona) the right to sublicense to its Affiliates and Third Parties for business support, which is a favorable and flexible term for the licensee. The limitation 'not for the independent use of Third Parties' is a reasonable restriction to prevent unauthorized commercialization by third parties, aligning with standard licensing practices.
+
+---
+
+## Row 5355  [2/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      LICENSE, DEVELOPMENT AND COMMERCIALIZATION AGREEMENT
+Drafter:       AimmuneTherapeuticsInc
+Signing party: Aimmune
+
+**Clause text:**
+Aimmune shall [***] the right (but not the obligation) to sublicense the rights granted to it under Section 2.1 to its Affiliates or Third Parties (each, a "Sublicensee"); provided, however, that Aimmune shall remain responsible for the performance by any of its direct and indirect Sublicensees and shall cause its direct and indirect Sublicensees to comply with the applicable provisions of this Agreement in connection with such performance.
+
+Qwen → **LOW** (conf 0.0)
+  The clause explicitly maintains the drafter's (Aimmune's) liability for the actions of its sublicensees, ensuring the signing party (licensee) is not exposed to uncontrolled third-party performance risks; this is a standard and favorable protection for the licensee.
+
+Gemini → **MEDIUM** (conf 0.9)
+  While the clause grants the signing party (Aimmune) the right to sublicense to affiliates or third parties, it also imposes a significant burden by making Aimmune fully responsible for the performance and compliance of all direct and indirect sublicensees. This creates a potential liability chain that could be extensive and difficult to manage, especially for indirect sublicensees, increasing the signing party's risk exposure.
+
+---
+
+## Row 5356  [3/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      INTELLECTUAL PROPERTY AGREEMENT
+Drafter:       ArmstrongFlooringInc
+Signing party: Seller
+
+**Clause text:**
+Arizona may sublicense the licenses granted herein to its Affiliates and Third Parties in the ordinary course of business in support of its and its Affiliates' business, but not for the independent use of Third Parties, and the Company may sublicense the licenses granted herein to Third Parties, its Subsidiaries, AWP, controlled Affiliates, or any holding company that is a direct or indirect parent of the Company in the ordinary course of business in support of its and its Subsidiaries' or controlled Affiliates' business, but not for the independent use of Third Parties (each such Affiliate, Third Party, AWP or Subsidiary, a "Sublicensee").
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the drafter (Arizona) broad rights to sublicense to third parties, which could dilute the signing party's exclusivity or create competitive friction, although the restriction against 'independent use' provides some mitigation.
+
+Gemini → **LOW** (conf 0.9)
+  The clause explicitly grants the signing party (Arizona) the right to sublicense to its Affiliates and Third Parties for business support, which is a favorable and flexible term for the licensee. The limitation 'not for the independent use of Third Parties' is a reasonable restriction to prevent unauthorized commercialization by third parties, aligning with standard licensing practices.
+
+---
+
+## Row 5357  [4/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      COLLABORATION AGREEMENT
+Drafter:       BERKELEYLIGHTS,INC
+Signing party: BLI
+
+**Clause text:**
+Ginkgo may grant sublicenses of the license granted to Ginkgo under Section 9.1.1 (Scope of Grants) and Section 9.1.2 (License Grant to Exploit [***]) with the prior written consent of BLI[***]; provided that such prior written consent of BLI shall not be needed for any sublicense granted by Ginkgo to (a) a Permitted Subcontractor of Ginkgo under Section 2.7 (Subcontracting) to the extent such sublicense relates to the subcontracted activities, (b) any wholly-owned subsidiary of Ginkgo existing as of the Effective Date or (c) any other Person, including other Affiliates and any Third Party, under Section 9.1.2 (License Grant to Exploit [***]) so long as, in the case of this clause (c), the sublicense [***].
+
+Qwen → **MEDIUM** (conf 0.0)
+  The clause grants the drafter (Ginkgo) the right to sublicense to affiliates and third parties, subject to the signing party's (BLI) prior written consent. While consent is required for general sublicensing, the clause creates a significant risk by carving out broad exceptions where consent is not needed, specifically for 'Permitted Subcontractors' and 'any other Person' under Section 9.1.2, potentially allowing the drafter to expand the license scope to affiliates and third parties without the signing party's approval.
+
+Gemini → **LOW** (conf 0.9)
+  The clause explicitly allows Ginkgo (the licensee) to sublicense to its wholly-owned subsidiaries and permitted subcontractors without prior written consent, which is favorable for operational flexibility. While other sublicenses require consent, the specific carve-outs for affiliates and subcontractors reduce the administrative burden and risk for Ginkgo.
+
+---
+
+## Row 5358  [5/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      INTELLECTUAL PROPERTY AGREEMENT, d
+Drafter:       CerenceInc
+Signing party: CERENCE INC.
+
+**Clause text:**
+Subject to the terms and conditions of this Agreement, as of the Distribution Date, Nuance hereby grants to SpinCo and the members of the SpinCo Group a worldwide, non-exclusive, fully paid-up, perpetual and irrevocable, transferable (subject to ARTICLE VIII), sublicensable (subject to Section 3.01(g)) license to continue to use any Nuance IP (other than Nuance Patents, Nuance Technology Assets, Nuance Trademarks and Nuance Data), in each case solely as and to the extent that it is used by the SpinCo Group in connection with products and services of the SpinCo Business within the SpinCo Field of Use, together with natural extensions and evolutions thereof.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The license grant is strictly limited to the specific 'SpinCo Field of Use' and existing usage scope, which restricts the signing party's ability to expand into new product lines, services, or markets without renegotiation or additional rights, creating a potential operational constraint compared to a broader grant.
+
+Gemini → **LOW** (conf 1.0)
+  The clause grants a broad, perpetual, irrevocable, transferable, and sublicensable license to the signing party (SpinCo) and its affiliates (SpinCo Group), which is highly favorable. While there are exclusions and limitations on use, the core grant is strong for the licensee.
+
+---
+
+## Row 5359  [6/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      CO-PROMOTION AGREEMENT
+Drafter:       DovaPharmaceuticalsInc
+Signing party: Valeant
+
+**Clause text:**
+[***], Valeant hereby grants to Dova a fully paid-up, royalty free, non-transferable, non- exclusive license (with a limited right to sub-license to its Affiliates) to any Valeant Property that appears on, embodied on or contained in the Product materials or Product Labeling solely for use in connection with Dova's promotion or other commercialization of the Product in the Territory.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The license is explicitly non-transferable and non-exclusive, which restricts the signing party's ability to sell or assign the rights to third parties. Additionally, the right to sub-license is described as 'limited' rather than broad, creating uncertainty about the scope of affiliates who can utilize the license and potentially hindering the signing party's commercialization strategy if the limitation is interpreted narrowly.
+
+Gemini → **LOW** (conf 1.0)
+  The clause explicitly grants Dova (the licensee) a limited right to sublicense to its affiliates, which is a favorable provision for the signing party, allowing for internal operational flexibility. This is a standard and beneficial inclusion for a licensee.
+
+---
+
+## Row 5360  [7/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      STRATEGIC ALLIANCE AGREEMENT
+Drafter:       ENERGOUSCORP
+Signing party: Dialog Semiconductor (UK) Ltd.
+
+**Clause text:**
+DIALOG may sublicense the foregoing license rights to any of its Affiliates.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the drafter (DIALOG) unilateral discretion to transfer rights to affiliates without requiring the signing party's consent or limiting the scope of such affiliates, potentially expanding the number of entities with access to the licensed rights beyond the original counterparty.
+
+Gemini → **LOW** (conf 1.0)
+  This clause explicitly grants the signing party (DIALOG) the right to sublicense to its affiliates, which is a favorable provision for the licensee as it allows for internal flexibility and broader use of the licensed rights within its corporate structure without needing further consent from the licensor.
+
+---
+
+## Row 5361  [8/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      CONTENT DISTRIBUTION AND LICENSE AGREEMENT
+Drafter:       FulucaiProductionsLtd
+Signing party: CONVERGTV, INC.
+
+**Clause text:**
+Producer further grants to ConvergTV the right and license to Distribute the Program on any ConvergTV channel, and/or other distribution outlets, that exists today or that is created or developed in the future and this right includes the right to Distribute on any channels of a ConvergTV affiliate and/or other distribution outlets without limitation.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The phrase 'without limitation' grants an overly broad, undefined scope of distribution rights to affiliates and future outlets, potentially exposing the signing party to uncontrolled expansion of the license beyond the original intent or specific channel negotiations.
+
+Gemini → **LOW** (conf 0.9)
+  The clause explicitly grants the licensee (ConvergTV) and its affiliates the right to distribute the program, which is favorable to the signing party (ConvergTV) as it broadens their distribution capabilities without additional restrictions or costs mentioned in this clause.
+
+---
+
+## Row 5362  [9/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      INTELLECTUAL PROPERTY AGREEMENT, d
+Drafter:       GarrettMotionInc
+Signing party: SpinCo
+
+**Clause text:**
+Hence, as of the Distribution Date, SpinCo hereby grants, and agrees to cause the members of the SpinCo Group to hereby grant, to Honeywell and the members of the Honeywell Group a non-exclusive, royalty-free, fully-paid, perpetual, sublicenseable (solely to Subsidiaries and suppliers for "have made" purposes), worldwide license to use and exercise rights under the SpinCo Shared IP (excluding Trademarks and the subject matter of any other Ancillary Agreement), said license being limited to use of a similar type, scope and extent as used in the Honeywell Business prior to the Distribution Date and the natural growth and development thereof.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The license scope is strictly tethered to historical usage, which creates significant uncertainty and potential risk for the signing party (Honeywell) regarding future business growth or necessary pivots, as 'natural growth' may be interpreted narrowly by the licensor.
+
+Gemini → **LOW** (conf 1.0)
+  The clause grants a broad, perpetual, royalty-free, and worldwide license to the signing party (Honeywell), which is highly favorable. The sublicense limitation to subsidiaries and suppliers for 'have made' purposes is a common and reasonable restriction, not significantly diminishing the value of the license.
+
+---
+
+## Row 5363  [10/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      SPONSORSHIP AND SERVICES AGREEMENT
+Drafter:       GpaqAcquisitionHoldingsInc
+Signing party: HOFV and/or PFHOF, on the one hand, and Constellation, on the other hand, are referred to herein as a "Party" and, collectively, as the "Parties".
+
+**Clause text:**
+This license expressly prohibits any pass-through rights or the use of the HOF Entity Marks by any third party, except (x) to Constellation's subsidiaries and brands for use in a manner consistent with clauses (i) through (iii) hereof or (y) with the express written consent of the HOF Entities (or the appropriate HOF Entity).
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause explicitly restricts the licensee's ability to grant rights to third parties, limiting pass-through rights only to the drafter's (Constellation's) specific subsidiaries and brands. This creates a one-sided restriction that prevents the signing party from leveraging their own affiliates or other partners without obtaining express written consent, which is not guaranteed.
+
+Gemini → **LOW** (conf 1.0)
+  The clause explicitly grants pass-through rights to Constellation's subsidiaries and brands, which is favorable to the signing party (Constellation) as it allows its affiliates to use the marks without needing additional consent, provided they adhere to other specified clauses. This is a common and beneficial inclusion for a licensee with a corporate structure.
+
+---
+
+## Row 5364  [11/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      CO-BRANDING AGREEMENT
+Drafter:       InvendaCorp
+Signing party: At Home Corporation ("Excite@Home" or "Excite")
+
+**Clause text:**
+Subject to the terms and conditions of this Agreement,           Application Provider hereby grants to Excite@Home a royalty-free,           non-exclusive, worldwide license to use, reproduce, distribute,           transmit and publicly display the e-centives Content in accordance           with this Agreement and to sub-license the Application Content to           Excite@Home's wholly-owned subsidiaries or to joint ventures in which           Excite@Home participates for the sole purpose of using, reproducing,           distributing, transmitting and publicly displaying the e-centives           Content in accordance with this Agreement, provided that no such           sublicensing shall be to Application Provider Named Competitors.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The license grant includes a specific restriction prohibiting sublicensing to the Application Provider's named competitors, which limits the signing party's (Excite@Home) ability to distribute content to potential strategic partners or subsidiaries involved with those competitors, creating a one-sided constraint on the scope of the license.
+
+Gemini → **LOW** (conf 1.0)
+  The license granted to Excite@Home is royalty-free, non-exclusive, and worldwide, which is favorable. The ability to sublicense to wholly-owned subsidiaries and joint ventures further enhances flexibility for the signing party, making this a low-risk clause.
+
+---
+
+## Row 5365  [12/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      TRADEMARK LICENSE AGREEMENT
+Drafter:       MorganStanleyDirectLendingFund
+Signing party: Morgan Stanley Investment Management Inc.
+
+**Clause text:**
+Licensee may sublicense its rights under Section 1.1 solely to a current or future wholly owned subsidiary of Licensee, and then only with the prior written consent of Licensor (which shall not be unreasonably withheld), provided that any such sublicense shall terminate automatically, with no need for written notice to the sublicensee, if (a) such entity ceases to be a wholly owned subsidiary of Licensee, (b) this Agreement terminates for any reason or (c) such sublicensee materially breaches its sublicense in a manner that harms the Brand and does not cure the same within 15 days after notice from Licensor or Licensee.
+
+Qwen → **LOW** (conf 0.0)
+  The clause permits sublicensing to wholly owned subsidiaries with a standard 'not unreasonably withheld' consent standard, which is a balanced and common market practice that allows for necessary corporate restructuring without imposing undue restrictions on the Licensee.
+
+Gemini → **MEDIUM** (conf 1.0)
+  The clause significantly restricts the Licensee's ability to sublicense, limiting it only to wholly owned subsidiaries and still requiring Licensor's consent. While the 'not unreasonably withheld' standard offers some protection, the automatic termination conditions for sublicenses (e.g., if the entity ceases to be wholly owned or the main agreement terminates) add complexity and potential instability for the Licensee's internal corporate structure and future planning. This is more restrictive than a simple 'consent not to be unreasonably withheld' for any assignment/sublicense.
+
+---
+
+## Row 5366  [13/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      STRATEGIC ALLIANCE AGREEMENT
+Drafter:       PHREESIA,INC
+Signing party: the "Company" or "Phreesia"
+
+**Clause text:**
+Subject to the terms and conditions of this Agreement, the Company hereby grants to Allscripts and its Affiliates a non- exclusive, royalty-free, irrevocable [***] non-transferable (except in accordance with Section 28.4), sublicensable (through multiple levels of sublicensees), fully paid-up right and license under all of the Company's Intellectual Property to, throughout the Territory, access, use, reproduce, perform, display, modify, create derivative works of, transmit, demonstrate, test, operate, port, configure, distribute, and make available the Installed Software and Subscription Software Services
+
+Qwen → **LOW** (conf 0.0)
+  The clause includes a standard carve-out allowing transfer in accordance with a referenced section, which typically permits assignment in events like mergers or acquisitions, preventing an absolute restriction on the signing party's ability to transfer rights.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The license is explicitly stated as non-transferable, which generally limits the signing party's flexibility to divest or restructure. However, the parenthetical 'except in accordance with Section 28.4' indicates there might be specific conditions under which transfer is permitted, potentially mitigating the risk. Without the full text of Section 28.4, it's impossible to fully assess the extent of this limitation, but the default is non-transferable.
+
+---
+
+## Row 5367  [14/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      NONEXCLUSIVE VALUE ADDED DISTRIBUTOR AGREEMENT
+Drafter:       ScansourceInc
+Signing party: Distributor
+
+**Clause text:**
+An entity may transfer its right to use a certain piece of Software to its Affiliate.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause permits transfer to affiliates but lacks explicit language regarding the licensor's consent or conditions, creating potential ambiguity over whether such transfers are automatic or require approval, which could lead to unauthorized distribution or loss of control over the software usage.
+
+Gemini → **LOW** (conf 0.9)
+  This clause explicitly allows the signing party (an entity) to transfer its right to use the software to its affiliates, which is a favorable provision for the signing party, enhancing its flexibility and internal operational efficiency without requiring additional consent from the drafter.
+
+---
+
+## Row 5368  [15/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      CHARTER AFFILIATE AFFILIATION AGREEMENT
+Drafter:       TubeMediaCorp
+Signing party: Affiliate
+
+**Clause text:**
+Network hereby grants to Affiliate the exclusive right via Broadcast Television, and Affiliate hereby accepts such exclusive right and the obligation during the Term to broadcast the Service via Broadcast Television (i) over the transmission facilities of each Station identified on Exhibit A, which is licensed by the FCC to serve the community for each such Station (the "Licensed Community"), for receipt by TV Households in the DMA in which the Licensed Community is located, as such DMA is identified on Exhibit A, and (ii) over the transmission facilities of any Acquired Station, except to the extent that, as of the date Affiliate notifies Network in writing of its binding agreement to acquire such Acquired Station, (A) another Broadcast Television station in the same DMA as the Acquired Station has exclusive rights to broadcast the Service, or (B) the Acquired Station is obligated to broadcast other material that precludes it from also carrying the Service.
+
+Qwen → **MEDIUM** (conf 0.0)
+  The clause imposes a mandatory broadcast obligation on the Affiliate for any future 'Acquired Station' unless specific exceptions apply. This creates a risk of automatic expansion of the Affiliate's obligations to new assets without explicit negotiation of terms for those specific acquisitions, potentially binding the Affiliate to carry the service on stations they acquire later even if it conflicts with their strategic interests or existing local agreements.
+
+Gemini → **LOW** (conf 0.9)
+  The clause explicitly grants an exclusive right to the Affiliate (licensee) and extends this right to acquired stations, which is favorable to the signing party. The obligations are clearly defined and tied to the exclusive right, making it a balanced and standard arrangement for an exclusive licensee.
+
+---
+
+## Row 5369  [16/50]
+Clause type:   Affiliate License-Licensee (license grant TO the licensee's affiliates)
+Document:      CONTENT LICENSE AGREEMENT
+Drafter:       XinhuaSportsEntertainmentLtd
+Signing party: XINHUA FINANCIAL NETWORK LIMITED
+
+**Clause text:**
+CEIS hereby grants      XFN and its Affiliates a non-exclusive license (free of all third-party      liens, claims and encumbrances) to, and to permit others to, during the      Term in the People's Republic of China:
+
+     (a)  store or cache the Content in one or more host computers controlled           directly or indirectly by XFN or its Affiliates;
+
+     (b)  adapt, translate, modify, reproduce, copy, amend, revise or encode the           Content; and
+
+     (c)  publish, broadcast, distribute, re-distribute, transmit, display, make           available to the public or otherwise exploit the Content in any manner           by any device or in
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause grants the signing party broad rights to modify and adapt the content, which is generally favorable for operational flexibility; however, the risk is elevated to MEDIUM because the text is fragmentary (ending abruptly at 'in') and lacks explicit limitations on the scope of these modifications or indemnification for third-party claims arising from such adaptations, creating potential ambiguity regarding the extent of the license.
+
+Gemini → **LOW** (conf 0.9)
+  The clause grants a non-exclusive license to the signing party (XFN) and its affiliates, explicitly stating it is 'free of all third-party liens, claims and encumbrances.' This provides a clear and unburdened right to use the content, which is favorable to the signing party. The scope of the license (store, adapt, publish, etc.) is broad and beneficial.
+
+---
+
+**Affiliate License-Licensor (license grant BY or including IP of the licensor's affiliates) — calibration examples from this dataset:**
+  LOW: "patent applications were to issue as patents) for the Exploitation of the Licensed Compound or a Licensed Product, but…"
+  MEDIUM: "Subject to the terms and conditions of this Agreement, and in consideration for the payments to BLI under this…"
+  HIGH: "Distributor hereby grants Zogenix an irrevocable, perpetual, royalty-free, fully paid-up, exclusive license with the…"
+
+## Row 5370  [17/50]
+Clause type:   Affiliate License-Licensor (license grant BY or including IP of the licensor's affiliates)
+Document:      STRATEGIC ALLIANCE AGREEMENT
+Drafter:       ENTRUSTINC
+Signing party: NTL
+
+**Clause text:**
+Subject to the terms and               --------------------------------                           conditions of this Agreement, NTL, to the extent of its legal right to do so, hereby grants to Entrust under the Nortel Patents, a non-transferable, non- assignable, indivisible, non-exclusive, royalty-free, worldwide license for Licensed Products and Licensed Services.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause explicitly prohibits Entrust from transferring or assigning the license to any third party, including in connection with a merger or acquisition. This 'indivisible' restriction severely limits Entrust's operational flexibility and ability to realize value from the license in corporate transactions, creating a significant one-sided risk that locks the asset to the original entity.
+
+Gemini → **MEDIUM** (conf 1.0)
+  The clause explicitly states the license is non-transferable, non-assignable, and indivisible, which significantly restricts the signing party's (Entrust's) ability to transfer or sublicense the license to a third party, even in scenarios like a merger, acquisition, or corporate restructuring. This is a common restriction in licenses but still represents a limitation on the signing party's flexibility and asset value.
+
+---
+
+## Row 5371  [18/50]
+Clause type:   Affiliate License-Licensor (license grant BY or including IP of the licensor's affiliates)
+Document:      Intellectual Property Agreement
+Drafter:       GSITECHNOLOGYINC
+Signing party: PURCHASER  and SONY are referred to individually as a "Party" and collectively as the "Parties".
+
+**Clause text:**
+SONY, on behalf of itself and its Affiliates, hereby grants to PURCHASER a worldwide, non-exclusive, fully paid-up, royalty-free  license (a) under the Licensed Patents to make, have made, use, offer to sell, sell, otherwise dispose of, and import any Competing Products  (including, without limitation, the SRAM Products); and (b) to use, reproduce, modify, prepare derivative works of, perform, display, and otherwise  practice and exploit in any manner any and all of the SRAM Intellectual Property in connection with the use and exploitation of the
+
+Qwen → **MEDIUM** (conf 0.85)
+  The grant is limited to 'Competing Products' rather than the Purchaser's entire product line, which restricts the scope of the license and may leave the Purchaser exposed if they manufacture non-competing items that utilize the licensed IP. Additionally, the clause text appears truncated at the end, creating uncertainty about the full scope of the license for SRAM Intellectual Property.
+
+Gemini → **LOW** (conf 0.9)
+  The clause grants a broad, royalty-free, and fully paid-up license to the PURCHASER, which is highly favorable to the signing party. The 'worldwide' and 'non-exclusive' terms are standard for such a beneficial grant.
+
+---
+
+## Row 5372  [19/50]
+Clause type:   Affiliate License-Licensor (license grant BY or including IP of the licensor's affiliates)
+Document:      INTELLECTUAL PROPERTY AGREEMENT, d
+Drafter:       GarrettMotionInc
+Signing party: SpinCo
+
+**Clause text:**
+Hence, as of the Distribution Date, Honeywell hereby grants, and agrees to cause the members of the Honeywell Group to hereby grant, to SpinCo and the members of the SpinCo Group a non-exclusive, royalty-free, fully-paid, perpetual, sublicenseable (solely to Subsidiaries and suppliers for "have-made" purposes), worldwide license to use and exercise rights under the Honeywell Shared IP (excluding Trademarks, the Honeywell Content and the subject matter of any other Ancillary Agreement), said license being limited to use of a similar type, scope and extent as used in the SpinCo Business prior to the Distribution Date and the natural growth and development thereof.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The license scope is strictly tethered to historical usage patterns, which creates uncertainty regarding future business growth and natural development; the signing party may be restricted from expanding operations beyond the exact pre-distribution footprint despite the 'natural growth' language.
+
+Gemini → **LOW** (conf 1.0)
+  The clause explicitly states that Honeywell will cause its affiliates (Honeywell Group) to grant the license, which directly addresses the risk of not having a license from all necessary entities. The license terms (non-exclusive, royalty-free, fully-paid, perpetual, worldwide, sublicenseable to subsidiaries and suppliers) are highly favorable to SpinCo, the signing party, providing broad and enduring rights without additional cost.
+
+---
+
+**Anti-Assignment — calibration examples from this dataset:**
+  LOW: "Title to all Joint Venture Property will remain in the name of the Joint Venture."
+  MEDIUM: "Neither party may assign this Agreement without the prior written consent of the other."
+  HIGH: "Neither this Agreement nor any right created by it shall"
+
+## Row 5373  [20/50]
+Clause type:   Anti-Assignment
+Document:      CO-BRANDING AND ADVERTISING AGREEMENT
+Drafter:       2ThemartComInc
+Signing party: 2THEMART.COM, INC.
+
+**Clause text:**
+All rights (under any applicable intellectual property right) granted herein are not sublicenseable,
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a blanket prohibition on sublicensing without any exception for assignment or transfer of the entire agreement, which restricts the signing party's ability to transfer rights in corporate transactions or restructuring scenarios.
+
+Gemini → **HIGH** (conf 0.9)
+  This clause explicitly states that the rights granted are not sublicenseable. From the perspective of the signing party (e.g., a licensee), this severely restricts their ability to monetize or further distribute the licensed intellectual property, which could be a critical business need depending on the nature of the agreement. This is a significant limitation on the signing party's rights.
+
+---
+
+## Row 5374  [21/50]
+Clause type:   Anti-Assignment
+Document:      Services Agreement
+Drafter:       ABILITYINC
+Signing party: Each of the foregoing parties is referred to herein as a "Party" and together as the "Parties".
+
+**Clause text:**
+Provider may not assign, delegate or otherwise transfer either this Agreement or any of its rights, interests, or obligations hereunder without the prior written approval of Recipient.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the Recipient (the signing party) sole discretion to approve or deny assignment, creating a one-sided restriction that limits the Provider's flexibility. While this protects the Recipient's interests, it imposes a dependency on the Recipient's consent for any transfer of rights, which is a negotiable term that could be managed by adding a 'not unreasonably withheld' standard.
+
+Gemini → **LOW** (conf 1.0)
+  This clause restricts the Provider's ability to assign the agreement without the Recipient's consent. From the Recipient's (signing party's) perspective, this is favorable as it gives them control over who the Provider can transfer its obligations to, ensuring they continue to deal with the original contracting party or an approved successor. This is a protective measure for the Recipient.
+
+---
+
+## Row 5375  [22/50]
+Clause type:   Anti-Assignment
+Document:      JOINT VENTURE AGREEMENT
+Drafter:       ACCELERATEDTECHNOLOGIESHOLDINGCORP
+Signing party: (the "Parties" or "Joint Venturers" if referred to collectively, or the "Party" or Joint Venturer" if referred to singularly)
+
+**Clause text:**
+No Joint      Venturer shall be authorized or empowered to mortgage, hypothecate, pledge,      sell, or transfer, an interest in the Joint Venture, nor confer on any      successor or assignee the right to become a Joint Venturer without the      consent of the other Joint Venturer.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a strict requirement for the other party's consent to transfer an interest or admit a successor, which limits the signing party's ability to assign rights or restructure without approval. While this is common in joint ventures to maintain control over partners, the absence of a 'not unreasonably withheld' qualifier creates a risk that consent could be arbitrarily denied, blocking necessary transactions.
+
+Gemini → **HIGH** (conf 1.0)
+  This clause severely restricts the signing party's ability to transfer their interest in the Joint Venture, requiring consent for any assignment or transfer of interest, and explicitly preventing an assignee from becoming a Joint Venturer without consent. This significantly limits the signing party's liquidity and exit options, making it heavily one-sided against the signing party.
+
+---
+
+## Row 5376  [23/50]
+Clause type:   Anti-Assignment
+Document:      STRATEGIC ALLIANCE AGREEMENT
+Drafter:       ADAPTIMMUNETHERAPEUTICSPLC
+Signing party: Adaptimmune LLC
+
+**Clause text:**
+MD Anderson shall not subcontract any of its or the Principal Investigator's responsibilities under this Agreement without the prior written consent of Adaptimmune.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause imposes a unilateral restriction solely on the signing party (MD Anderson) to prevent subcontracting key responsibilities without consent, while granting no reciprocal rights to the drafter (Adaptimmune). This creates a significant operational risk by potentially locking the signing party into performing all work personally, preventing the use of specialized third-party resources, and lacks a 'not unreasonably withheld' standard to ensure consent is not arbitrarily denied.
+
+Gemini → **MEDIUM** (conf 0.9)
+  This clause restricts MD Anderson's ability to subcontract its responsibilities without Adaptimmune's prior written consent. While it specifically addresses subcontracting rather than full assignment, it still limits MD Anderson's operational flexibility. The absence of a 'not to be unreasonably withheld' standard means Adaptimmune has broad discretion to deny consent, which could impede MD Anderson's ability to perform its obligations efficiently or adapt to changing circumstances.
+
+---
+
+## Row 5377  [24/50]
+Clause type:   Anti-Assignment
+Document:      Endorsement Agreement
+Drafter:       AMBASSADOREYEWEARGROUPINC
+Signing party: Diplomat
+
+**Clause text:**
+KI, Inc. may assign its rights hereunder, but shall furnish written notice of such assignment to Diplomat.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the drafter (KI, Inc.) an unilateral right to assign the contract without requiring consent from the signing party (Diplomat), creating a risk that the signing party could be bound to a new, potentially less capable or undesirable counterparty. While the requirement for written notice provides some transparency, the lack of a 'consent not to be unreasonably withheld' standard for the drafter's assignment is one-sided and limits the signing party's control over who they are contracting with.
+
+Gemini → **LOW** (conf 1.0)
+  This clause explicitly states that KI, Inc. (the counterparty to Diplomat) may assign its rights, requiring only notice to Diplomat, not consent. This is favorable to Diplomat as it does not restrict KI, Inc.'s ability to assign, which could otherwise create issues for Diplomat if KI, Inc. were unable to assign when necessary. From Diplomat's perspective, this is a low risk as it ensures they are informed but do not have the burden of approving or rejecting an assignment by the other party.
+
+---
+
+## Row 5378  [25/50]
+Clause type:   Anti-Assignment
+Document:      AGENCY AGREEMENT
+Drafter:       AMERICANPHYSICIANSCAPITALINC
+Signing party: MICOA
+
+**Clause text:**
+Agency may not assign                   this Agreement without the written permission of MICOA or its                   successors or assigns.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause imposes a unilateral restriction on the signing party (Agency) requiring written consent for assignment, while the drafter (MICOA) retains the right to assign without restriction. This creates a significant imbalance by locking the signing party into the relationship without a reciprocal right to transfer obligations or benefits, potentially hindering corporate restructuring or asset sales.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause restricts the signing party (Agency) from assigning the agreement without the written permission of MICOA. This is one-sided as it only restricts the Agency and does not include a 'not to be unreasonably withheld' standard, giving MICOA absolute discretion to deny assignment. This limits the Agency's flexibility.
+
+---
+
+## Row 5379  [26/50]
+Clause type:   Anti-Assignment
+Document:      Collaboration Agreement
+Drafter:       ANIXABIOSCIENCESINC
+Signing party: Anixa
+
+**Clause text:**
+OntoChem may engage one or more subcontractors to perform its activities under the Research Plan with the prior written approval of Anixa and provided that, with respect to any such subcontractor, OntoChem will (a) be responsible and liable for the performance of such subcontractor and (b) enter into a written agreement (i) consistent with terms and conditions of this Agreement, including with respect to confidentiality and intellectual property, and (ii) prohibiting such subcontractor from further subcontracting. For clarity, vendors where commercial building blocks or compounds will be purchased are nor regarded as subcontractors.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause grants the signing party (Anixa) sole discretion to approve subcontractors, creating a potential bottleneck for OntoChem's operations. While OntoChem retains liability and must ensure consistent terms, the requirement for prior written approval is a one-sided control mechanism that could delay project execution if consent is withheld or delayed, though it is a common commercial term in research agreements.
+
+Gemini → **LOW** (conf 0.9)
+  This clause addresses subcontracting by the drafter (OntoChem), not assignment by the signing party (Anixa). From Anixa's perspective, requiring prior written approval for OntoChem's subcontractors is a protective measure, ensuring Anixa maintains oversight and control over who performs work under the Research Plan. This is favorable to the signing party.
+
+---
+
+## Row 5380  [27/50]
+Clause type:   Anti-Assignment
+Document:      INTELLECTUAL PROPERTY AGREEMENT
+Drafter:       ARMSTRONGFLOORING,INC
+Signing party: "Licensing" and together with Seller, "Arizona"
+
+**Clause text:**
+Except as otherwise provided in this Agreement, including under Section 7.1, neither this Agreement nor any of the rights, interests or obligations of any Party under this Agreement shall be assigned, in whole or in part, by operation of law or otherwise, by either Party without the prior written consent of the other Party; provided, however, that (a) either Party may assign any of the foregoing in connection with the sale or other transfer of the applicable business or assets of such Party or its Affiliates to which this Agreement relates (except that neither of the Buyer Entities may assign any such rights, interests or obligations with respect to the Arizona Licensed Trademarks); (b) Arizona may assign any of the foregoing to one or more of its Affiliates and (c) the Company and Buyer may assign any of the foregoing to one or more of its Subsidiaries, controlled Affiliates, AWP, or any holding company that is a direct or indirect parent of the Company; provided that in each case (b) and (c), no assignment shall relieve the assigning Party of any of its obligations under this Agreement unless agreed to by the non-assigning Party. Any assignment or other disposition in violation of the preceding sentence shall be void.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a specific prohibition on the Buyer (the signing party) regarding the assignment of Arizona Licensed Trademarks, even in the context of a business sale. While general assignment rights exist for business sales and affiliates, this carve-out creates a significant restriction on the Buyer's ability to transfer specific valuable assets during a transaction, limiting flexibility compared to a standard mutual assignment clause.
+
+Gemini → **LOW** (conf 1.0)
+  The clause allows for assignment without consent in connection with a sale or transfer of business assets, which is a common and important carve-out for the signing party's strategic flexibility. While general assignment requires consent, the business sale exception mitigates significant risk.
+
+---
+
+## Row 5381  [28/50]
+Clause type:   Anti-Assignment
+Document:      OUTSOURCING AGREEMENT
+Drafter:       ASPIRITYHOLDINGSLLC
+Signing party: Redwater LLC
+
+**Clause text:**
+The Contractor shall not assign this Agreement or any of its rights, powers, duties or obligations hereunder without the  express prior written consent of the Company, which shall not be unreasonably withheld.
+
+Qwen → **LOW** (conf 1.0)
+  The clause includes the critical standard that consent 'shall not be unreasonably withheld,' which prevents the Company from arbitrarily blocking assignment and provides the signing party with a reasonable path to transfer rights if needed.
+
+Gemini → **MEDIUM** (conf 1.0)
+  As the Contractor (the signing party), this clause restricts the ability to assign the agreement without the Company's consent. While the 'not unreasonably withheld' standard provides some protection, it still requires the Company's approval, which can introduce delays or potential hurdles for the Contractor's business operations or future transactions.
+
+---
+
+## Row 5382  [29/50]
+Clause type:   Anti-Assignment
+Document:      ODM SUPPLY AGREEMENT
+Drafter:       AgapeAtpCorp
+Signing party: AGAPE ATP INTERNATIONAL HOLDING LIMITED
+
+**Clause text:**
+The Manufacturer may not transfer or assign any of its rights or obligations under this agreement without the prior written consent of the Customer.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause restricts the Manufacturer's ability to assign the contract without consent, which is a one-sided restriction favoring the Customer (the signing party) but limits the Manufacturer's operational flexibility; however, since the signing party is the Customer, this term is favorable to them as it prevents unwanted assignment to third parties without their approval.
+
+Gemini → **LOW** (conf 1.0)
+  This clause restricts the Manufacturer's ability to assign, which is favorable to the Customer (the signing party) as it ensures the Customer's counterparty remains consistent unless the Customer agrees otherwise. This provides stability and control for the Customer.
+
+---
+
+## Row 5383  [30/50]
+Clause type:   Anti-Assignment
+Document:      Manufacturing and Supply Agreement
+Drafter:       Apollo Endosurgery - Manufacturing and Supply Agreement
+Signing party: Establishment Labs, S.A
+
+**Clause text:**
+Neither Party shall have the right to assign this Agreement or any of its rights or obligations hereunder without the prior written consent of the other Party; provided, however, APOLLO may assign the Agreement to and may, without the
+
+Qwen → **HIGH** (conf 0.95)
+  The clause explicitly grants the drafter (APOLLO) the unilateral right to assign the agreement without consent, while the general prohibition applies to 'Neither Party' before the exception. This creates a significant one-sided risk where the signing party is locked into a relationship with APOLLO but has no control over APOLLO transferring the contract to an unknown third party.
+
+Gemini → **MEDIUM** (conf 0.7)
+  The clause initially states mutual consent is required for assignment, which is standard. However, the incomplete carve-out for 'APOLLO' suggests a potential unilateral right for the drafting party to assign without the signing party's consent, creating an imbalance. The incompleteness of the sentence makes a full assessment difficult, but the implication is one-sided.
+
+---
+
+## Row 5384  [31/50]
+Clause type:   Anti-Assignment
+Document:      FORM OF TRADEMARK LICENSE AGREEMENT
+Drafter:       ArconicRolledProductsCorp
+Signing party: ARCONIC ROLLED PRODUCTS CORP.
+
+**Clause text:**
+This Agreement may not be assigned by Licensee without the consent of Licensor which consent shall not be unreasonably withheld.
+
+Qwen → **LOW** (conf 0.95)
+  The clause includes the standard 'not unreasonably withheld' qualifier, which prevents the Licensor from arbitrarily blocking the Licensee's assignment and aligns with common market practice for balanced commercial agreements.
+
+Gemini → **MEDIUM** (conf 1.0)
+  As the Licensee, this clause restricts the signing party's ability to assign the agreement without the Licensor's consent. While the 'not unreasonably withheld' standard provides some protection and a path for assignment, it still introduces a dependency on the Licensor, which could cause delays or complications in future business transactions like mergers or acquisitions.
+
+---
+
+## Row 5385  [32/50]
+Clause type:   Anti-Assignment
+Document:      INTELLECTUAL PROPERTY AGREEMENT
+Drafter:       ArmstrongFlooringInc
+Signing party: Seller
+
+**Clause text:**
+Any assignment or other disposition in violation of the preceding sentence shall be void.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause imposes a strict 'void' consequence for any assignment violating a prior (unseen) restriction, creating a risk that the signing party could lose rights or face invalidity if they attempt to assign without explicit consent or notice, though the specific restriction is not detailed here.
+
+Gemini → **HIGH** (conf 0.8)
+  This clause states that any assignment in violation of a preceding, unspecified sentence is void. From the signing party's perspective, this is high risk because it implies that there are restrictions on assignment, and any violation would render the assignment void, which is a severe consequence. Without knowing the 'preceding sentence,' the signing party cannot assess the actual restrictions, but the 'void' consequence is a significant deterrent and could lead to unforeseen complications if an assignment is attempted without full knowledge or compliance.
+
+---
+
+## Row 5386  [33/50]
+Clause type:   Anti-Assignment
+Document:      Network Build and Maintenance Agreement
+Drafter:       AtnInternationalInc
+Signing party: Vendor
+
+**Clause text:**
+Neither Party may assign, delegate, or otherwise transfer any of its duties or obligations under this Agreement, voluntarily or involuntarily, without the prior written consent of the other Party (which shall not be unreasonably withheld, conditioned or delayed and which shall be signed by an authorized representative of the Party giving such consent); provided, however, that without the consent of Vendor, AT&T may assign its rights, or delegate its duties, or both, in whole or in part, to any present or future Affiliate of AT&T so long as AT&T Mobility LLC shall remain liable for such Affiliate's failure to satisfy its obligations hereunder.
+
+Qwen → **MEDIUM** (conf 0.95)
+  The clause creates a significant one-sided exception allowing the Vendor (AT&T) to transfer obligations to affiliates without the signing party's consent, whereas the signing party is strictly bound to obtain consent for any assignment, limiting the signing party's flexibility while granting the Vendor unilateral transfer rights.
+
+Gemini → **LOW** (conf 1.0)
+  The clause is generally balanced, requiring mutual consent for assignment which 'shall not be unreasonably withheld, conditioned or delayed'. Crucially, from the perspective of the counterparty (Vendor), AT&T's ability to assign to an affiliate without consent is mitigated by AT&T Mobility LLC remaining liable, ensuring the Vendor's recourse is preserved.
+
+---
+
+## Row 5387  [34/50]
+Clause type:   Anti-Assignment
+Document:      CO-BRANDING, MARKETING AND DISTRIBUTION AGREEMENT
+Drafter:       AudibleInc
+Signing party: Audible Inc.
+
+**Clause text:**
+ACSI may assign this Agreement to (a) any corporation or other entity resulting from any merger, consolidation, or other reorganization involving ACSI, (b) any of its Affiliates, or (c) any person or entity to which it transfers all or
+
+Qwen → **HIGH** (conf 0.95)
+  The clause grants the drafter (ACSI) an unrestricted right to assign the contract to any transferee of its assets without requiring the signing party's consent or even notice, creating significant uncertainty and potential exposure to an unknown counterparty.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause explicitly grants the drafting party (ACSI) broad rights to assign the agreement without requiring the signing party's consent or even notice for several common scenarios (merger, affiliate transfer, asset transfer). This is one-sided as it does not grant reciprocal rights to the signing party, nor does it require the signing party's consent for these assignments, which could result in the signing party being bound to an unknown or undesirable third party.
+
+---
+
+## Row 5388  [35/50]
+Clause type:   Anti-Assignment
+Document:      MASTER SUPPLY AGREEMENT
+Drafter:       BELLRINGBRANDS,INC
+Signing party: Premier Nutrition Company, LLC
+
+**Clause text:**
+Neither Party may transfer or assign any of its rights or obligations under this Agreement without the prior written consent of the other Party, except that either Party may assign this Agreement to any entity controlled by it, its parents, subsidiaries, or affiliates, or to any purchaser of the business to which this Agreement relates subject to the other Parties consent which will not be unreasonably withheld or delayed.
+
+Qwen → **LOW** (conf 1.0)
+  The clause includes a standard 'not unreasonably withheld' standard for general assignments and explicitly permits assignment to affiliates or business purchasers, providing a balanced and flexible framework for the signing party.
+
+Gemini → **MEDIUM** (conf 1.0)
+  The clause generally requires mutual consent for assignment, which is a common restriction. However, the exception for assignments to affiliates or purchasers of the business still requires the other party's consent, albeit with the 'not unreasonably withheld or delayed' standard. This provides some flexibility for corporate restructuring or M&A, but the continued need for consent, even if qualified, still introduces a potential point of friction or delay for the signing party in such strategic transactions.
+
+---
+
+## Row 5389  [36/50]
+Clause type:   Anti-Assignment
+Document:      Co-Hosting Agreement
+Drafter:       BEYONDCOMCORP
+Signing party: SOFTWARE.NET CORPORATION
+
+**Clause text:**
+Neither party may assign this Agreement without the other's           prior written approval, except by operation of law or in connection           with the sale of substantially all of the assets of such party's           business or the acquisition of such party by a third party.
+
+Qwen → **MEDIUM** (conf 0.0)
+  The clause imposes a mutual requirement for prior written consent to assign, which restricts the signing party's flexibility to transfer rights or obligations. While the exceptions for operation of law and asset sales provide some relief, the absence of a 'not unreasonably withheld' standard means the counterparty could potentially block a valid assignment arbitrarily, creating a manageable but notable risk.
+
+Gemini → **LOW** (conf 1.0)
+  The clause is mutual and includes standard exceptions for assignments by operation of law or in connection with a change of control (sale of assets or acquisition), which is favorable to the signing party as it preserves flexibility for common corporate transactions without requiring the counterparty's consent.
+
+---
+
+## Row 5390  [37/50]
+Clause type:   Anti-Assignment
+Document:      COLLABORATION AGREEMENT
+Drafter:       BIOCEPTINC
+Signing party: LIFE TECHNOLOGIES CORPORATION
+
+**Clause text:**
+Any assignment not in accordance with this Agreement shall be void.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause imposes a strict 'void' consequence for non-compliant assignments without explicitly stating that consent cannot be unreasonably withheld, creating potential rigidity for the signing party if they need to assign the contract for valid business reasons.
+
+Gemini → **HIGH** (conf 0.9)
+  This clause, in isolation, is extremely high risk for the signing party. It implies that any assignment not explicitly permitted elsewhere in the agreement (which is not provided here) would be void. This could severely restrict the signing party's ability to assign the contract, even in common scenarios like a merger, acquisition, or internal reorganization, without any 'not to be unreasonably withheld' protection. It places the burden entirely on the signing party to ensure any assignment is 'in accordance' with potentially unstated or restrictive terms.
+
+---
+
+## Row 5391  [38/50]
+Clause type:   Anti-Assignment
+Document:      DISTRIBUTOR AGREEMENT
+Drafter:       BLACKBOXSTOCKSINC
+Signing party: Distributor
+
+**Clause text:**
+Distributor shall not assign this Agreement or any rights or obligations hereunder without the prior written consent of the Company.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a unilateral restriction on the Distributor's ability to assign the agreement, requiring specific consent from the Company. While this is a common commercial term, the absence of a 'not unreasonably withheld' qualifier creates a risk that the Company could arbitrarily block a valid assignment, limiting the Distributor's operational flexibility.
+
+Gemini → **HIGH** (conf 1.0)
+  This clause is highly one-sided as it only restricts the Distributor (the signing party) from assigning the agreement, while the Company (the drafter) retains the right to assign without consent. Furthermore, it does not include any language that consent cannot be unreasonably withheld, giving the Company absolute discretion to block any assignment by the Distributor.
+
+---
+
+## Row 5392  [39/50]
+Clause type:   Anti-Assignment
+Document:      SERVICE AGREEMENT FOR TRANSFER AGENT SERVICES
+Drafter:       BLACKSTONEGSOLONG-SHORTCREDITINCOMEFUND
+Signing party: Mellon Investor Services LLC
+
+**Clause text:**
+This Agreement shall be binding upon the parties hereto and their respective successors and assigns; provided that this Agreement may not be assigned, or otherwise transferred, in whole or in part, by either party without the prior written consent of the other party, which the other party will not unreasonably withhold, condition or delay; and provided further that (i) consent is not required for an assignment to an affiliate of Agent and (ii) any reorganization, merger, consolidation, sale of assets or other form of business combination by Agent shall not be deemed to constitute an assignment of this Agreement.
+
+Qwen → **LOW** (conf 0.0)
+  The clause includes a standard 'not unreasonably withheld' standard for consent, preventing the other party from arbitrarily blocking an assignment, and explicitly permits assignment to affiliates and in the event of mergers or business combinations for the Agent, creating a balanced and favorable framework for the signing party.
+
+Gemini → **MEDIUM** (conf 0.9)
+  While the general rule requires mutual consent not to be unreasonably withheld, the exceptions specifically favor the 'Agent' (likely the drafter/counterparty). The Agent can assign to affiliates or undergo business combinations without the signing party's consent, which is not reciprocated for the signing party. This creates an imbalance in assignment flexibility.
+
+---
+
+## Row 5393  [40/50]
+Clause type:   Anti-Assignment
+Document:      LICENSING AND WEB SITE HOSTING AGREEMENT
+Drafter:       BNCMORTGAGEINC
+Signing party: TrueLink, Inc.
+
+**Clause text:**
+Neither party shall assign or transfer any of its rights under this Agreement without the prior written approval of the other party, except no such approval shall be required for an assignment to a financially responsible affiliate.
+
+Qwen → **MEDIUM** (conf 0.0)
+  The clause imposes a mutual requirement for prior written consent to assign rights, which restricts the signing party's flexibility to transfer the contract. While the exception for assignments to financially responsible affiliates provides some relief, the lack of a 'not unreasonably withheld' standard means the counterparty could potentially block a valid assignment without justification, creating a manageable but notable risk.
+
+Gemini → **LOW** (conf 1.0)
+  The clause is mutual, requiring consent for assignment from both parties, which is standard. Crucially, it includes an exception allowing assignment to a financially responsible affiliate without consent, which is a common and reasonable carve-out that preserves some flexibility for the signing party.
+
+---
+
+## Row 5394  [41/50]
+Clause type:   Anti-Assignment
+Document:      Outsourcing Agreement
+Drafter:       BNLFINANCIALCORP
+Signing party: VIP
+
+**Clause text:**
+Neither party to this Agreement shall assign, subcontract, or otherwise conveyor delegate its rights or duties hereunder to any third party without the prior written consent of the other party hereto, such consent not to be unreasonably withheld.
+
+Qwen → **LOW** (conf 1.0)
+  The clause imposes a mutual restriction on assignment but includes the critical standard that consent cannot be unreasonably withheld, which is a balanced and standard market practice that protects the signing party's ability to assign rights if the other party acts reasonably.
+
+Gemini → **MEDIUM** (conf 1.0)
+  This clause is mutual, meaning both parties are subject to the same restriction. The 'not to be unreasonably withheld' standard provides a reasonable path for the signing party to assign or delegate, preventing arbitrary blocking by the counterparty. However, it still requires active consent, which can introduce delays or administrative burden, making it a medium risk rather than low.
+
+---
+
+## Row 5395  [42/50]
+Clause type:   Anti-Assignment
+Document:      VISP WEB SITE BUILDING AND HOSTING AGREEMENT
+Drafter:       BOLIVARMININGCORP
+Signing party: KCI
+
+**Clause text:**
+This Agreement shall be binding upon the parties and their respective successors and assigns; provided, however, that no rights or obligations hereunder, including but not limited to Licensee's Subscriber accounts, shall be assigned or transferred, in whole or in part, by either of the parties hereto to any person, firm or corporation without prior written consent by the other party, which consent shall not be unreasonably withheld or delayed.
+
+Qwen → **LOW** (conf 1.0)
+  The clause imposes a mutual restriction on assignment but includes the critical standard that consent cannot be unreasonably withheld or delayed, which balances the drafter's control with the signing party's right to assign under reasonable circumstances.
+
+Gemini → **MEDIUM** (conf 1.0)
+  The clause requires mutual consent for assignment, which limits the signing party's flexibility to assign the contract. While the 'not unreasonably withheld or delayed' standard provides some protection and a path for assignment, it still introduces a dependency on the counterparty's approval, which can cause delays or disputes.
+
+---
+
+## Row 5396  [43/50]
+Clause type:   Anti-Assignment
+Document:      MANUFACTURING AGREEMENT
+Drafter:       BellringBrandsInc
+Signing party: (each a "Party", collectively, the "Parties").
+
+**Clause text:**
+This Agreement is not assignable or transferable by either Party, in whole or in part, without the prior written consent of the other Party; provided, however that Premier may assign this Agreement in the event that Premier is sold, merged into or with another entity, or undergoes a "change in control".
+
+Qwen → **HIGH** (conf 0.95)
+  The clause creates a significant one-sided risk by allowing the drafter (Premier) to transfer the contract to a third party without the signing party's consent upon a change in control, while simultaneously prohibiting the signing party from assigning the agreement under any circumstances without consent.
+
+Gemini → **MEDIUM** (conf 1.0)
+  The clause is mutual in requiring consent for assignment, which is generally balanced. However, it creates an exception for Premier (the drafter/counterparty) allowing them to assign without consent in the event of a change in control, while the signing party does not have a reciprocal right. This asymmetry introduces a moderate risk for the signing party as their counterparty can assign the contract freely in certain business events, potentially to an undesirable entity, without the signing party's approval.
+
+---
+
+## Row 5397  [44/50]
+Clause type:   Anti-Assignment
+Document:      ENDORSEMENT AGREEMENT
+Drafter:       BerkshireHillsBancorpInc
+Signing party: BERKSHIRE BANK
+
+**Clause text:**
+Berkshire may not assign this Agreement,  in whole or in part, without Auriemma's written consent.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause imposes a unilateral restriction on the signing party (Berkshire) requiring the drafter's (Auriemma) consent for assignment, while granting the drafter no corresponding restriction, creating a significant imbalance in flexibility and control.
+
+Gemini → **MEDIUM** (conf 1.0)
+  This clause is one-sided, restricting only Berkshire's ability to assign the agreement without Auriemma's consent. It does not include a reciprocal restriction on Auriemma, nor does it include a 'not to be unreasonably withheld' standard, giving Auriemma absolute discretion to deny assignment. This limits Berkshire's flexibility and could hinder future business transactions like mergers or acquisitions.
+
+---
+
+## Row 5398  [45/50]
+Clause type:   Anti-Assignment
+Document:      COLLABORATION AGREEMENT
+Drafter:       CARDAX,INC
+Signing party: Capsugel US, LLC
+
+**Clause text:**
+Neither Party may assign this Agreement without the prior written consent of the other Party; provided, however that either Party may assign in connection with a merger or sale of all or substantially all of its stock or assets, provided the assignee agrees to be bound by all of the terms and conditions of this Agreement.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a mutual requirement for prior written consent to assign, which restricts the signing party's flexibility to transfer rights or obligations. While the carve-out for mergers or asset sales provides a standard exception, the general prohibition without a 'not unreasonably withheld' qualifier creates a risk that consent could be arbitrarily denied, limiting strategic exit options.
+
+Gemini → **LOW** (conf 1.0)
+  This clause is balanced and standard. While it requires mutual consent for general assignment, it includes a crucial carve-out allowing assignment in the event of a merger or sale of the signing party's business, which is a common and necessary protection for business continuity. This makes the clause favorable to the signing party's long-term strategic flexibility.
+
+---
+
+## Row 5399  [46/50]
+Clause type:   Anti-Assignment
+Document:      COLLABORATION AGREEMENT
+Drafter:       CERES,INC
+Signing party: INSTITUTE OF GRASSLAND AND ENVIRONMENTAL RESEARCH
+
+**Clause text:**
+This Agreement binds and enures to the benefit of the Parties, their successor or assigns, but may not be assigned by either  Party without the prior written consent of the other Party; provided however, CERES shall have the right to assign its rights and obligations under  this Agreement to any AFFILIATED COMPANY without such prior consent.
+
+Qwen → **HIGH** (conf 0.95)
+  The clause creates a significant one-sided imbalance by granting the drafter (CERES) an unrestricted right to transfer the contract to affiliates without the signing party's consent, while simultaneously binding the signing party to a mutual consent requirement for their own assignments.
+
+Gemini → **MEDIUM** (conf 0.9)
+  The clause is generally mutual in requiring consent for assignment, which is a common market practice. However, it creates an asymmetry by allowing the counterparty (CERES) to assign to an affiliate without consent, while the signing party does not have the same reciprocal right. This limits the signing party's flexibility compared to the counterparty.
+
+---
+
+## Row 5400  [47/50]
+Clause type:   Anti-Assignment
+Document:      CORPORATE SPONSORSHIP AGREEMENT
+Drafter:       CURAEGISTECHNOLOGIES,INC
+Signing party: Phoenix Performance, LLC
+
+**Clause text:**
+Any attempt to assign without the other party's consent will be null and void and will afford the non-assigning  party the right to immediately cancel and terminate this Agreement.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a strict consent requirement for assignment without explicitly stating that such consent cannot be unreasonably withheld, which could allow the counterparty to arbitrarily block a transfer even in standard commercial scenarios.
+
+Gemini → **HIGH** (conf 1.0)
+  This clause is heavily one-sided against the signing party. It not only makes any assignment without consent null and void, but also grants the non-assigning party the immediate right to terminate the entire agreement. There is no 'not to be unreasonably withheld' standard, giving the other party absolute discretion to block assignments and use an attempted assignment as grounds for termination, severely limiting the signing party's flexibility in corporate transactions or reorganizations.
+
+---
+
+## Row 5401  [48/50]
+Clause type:   Anti-Assignment
+Document:      INTELLECTUAL PROPERTY AGREEMENT, d
+Drafter:       CerenceInc
+Signing party: CERENCE INC.
+
+**Clause text:**
+Any purported assignment without such consent shall be void.
+
+Qwen → **MEDIUM** (conf 0.85)
+  The clause imposes a strict prohibition on assignment without consent and declares non-compliant assignments void, but the specific standard for granting or withholding consent (e.g., 'not unreasonably withheld') is not explicitly stated in the provided text, creating potential for the drafter to arbitrarily block transfers.
+
+Gemini → **HIGH** (conf 1.0)
+  This clause makes any assignment by the signing party without the counterparty's consent automatically void, which is highly restrictive. It does not include any language that the consent cannot be unreasonably withheld, giving the counterparty absolute discretion to block assignments. This severely limits the signing party's flexibility in corporate restructuring, mergers, or sales of assets.
+
+---
+
+## Row 5402  [49/50]
+Clause type:   Anti-Assignment
+Document:      APPLICATION DEVELOPMENT AGREEMENT
+Drafter:       ClickstreamCorp
+Signing party: InfinixSoft Global LLC
+
+**Clause text:**
+The Developer may not, without the written consent of the Client, assign, subcontract, or delegate its obligations under this Agreement, except that the Developer may transfer the right to receive any amounts that may be payable to it for its Services under this Agreement, which transfer will be effective only after receipt by the Client of written notice of such assignment or transfer.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a unilateral restriction on the Developer (the signing party) requiring Client consent for assignment or delegation of obligations, while granting the Developer a separate, unilateral right to assign payment rights with only notice. This creates an imbalance where the Developer lacks flexibility to transfer the contract but the Client retains broad discretion to block such transfers.
+
+Gemini → **LOW** (conf 1.0)
+  This clause restricts the Developer's ability to assign, subcontract, or delegate without the Client's consent, which is favorable to the Client (the signing party in this scenario, as the counterparty to the drafter/Developer). It ensures the Client retains control over who performs the services and who holds the contractual obligations. The exception for transferring payment rights with notice is standard and does not introduce significant risk to the Client.
+
+---
+
+## Row 5403  [50/50]
+Clause type:   Anti-Assignment
+Document:      RESELLER AGREEMENT
+Drafter:       DIVERSINETCORP
+Signing party: 2205925 Ontario Limited
+
+**Clause text:**
+Notwithstanding any provision to the contrary in the Agreement, Licensor shall not subcontract or assign any of the Services that may  require access to or the downloading or other use of Personal Information except with the prior written consent of Licensee or as required to  be disclosed by a governmental agency or third party as expressly required by operation of law, regulation or court order.
+
+Qwen → **MEDIUM** (conf 0.9)
+  The clause imposes a unilateral restriction on the Licensor's ability to assign or subcontract services involving Personal Information, requiring the Licensee's prior written consent. While this protects the Licensee's data interests, it creates a dependency where the Licensor cannot transfer obligations without the Licensee's approval, potentially limiting the Licensor's operational flexibility or ability to restructure, which is a one-sided constraint favoring the signing party (Licensee) over the drafter (Licensor).
+
+Gemini → **LOW** (conf 1.0)
+  This clause is favorable to the Licensee (the signing party) as it restricts the Licensor's ability to subcontract or assign services involving Personal Information without the Licensee's prior written consent. This provides the Licensee with control over who handles their sensitive data.
+
+---

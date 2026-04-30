@@ -244,8 +244,12 @@ class CORNWrapper(nn.Module):
 
 # -------- class weights -------------------------------------------------------
 
-def compute_class_weights(train_ds: Dataset, method: str) -> torch.Tensor:
+def compute_class_weights(labels, method: str) -> torch.Tensor:
     """Compute per-class weights using the standard weight = N / (K * count_c) formula.
+
+    `labels` is a list of soft-label vectors (pre-transformation — must NOT be
+    SORD-encoded, as SORD smears probability mass to neighbor classes and would
+    inflate their effective counts, reducing their class weight incorrectly).
 
     method='hard_counts' (Option A): count only one-hot rows.
         Simpler, but can miscalibrate if soft rows over-represent some class
@@ -256,13 +260,15 @@ def compute_class_weights(train_ds: Dataset, method: str) -> torch.Tensor:
         including soft labels. Keeps class-weight computation consistent with the loss
         function — both see the same distribution.
     """
+    # Accept either a HF Dataset or a plain list of label vectors
+    label_iter = labels["labels"] if hasattr(labels, "__getitem__") and not isinstance(labels, list) else labels
     counts = [0.0, 0.0, 0.0]
     if method == "hard_counts":
-        for sl in train_ds["labels"]:
+        for sl in label_iter:
             if max(sl) >= 0.99:  # one-hot row
                 counts[sl.index(max(sl))] += 1
     elif method == "effective_counts":
-        for sl in train_ds["labels"]:
+        for sl in label_iter:
             for c in range(NUM_LABELS):
                 counts[c] += sl[c]
     else:
@@ -341,8 +347,12 @@ def build_datasets(cfg: Stage3Config, tokenizer, label_mode: str = "soft", sord_
         rows = [r for r in data if r["row_num"] in row_nums]
         if transform:
             rows = transform_train_labels(rows, label_mode, sord_scale=sord_scale)
+        def seg_a(r):
+            sp = r.get("signing_party", "")
+            return r["clause_type"] + (" | signing party: " + sp if sp else "")
+
         enc = tokenizer(
-            [r["clause_type"] for r in rows],
+            [seg_a(r) for r in rows],
             [r["clause_text"] for r in rows],
             padding="max_length",
             truncation=True,
@@ -354,10 +364,19 @@ def build_datasets(cfg: Stage3Config, tokenizer, label_mode: str = "soft", sord_
             "row_num": [r["row_num"] for r in rows],
         })
 
+    # Raw pre-transform train labels — used for class weight computation.
+    # Must NOT use SORD-encoded labels: SORD smears mass to neighbor classes,
+    # inflating their effective counts and under-weighting them in the loss.
+    raw_train_rows = [r for r in data if r["row_num"] in set(splits["train"])]
+    if label_mode == "hard_only":
+        raw_train_rows = [r for r in raw_train_rows if max(r["soft_label"]) >= 0.99]
+    raw_train_labels = [r["soft_label"] for r in raw_train_rows]
+
     return (
         tokenize_split(set(splits["train"]), transform=True),
         tokenize_split(set(splits["val"])),
         tokenize_split(set(splits["test"])),
+        raw_train_labels,
     )
 
 
@@ -688,11 +707,11 @@ def main():
     logger.info(f"Loading tokenizer: {cfg.model_name}")
     tokenizer = AutoTokenizer.from_pretrained(cfg.model_name)
 
-    train_ds, val_ds, test_ds = build_datasets(cfg, tokenizer, label_mode=cli.label_mode, sord_scale=cli.sord_scale)
+    train_ds, val_ds, test_ds, raw_train_labels = build_datasets(cfg, tokenizer, label_mode=cli.label_mode, sord_scale=cli.sord_scale)
     logger.info(f"Label mode: {cli.label_mode}" + (f" (sord_scale={cli.sord_scale})" if cli.label_mode == "sord" else ""))
     logger.info(f"Datasets — train: {len(train_ds)}  val: {len(val_ds)}  test: {len(test_ds)}")
 
-    class_weights = compute_class_weights(train_ds, cfg.class_weights_method)
+    class_weights = compute_class_weights(raw_train_labels, cfg.class_weights_method)
     logger.info(f"Class weights ({cfg.class_weights_method}): "
                 f"LOW={class_weights[0]:.4f}  MED={class_weights[1]:.4f}  HIGH={class_weights[2]:.4f}")
 

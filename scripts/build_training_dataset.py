@@ -3,12 +3,13 @@ build_training_dataset.py
 =========================
 Builds the merged training dataset from master_label_review.csv.
 
-Categories included (3,057 hard + 1,327 soft = 4,384 effective training rows):
-  AGREED (2,735)           → hard label (qwen == gemini), one-hot soft vector
-  MANUAL_REVIEW (235)      → hard label from human-filled final_label (4 fragments
-                             were re-flagged to ERROR during merge 2026-04-23)
-  GEMINI_PRO_REVIEW (87)   → hard label from Gemini 2.5 Pro's final_label
-  SOFT_LABEL (1,327)       → probability vector from qwen+gemini outputs, no hard label
+Categories included (4,285 hard + 99 soft = 4,384 effective training rows):
+  AGREED (2,735)                → hard label (qwen == gemini), one-hot soft vector
+  MANUAL_REVIEW (235)           → hard label from human-filled final_label
+  GEMINI_PRO_REVIEW (87)        → hard label from Gemini 2.5 Pro's final_label
+  SOFT_LABEL_V2_AGREED (1,228)  → hard label from v2 3-way consensus (Qwen+Gemini+Claude)
+  SOFT_LABEL (99)               → probability vector from qwen+gemini v1 outputs
+                                   (all-3-disagree rows; dropped by --label-mode hard_only)
 
 Categories excluded:
   METADATA (2,292)         → routes to report header, not risk-labeled
@@ -40,6 +41,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(
 logger = logging.getLogger(__name__)
 
 MASTER_CSV   = Path("data/review/master_label_review.csv")
+SPANS_PATH   = Path("data/processed/all_positive_spans.json")
 OUTPUT_PATH  = Path("data/processed/training_dataset.json")
 
 LABEL_TO_INT = {"LOW": 0, "MEDIUM": 1, "HIGH": 2}
@@ -82,11 +84,24 @@ def parse_conf(val: str) -> float:
         return 0.0
 
 
+def load_parties_lookup() -> dict:
+    """Build contract → signing party span lookup from all_positive_spans.json."""
+    spans = json.loads(SPANS_PATH.read_text(encoding="utf-8"))
+    lookup = {}
+    for s in spans:
+        if s["clause_type"] == "Parties":
+            lookup[s["contract"]] = s["clause_text"].strip()
+    return lookup
+
+
 def build(use_conf_weight: bool = True) -> list[dict]:
     with MASTER_CSV.open(encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
 
     logger.info(f"Loaded {len(rows)} rows from {MASTER_CSV}")
+
+    parties = load_parties_lookup()
+    logger.info(f"Loaded signing party spans for {len(parties)} contracts")
 
     dataset = []
     skipped = Counter()
@@ -109,12 +124,13 @@ def build(use_conf_weight: bool = True) -> list[dict]:
             continue
 
         base = {
-            "row_num":     int(r["row_num"]),
-            "id":          r["id"],
-            "contract":    r["contract"],
-            "clause_type": r["clause_type"],
-            "clause_text": r["clause_text"],
-            "label_source": cat,
+            "row_num":        int(r["row_num"]),
+            "id":             r["id"],
+            "contract":       r["contract"],
+            "clause_type":    r["clause_type"],
+            "clause_text":    r["clause_text"],
+            "signing_party":  parties.get(r["contract"], ""),
+            "label_source":   cat,
         }
 
         if cat == "AGREED":
@@ -140,6 +156,20 @@ def build(use_conf_weight: bool = True) -> list[dict]:
                 "soft_label": one_hot(label),
                 "label_type": "hard",
                 "confidence": 1.0,
+            })
+
+        elif cat == "SOFT_LABEL_V2_AGREED":
+            label = r["final_label"]
+            if label not in LABEL_TO_INT:
+                logger.warning(f"Skipping row_num={r['row_num']} (SOFT_LABEL_V2_AGREED) — final_label={label!r}")
+                skipped["SOFT_LABEL_V2_AGREED_missing"] += 1
+                continue
+            dataset.append({**base,
+                "label":      label,
+                "label_int":  LABEL_TO_INT[label],
+                "soft_label": one_hot(label),
+                "label_type": "hard",
+                "confidence": 0.9,   # slightly below 1.0 — consensus not unanimous in all cases
             })
 
         elif cat == "SOFT_LABEL":

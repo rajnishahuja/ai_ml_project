@@ -1,5 +1,9 @@
 import sys
-sys.path.insert(0, '/home/rajnish/ai_apps/aiml')
+from pathlib import Path
+
+# Project root = one level up from notebooks/
+PROJECT_ROOT = str(Path(__file__).resolve().parent.parent)
+sys.path.insert(0, PROJECT_ROOT)
 
 from src.common.data_loader import load_cuad_dataset, preprocess_for_qa
 from transformers import AutoTokenizer
@@ -12,10 +16,15 @@ print(f"Train: {len(ds['train']):,}  Test: {len(ds['test']):,}")
 tokenizer = AutoTokenizer.from_pretrained("microsoft/deberta-base")
 
 # Step 3: Tokenize the training set
+# - batch_size=1000: process 1000 examples at a time (limits peak RAM)
+# - writer_batch_size=1000: flush to Arrow file every 1000 rows
+# This avoids OOM by not holding all expanded windows in memory at once.
 tokenized_train = ds["train"].map(
     preprocess_for_qa,
     fn_kwargs={"tokenizer": tokenizer, "max_length": 512, "doc_stride": 128},
     batched=True,
+    batch_size=1000,
+    writer_batch_size=1000,
     remove_columns=ds["train"].column_names,
 )
 

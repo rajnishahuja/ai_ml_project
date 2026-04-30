@@ -34,15 +34,67 @@ from datasets import Dataset
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
-from src.stage3_risk_agent.train import LABEL_NAMES, NUM_LABELS  # noqa: E402
+from src.stage3_risk_agent.train import LABEL_NAMES, NUM_LABELS, CORNWrapper  # noqa: E402
+
+
+def is_corn_model(model_path: Path) -> bool:
+    """CORN models lack config.json in final/ — saved as raw state dicts."""
+    final = model_path / "final" if (model_path / "final").exists() else model_path
+    return not (final / "config.json").exists()
+
+
+def load_model(model_path: Path, cfg: dict, device):
+    """Load either a standard HF model or a CORNWrapper from a run output dir."""
+    mp = Path(model_path)
+    bp = mp / "final" if (mp / "final").exists() else mp
+
+    if is_corn_model(mp):
+        base = AutoModelForSequenceClassification.from_pretrained(
+            cfg["model_name"], num_labels=1,
+        )
+        model = CORNWrapper(base)
+        from safetensors.torch import load_file
+        state = load_file(str(bp / "model.safetensors"), device="cpu")
+        model.load_state_dict(state)
+    else:
+        model = AutoModelForSequenceClassification.from_pretrained(
+            str(bp), num_labels=NUM_LABELS,
+        )
+    return model.to(device)
+
+
+def corn_probs(model, ds, device, batch_size: int = 32) -> np.ndarray:
+    """Run CORN inference and convert 2 binary logits → 3-class probabilities."""
+    model.eval()
+    keep_cols = [c for c in ds.column_names if c not in ("labels", "row_num")]
+    loader = DataLoader(
+        ds.select_columns(keep_cols).with_format("torch"),
+        batch_size=batch_size,
+        collate_fn=default_data_collator,
+    )
+    out = []
+    with torch.no_grad():
+        for batch in loader:
+            batch = {k: v.to(device) for k, v in batch.items()}
+            model(**batch)
+            logit1, logit2 = model._corn_logits
+            p_ge1 = torch.sigmoid(logit1).squeeze(-1)
+            p_ge2 = torch.sigmoid(logit2).squeeze(-1) * p_ge1
+            probs = torch.stack([1 - p_ge1, p_ge1 - p_ge2, p_ge2], dim=-1)
+            out.append(probs.float().cpu().numpy())
+    return np.concatenate(out, axis=0)
 
 
 def load_test_split(cfg: dict, tokenizer):
     data = json.loads(Path(cfg["training_data_path"]).read_text())
     splits = json.loads(Path(cfg["splits_path"]).read_text())
     test_rows = [r for r in data if r["row_num"] in set(splits["test"])]
+    def seg_a(r):
+        sp = r.get("signing_party", "")
+        return r["clause_type"] + (" | signing party: " + sp if sp else "")
+
     enc = tokenizer(
-        [r["clause_type"] for r in test_rows],
+        [seg_a(r) for r in test_rows],
         [r["clause_text"] for r in test_rows],
         padding="max_length",
         truncation=True,
@@ -128,17 +180,15 @@ def main():
     per_model = {}
     for mdir in args.model_dirs:
         mp = Path(mdir)
-        bp = mp / "final" if (mp / "final").exists() else mp
-        print(f"Loading {mp.name} ... ", end="", flush=True)
-        model = AutoModelForSequenceClassification.from_pretrained(
-            str(bp), num_labels=NUM_LABELS,
-        ).to(device)
-        probs = softmax_probs(model, test_ds, device, args.batch_size)
+        corn = is_corn_model(mp)
+        print(f"Loading {mp.name} ({'CORN' if corn else 'CE/SORD/hybrid'}) ... ", end="", flush=True)
+        model = load_model(mp, cfg, device)
+        probs = corn_probs(model, test_ds, device, args.batch_size) if corn \
+            else softmax_probs(model, test_ds, device, args.batch_size)
         all_probs.append(probs)
         ind_preds = np.argmax(probs, axis=-1)
         per_model[mp.name] = metrics_block(ind_preds, true, hard_mask)
         print(f"single macro_f1={per_model[mp.name]['macro_f1']:.4f}")
-        # Free GPU memory before next model
         del model
         torch.cuda.empty_cache() if torch.cuda.is_available() else None
 

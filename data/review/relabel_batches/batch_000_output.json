@@ -1,0 +1,252 @@
+[
+  {
+    "row_num": 5354,
+    "label": "LOW",
+    "reason": "Arizona (the signing party/licensee) gets explicit sublicense rights to affiliates and third parties for business support, with a reasonable restriction against independent commercial use by third parties. Gemini is right \u2014 this is favorable for Arizona. Qwen incorrectly frames Arizona as the drafter being at risk."
+  },
+  {
+    "row_num": 5355,
+    "label": "LOW",
+    "reason": "Aimmune (signing party) gets the right to sublicense to affiliates and third parties \u2014 a clear operational benefit. Retention of responsibility for sublicensee performance is standard commercial practice, not an unusual risk. Qwen is right that this protects the licensee's interests."
+  },
+  {
+    "row_num": 5356,
+    "label": "MEDIUM",
+    "reason": "Signing party here is Seller (Armstrong Flooring), not Arizona. Arizona (the licensee) can sublicense broadly to third parties in ordinary business. From Seller's perspective as licensor, IP reaching unknown third parties is a real risk even with the 'independent use' restriction as partial mitigation. Both models analyzed this from the wrong perspective."
+  },
+  {
+    "row_num": 5357,
+    "label": "LOW",
+    "reason": "BLI (the signing party/licensor) retains prior written consent control over most sublicensing. Carve-outs for permitted subcontractors, wholly-owned subsidiaries, and Section 9.1.2 cases are standard operational exceptions. BLI's consent rights are preserved for material sublicenses. Gemini is right from BLI's perspective."
+  },
+  {
+    "row_num": 5358,
+    "label": "LOW",
+    "reason": "SpinCo receives a perpetual, irrevocable, transferable, sublicensable worldwide license \u2014 an exceptionally strong grant. The SpinCo Field of Use restriction is entirely standard in spinoff IP agreements. Gemini is right; the core terms overwhelmingly favor SpinCo. Qwen's MEDIUM overweights a routine field-of-use constraint."
+  },
+  {
+    "row_num": 5359,
+    "label": "LOW",
+    "reason": "Valeant is the licensor (signing party) granting a narrow, non-exclusive, non-transferable, royalty-free license to Dova with only limited affiliate sublicense rights. This is a tightly controlled grant that protects Valeant's IP. Both models analyzed this as if Valeant were the licensee \u2014 incorrect perspective."
+  },
+  {
+    "row_num": 5360,
+    "label": "LOW",
+    "reason": "DIALOG (signing party/licensee) explicitly receives the right to sublicense to its affiliates \u2014 a favorable provision for internal operational flexibility. Gemini is right. Qwen incorrectly frames this as DIALOG being the drafter creating risk by expanding to affiliates without consent."
+  },
+  {
+    "row_num": 5361,
+    "label": "LOW",
+    "reason": "ConvergTV (signing party/licensee) gets broad distribution rights across all existing and future channels including affiliate channels 'without limitation.' This language is favorable to ConvergTV, not risky. Gemini is right. Qwen's MEDIUM misreads 'without limitation' as a risk to the signing party rather than a benefit."
+  },
+  {
+    "row_num": 5362,
+    "label": "LOW",
+    "reason": "SpinCo is the licensor here, granting Honeywell a license limited to historical SpinCo Business usage plus natural growth \u2014 this scope restriction protects SpinCo's future IP. From SpinCo's perspective as signing party, this is a well-controlled back-license standard for spinoffs. Gemini is correct."
+  },
+  {
+    "row_num": 5363,
+    "label": "LOW",
+    "reason": "The clause protects HOF marks from broad third-party use while explicitly granting Constellation's subsidiaries and brands pass-through rights. From the signing parties' perspectives: HOF retains control, Constellation gets needed operational flexibility. Gemini is right that this is a balanced and favorable arrangement."
+  },
+  {
+    "row_num": 5364,
+    "label": "LOW",
+    "reason": "Excite@Home (signing party/licensee) receives a royalty-free, worldwide license with sublicense rights to wholly-owned subsidiaries and joint ventures. The competitor restriction is entirely standard and reasonable \u2014 it does not materially limit Excite@Home's legitimate business use. Gemini is right."
+  },
+  {
+    "row_num": 5365,
+    "label": "MEDIUM",
+    "reason": "Gemini is right. MSIM (signing party/licensee) can only sublicense to wholly-owned subsidiaries, must obtain prior written consent even for those, and the sublicense auto-terminates if a subsidiary ceases to be wholly-owned. This creates real operational instability during M&A and corporate restructuring. More restrictive than Qwen acknowledges."
+  },
+  {
+    "row_num": 5366,
+    "label": "MEDIUM",
+    "reason": "Phreesia is the licensor (signing party) granting Allscripts an irrevocable, multi-level sublicensable license to all of Phreesia's IP. The irrevocable nature and unlimited sublicense chains reduce Phreesia's long-term IP control significantly. The non-transferable restriction offers partial protection. Meaningful risk for Phreesia as licensor, though both models analyzed this from the licensee's perspective."
+  },
+  {
+    "row_num": 5367,
+    "label": "LOW",
+    "reason": "A simple, permissive clause: an entity may transfer its software use right to its affiliates with no consent requirement and no complex conditions. Gemini is right \u2014 straightforward operational flexibility. Qwen's MEDIUM overweights theoretical ambiguity in a clause whose intent is clear."
+  },
+  {
+    "row_num": 5368,
+    "label": "MEDIUM",
+    "reason": "Qwen is right. The Affiliate is automatically obligated to broadcast on any future acquired station unless narrow exceptions apply, without re-negotiating terms for those specific acquisitions. This binding extension to unknown future assets creates real operational risk and limits strategic flexibility. Gemini underweights the future-stations obligation."
+  },
+  {
+    "row_num": 5369,
+    "label": "MEDIUM",
+    "reason": "The clause text is genuinely truncated mid-sentence ('in any manner by any device or in'). While the visible grant appears favorable to XFN, the scope is uncertain. Operating under an incomplete clause creates ambiguity risk regarding conditions or limitations cut off. Qwen correctly identifies this; Gemini's LOW ignores the truncation risk."
+  },
+  {
+    "row_num": 5370,
+    "label": "LOW",
+    "reason": "NTL is the licensor (signing party) granting a non-exclusive, non-transferable, non-assignable, indivisible license. From NTL's perspective, these restrictions are protective \u2014 they prevent Entrust from expanding the license's reach. Both models analyzed this from Entrust's (the licensee's) perspective, which is incorrect. LOW for NTL."
+  },
+  {
+    "row_num": 5371,
+    "label": "LOW",
+    "reason": "PURCHASER (signing party) receives a broad, worldwide, royalty-free, fully paid-up license covering SRAM products and IP from SONY and its affiliates. Gemini is right \u2014 this is a strong grant. The 'Competing Products' scope is contextually appropriate. Truncation is a data issue, not a contractual risk to PURCHASER."
+  },
+  {
+    "row_num": 5372,
+    "label": "LOW",
+    "reason": "SpinCo (signing party/licensee) receives a royalty-free, perpetual, worldwide, sublicensable license to Honeywell Shared IP. The historical-usage limitation is entirely standard for spinoff back-licenses and provides reasonable scope protection. Gemini is right; the strong core terms outweigh the routine scope restriction."
+  },
+  {
+    "row_num": 5373,
+    "label": "MEDIUM",
+    "reason": "A blanket prohibition on sublicensing with no exceptions for affiliates, subsidiaries, or standard business scenarios stated. This meaningfully limits the signing party's ability to leverage licensed IP through their corporate structure. Without seeing surrounding context, the absence of any carve-outs is concerning. Qwen's MEDIUM is correct; Gemini's HIGH overreaches for this fragment."
+  },
+  {
+    "row_num": 5374,
+    "label": "MEDIUM",
+    "reason": "Restriction is one-sided against the Provider with no 'not unreasonably withheld' qualifier \u2014 the Recipient has absolute discretion to deny consent. From the Provider's perspective this is restrictive; from the Recipient's it's protective. With both parties as the signing party and no NRW qualifier, Qwen's MEDIUM appropriately reflects the one-sided structure."
+  },
+  {
+    "row_num": 5375,
+    "label": "HIGH",
+    "reason": "Gemini is right. No party can transfer, pledge, or mortgage their JV interest without the other's consent \u2014 and no 'not unreasonably withheld' qualifier exists. This severely constrains financing options, exit flexibility, and M&A opportunities. The other partner can block any transaction arbitrarily with no obligation to act reasonably."
+  },
+  {
+    "row_num": 5376,
+    "label": "LOW",
+    "reason": "Adaptimmune (signing party) benefits from this clause \u2014 MD Anderson cannot subcontract key research responsibilities without Adaptimmune's prior written consent. Both models analyzed this from MD Anderson's perspective rather than Adaptimmune's. From Adaptimmune's perspective, this clause is protective and favorable: they control research quality."
+  },
+  {
+    "row_num": 5377,
+    "label": "MEDIUM",
+    "reason": "KI, Inc. can assign the agreement to any party without Diplomat's consent \u2014 only written notice is required. Diplomat (signing party) loses the right to vet or approve the new counterparty. Being bound to an unknown or potentially undesirable assignee in an endorsement context is a meaningful risk. Qwen is right."
+  },
+  {
+    "row_num": 5378,
+    "label": "LOW",
+    "reason": "From MICOA's perspective (the signing party), this clause is entirely protective \u2014 the Agency is restricted from assigning without MICOA's written permission. Both models incorrectly analyzed this from the Agency's perspective. MICOA retains control over who acts as their agent. Favorable for MICOA."
+  },
+  {
+    "row_num": 5379,
+    "label": "LOW",
+    "reason": "Anixa (signing party) retains prior written approval over OntoChem's subcontractors, with OntoChem remaining fully responsible for their performance. This protects Anixa's research oversight and quality control. Gemini correctly analyzes this from Anixa's perspective \u2014 a protective clause for the signing party."
+  },
+  {
+    "row_num": 5380,
+    "label": "LOW",
+    "reason": "Arizona (signing party) can assign to affiliates freely and can assign in connection with a business sale. The restriction that 'Buyer Entities' cannot assign Arizona Licensed Trademarks applies to the counterparty, not Arizona. Gemini is right: Arizona retains substantial flexibility. Qwen misattributes the trademark restriction to the signing party."
+  },
+  {
+    "row_num": 5381,
+    "label": "LOW",
+    "reason": "The 'not unreasonably withheld' qualifier is the critical balancing factor here \u2014 it prevents the Company from arbitrarily blocking the Contractor's legitimate assignment needs. Qwen is right that this is balanced and standard. Gemini's MEDIUM overstates the residual friction from a well-qualified consent requirement."
+  },
+  {
+    "row_num": 5382,
+    "label": "LOW",
+    "reason": "The restriction is on the Manufacturer, not on the Customer (signing party/AGAPE). From the Customer's perspective, this is protective \u2014 they retain control over who manufactures for them. Both Qwen and Gemini acknowledge this; Gemini's LOW correctly reflects the signing party's favorable position."
+  },
+  {
+    "row_num": 5383,
+    "label": "HIGH",
+    "reason": "Qwen is right. Despite a mutual consent rule as the general standard, APOLLO has a specific carve-out to assign unilaterally (text is truncated but the structural asymmetry is unmistakable). Establishment Labs faces the mutual restriction while APOLLO has a unilateral exception. The truncation prevents full assessment but the imbalance is clear and significant."
+  },
+  {
+    "row_num": 5384,
+    "label": "LOW",
+    "reason": "From Arconic's perspective as the licensor (signing party in this trademark license form), restricting the Licensee from assigning with a 'not unreasonably withheld' standard is protective. Arconic retains control over its trademark while providing the Licensee a reasonable path for legitimate business needs. Favorable for Arconic as licensor."
+  },
+  {
+    "row_num": 5385,
+    "label": "MEDIUM",
+    "reason": "This is a fragment voiding clause without the preceding substantive restriction. Risk cannot be fully assessed without the prior sentence defining what constitutes a violation. 'Void' as enforcement is standard. MEDIUM reflects appropriate uncertainty about whether the underlying restriction includes NRW or M&A exceptions. Qwen's MEDIUM is appropriate."
+  },
+  {
+    "row_num": 5386,
+    "label": "LOW",
+    "reason": "Gemini is right. The general mutual consent (NRW) protects both parties. AT&T's right to assign to affiliates without consent is offset by AT&T Mobility LLC remaining fully liable \u2014 Vendor's contractual recourse is preserved regardless of which AT&T entity performs. The liability retention is a meaningful and adequate protection."
+  },
+  {
+    "row_num": 5387,
+    "label": "HIGH",
+    "reason": "Qwen is right. ACSI can freely assign to merger entities, affiliates, and (per truncated clause (c)) broad transferees without Audible's consent. The signing party (Audible) has no reciprocal right and cannot vet or approve ACSI's assignee. This unilateral and unlimited assignment right creates significant counterparty risk."
+  },
+  {
+    "row_num": 5388,
+    "label": "LOW",
+    "reason": "The clause is mutual with well-drafted exceptions: either party may assign to affiliates, subsidiaries, parents, and business purchasers (with NRW consent for the latter). This provides adequate M&A and corporate flexibility for both parties symmetrically. Qwen is right that this is balanced and standard. Favorable for Premier."
+  },
+  {
+    "row_num": 5389,
+    "label": "LOW",
+    "reason": "Gemini is right. The mutual restriction includes explicit M&A carve-outs covering both operation-of-law and sale-of-substantially-all-assets scenarios \u2014 the most critical corporate situations requiring assignment flexibility. The absence of an explicit NRW for general assignments is a minor gap, but the M&A exceptions are adequate protection."
+  },
+  {
+    "row_num": 5390,
+    "label": "MEDIUM",
+    "reason": "Fragment enforcement clause only. 'Any assignment not in accordance with this Agreement shall be void' requires knowledge of the substantive restriction elsewhere in the agreement. Risk depends entirely on whether that restriction includes NRW and M&A exceptions. MEDIUM reflects the uncertainty. Gemini's HIGH is too strong for a standalone enforcement clause."
+  },
+  {
+    "row_num": 5391,
+    "label": "HIGH",
+    "reason": "Gemini is right. The restriction is entirely one-sided against the Distributor (signing party) \u2014 the Company faces no corresponding limitation. No 'not unreasonably withheld' qualifier, no exceptions for affiliates, M&A, or operation of law. The Company has absolute, unconstrained discretion to block any assignment, effectively locking the Distributor in indefinitely."
+  },
+  {
+    "row_num": 5392,
+    "label": "LOW",
+    "reason": "Mellon (signing party) IS the Agent in this Transfer Agent Services agreement. The asymmetric carve-outs benefit Mellon: Mellon can assign to affiliates without consent, and reorganizations/mergers are not deemed assignments at all. Gemini misidentifies which party is the Agent. With NRW for general cases and Agent-specific exceptions, this is favorable for Mellon."
+  },
+  {
+    "row_num": 5393,
+    "label": "LOW",
+    "reason": "Mutual consent with an exception for financially responsible affiliates \u2014 no approval needed for the most common corporate scenario. The absence of an explicit NRW qualifier for non-affiliate assignments is a minor theoretical gap, but the affiliate exception is practical and adequate. Gemini's LOW correctly assesses this as balanced and manageable."
+  },
+  {
+    "row_num": 5394,
+    "label": "LOW",
+    "reason": "Fully mutual with an explicit 'not unreasonably withheld' standard \u2014 the most balanced standard form of anti-assignment clause. Neither party can unreasonably block the other's assignment. Qwen is right. Gemini's MEDIUM overstates the residual friction from a well-qualified mutual consent requirement."
+  },
+  {
+    "row_num": 5395,
+    "label": "LOW",
+    "reason": "Mutual consent with 'not unreasonably withheld or delayed' \u2014 the 'not delayed' addition specifically prevents tactical delay tactics. Also explicitly covers subscriber account transfers. Qwen is right; this is a well-drafted, balanced clause with adequate protection for both parties. Gemini's MEDIUM overstates administrative friction."
+  },
+  {
+    "row_num": 5396,
+    "label": "MEDIUM",
+    "reason": "Gemini is right. Premier has a unilateral carve-out to assign in M&A events without the signing party's consent, while the general prohibition applies symmetrically. The signing party could find themselves with an unknown counterparty after a Premier acquisition without any approval right. Asymmetric M&A exception creates meaningful imbalance."
+  },
+  {
+    "row_num": 5397,
+    "label": "HIGH",
+    "reason": "Qwen is right. The restriction is entirely one-sided on Berkshire Bank (signing party) with no 'not unreasonably withheld' qualifier and no exceptions for M&A, affiliates, or restructuring. Auriemma has absolute veto power over Berkshire's assignments. For a financial institution, this severely constrains standard corporate transactions and gives the endorser undue leverage."
+  },
+  {
+    "row_num": 5398,
+    "label": "LOW",
+    "reason": "Gemini is right. Mutual consent requirement with a symmetrical M&A exception for both parties \u2014 either party can assign in a merger or sale of substantially all assets, provided the assignee agrees to be bound. This balanced flexibility for major corporate transactions makes this a low-risk, standard anti-assignment clause."
+  },
+  {
+    "row_num": 5399,
+    "label": "HIGH",
+    "reason": "Qwen is right. CERES can assign to any affiliated company without the Institute's (signing party's) consent, while the Institute needs CERES's consent for any assignment. The asymmetry is significant and one-sided: CERES could bring in affiliates with potentially different resources or interests at will. No reciprocal right for the signing party."
+  },
+  {
+    "row_num": 5400,
+    "label": "HIGH",
+    "reason": "Gemini is right. The dual consequence \u2014 void assignment AND immediate termination right \u2014 is disproportionately harsh. No NRW qualifier means any assignment attempt, even reasonable ones, can trigger contract termination. This gives the other party a powerful unilateral weapon to end the relationship on a pretext of a technical assignment violation."
+  },
+  {
+    "row_num": 5401,
+    "label": "MEDIUM",
+    "reason": "Fragment voiding clause without the preceding substantive consent requirement. Same analysis as row 5385 and 5390 \u2014 risk depends on the undisclosed consent standard. Void is standard enforcement. Gemini's HIGH overreaches for a standalone enforcement clause whose underlying restriction is unknown. MEDIUM appropriately reflects the uncertainty."
+  },
+  {
+    "row_num": 5402,
+    "label": "LOW",
+    "reason": "The restriction is on the Developer (counterparty), not on InfinixSoft (signing party/Client). InfinixSoft retains consent control over who performs services and holds contractual obligations. The Developer's separate right to assign payment receivables with notice only is standard and poses no risk to InfinixSoft's interests. Gemini is right."
+  },
+  {
+    "row_num": 5403,
+    "label": "LOW",
+    "reason": "The Licensor (counterparty) is prohibited from subcontracting or assigning services involving Personal Information without the Licensee's (signing party's) prior written consent. Gemini is right \u2014 this is strongly protective for the signing party's data privacy interests and gives them control over who handles their sensitive data."
+  }
+]
