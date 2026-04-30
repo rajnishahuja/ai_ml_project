@@ -1,0 +1,165 @@
+# Per-contract-type checklists of expected protections.
+#
+# The aggregator calls find_missing_protections(present_clause_types,
+# contract_type) which:
+#   1. Always applies the `universal` checklist.
+#   2. Adds the contract_type-specific checklist, if recognized.
+#   3. Returns one MissingProtection entry per item not present in
+#      present_clause_types.
+#
+# importance levels:
+#   critical   — its absence materially exposes the signing party
+#                (contributes to the missing-protection score boost)
+#   important  — its absence weakens negotiating position or recourse
+#                (also contributes to the score boost)
+#   standard   — common to include but not critical
+#                (does NOT contribute to the score boost)
+#
+# Score boost formula (per ARCHITECTURE.md): 0.5 × count of critical/important
+# missing entries.
+
+universal:
+  - clause_type: Indemnification
+    importance: critical
+    rationale: |
+      Without an indemnification clause the signing party has no contractual
+      mechanism to recover third-party-claim costs caused by the counterparty.
+      Default tort/contract law recovery is slower, narrower, and uncertain.
+  - clause_type: Cap On Liability
+    importance: critical
+    rationale: |
+      Absent a liability cap the signing party's exposure to consequential
+      and indirect damages is theoretically unlimited. Standard caps are
+      tied to fees paid in the prior 12 months.
+  - clause_type: Governing Law
+    importance: important
+    rationale: |
+      Without a stated governing law and venue, disputes default to whatever
+      jurisdiction a court decides applies — usually inconvenient or
+      unfavorable for at least one party.
+  - clause_type: Termination For Convenience
+    importance: important
+    rationale: |
+      Without a termination-for-convenience right, the signing party is
+      locked into the agreement until expiration absent a material breach.
+  - clause_type: Force Majeure
+    importance: standard
+    rationale: |
+      Force majeure protects both parties from liability for non-performance
+      caused by events beyond reasonable control. Its absence is unusual but
+      partially backstopped by common-law impossibility doctrine.
+
+# ---------------------------------------------------------------------------
+# Contract-type specific checklists (in addition to `universal`)
+# ---------------------------------------------------------------------------
+
+vendor:
+  - clause_type: Audit Rights
+    importance: important
+    rationale: |
+      Vendor agreements without audit rights leave the signing party unable
+      to verify usage-based fees, security commitments, or compliance
+      attestations independently.
+  - clause_type: Insurance
+    importance: important
+    rationale: |
+      Vendors should carry minimum levels of general/cyber/professional
+      liability insurance proportionate to the engagement; without it,
+      catastrophic losses fall back on the signing party.
+  - clause_type: Warranty Duration
+    importance: standard
+    rationale: |
+      A defined warranty period gives the signing party a clear remedy
+      window for defects. Default UCC implied warranties are narrower and
+      easier for vendors to disclaim.
+
+license:
+  - clause_type: License Grant
+    importance: critical
+    rationale: |
+      Without an explicit license grant the licensee has no legal right to
+      use the IP — possession of materials does not imply permission.
+  - clause_type: IP Ownership Assignment
+    importance: important
+    rationale: |
+      Clear IP ownership prevents downstream disputes when deliverables or
+      derivative works become valuable.
+  - clause_type: Source Code Escrow
+    importance: standard
+    rationale: |
+      For licensed software where business continuity depends on it, an
+      escrow protects the licensee if the licensor goes out of business
+      or stops supporting the product.
+
+employment:
+  - clause_type: Non-Compete
+    importance: standard
+    rationale: |
+      Employer-perspective: protects against immediate competition by
+      departing employees. Many jurisdictions limit enforceability — the
+      drafting must respect local law.
+  - clause_type: Non-Solicit Of Employees
+    importance: important
+    rationale: |
+      Without a non-solicit, departing executives can systematically
+      poach the signing-party's workforce post-departure.
+  - clause_type: IP Ownership Assignment
+    importance: critical
+    rationale: |
+      Work-for-hire assignment is essential — without it, employee-created
+      IP may default to the employee under copyright/patent law.
+
+distribution:
+  - clause_type: Exclusivity
+    importance: important
+    rationale: |
+      Defines whether the distributor is exclusive in a territory/segment.
+      Ambiguity here is a major source of post-signing disputes.
+  - clause_type: Minimum Commitment
+    importance: important
+    rationale: |
+      Sets purchase or sell-through floors that justify the exclusivity
+      grant. Absence undermines the supplier's revenue predictability.
+  - clause_type: Volume Restriction
+    importance: standard
+    rationale: |
+      Volume bounds clarify minimum and maximum purchase obligations.
+  - clause_type: Most Favored Nation
+    importance: standard
+    rationale: |
+      Distributors often request MFN to ensure they aren't undercut on
+      pricing. Suppliers should evaluate whether to grant it.
+
+services:
+  - clause_type: Audit Rights
+    importance: important
+    rationale: |
+      Services agreements with deliverable-based or usage-based fees
+      require audit rights for verification.
+  - clause_type: Insurance
+    importance: important
+    rationale: |
+      Service providers should carry professional liability ("E&O")
+      insurance proportionate to the engagement.
+  - clause_type: IP Ownership Assignment
+    importance: important
+    rationale: |
+      For consulting/professional services where deliverables are
+      created, who owns them must be explicit.
+  - clause_type: Post-Termination Services
+    importance: standard
+    rationale: |
+      Wind-down or transition services protect the signing party from
+      service disruption when the agreement ends.
+
+nda:
+  - clause_type: Governing Law
+    importance: critical
+    rationale: |
+      Without governing law, enforcement of confidentiality obligations
+      cross-border is uncertain.
+  - clause_type: Non-Solicit Of Employees
+    importance: standard
+    rationale: |
+      NDAs frequently include reciprocal employee non-solicits to prevent
+      one party from using disclosed personnel information.

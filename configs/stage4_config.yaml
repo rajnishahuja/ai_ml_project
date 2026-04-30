@@ -1,9 +1,69 @@
 # Stage 4: Report Generation
-explanation_model: google/flan-t5-base
+#
+# Stage 4 follows the hierarchical pattern: deterministic Python aggregation
+# (aggregator.py) → targeted Gemini Flash calls on structured findings
+# (explainer.py + pattern_deriver.py tier 2) → lookup-based recommendations
+# (recommender.py). The full contract text never reaches the LLM — see
+# ARCHITECTURE.md "Stage 4" rationale block.
 
-risk_thresholds:
-  high: 0.75
-  medium: 0.40
+# ---------------------------------------------------------------------------
+# LLM (Gemini Flash) — used by explainer.py + pattern_deriver.py tier 2.
+# All Gemini calls go through src/stage4_report_gen/llm_client.py.
+# Env-var override: GEMINI_MODEL replaces gemini.model at runtime.
+# ---------------------------------------------------------------------------
+gemini:
+  model: gemini-2.5-flash         # override via env var GEMINI_MODEL
+  rate_limit_rpm: 12              # below the ~15 RPM free-tier cap
+  max_retries: 3
+  retry_delays_sec: [2, 4, 8]     # exponential; jitter applied at runtime
+  cache_dir: .cache/gemini
 
-output_format: json
-max_explanation_length: 200
+# ---------------------------------------------------------------------------
+# Pattern deriver (pattern_deriver.py)
+# Tier 1 = regex/keyword classification of risk_explanation → controlled-vocab
+# code. Tier 2 = constrained-output Gemini call when tier 1 returns
+# unknown_pattern. Tier 2 is cheap to disable for evaluation runs or when
+# free-tier rate limits get tight.
+# Env-var override: STAGE4_PATTERN_DERIVE_USE_LLM ("true"/"false") replaces
+# pattern_deriver.use_llm_tier2 at runtime.
+# ---------------------------------------------------------------------------
+pattern_deriver:
+  use_llm_tier2: true             # override via env var STAGE4_PATTERN_DERIVE_USE_LLM
+
+# ---------------------------------------------------------------------------
+# Risk score formula (per ARCHITECTURE.md §"Stage 4 Output"):
+#   base_score = (HIGH×3 + MEDIUM×2 + LOW×1) / total × (10/3)
+#   missing_boost = 0.5 × number_of_missing_critical_or_important_protections
+#   final_score = min(base_score + missing_boost, cap)
+# ---------------------------------------------------------------------------
+risk_score:
+  high_weight: 3
+  medium_weight: 2
+  low_weight: 1
+  scale: 3.333333333              # (10/3) — base score normalization
+  missing_protection_boost_per: 0.5
+  cap: 10.0
+
+# ---------------------------------------------------------------------------
+# Aggregator behavior
+# ---------------------------------------------------------------------------
+aggregator:
+  similar_clauses_max_passthrough: 5     # cap on similar_clauses[] in each ClauseReport
+  contract_type_inference: true          # auto-detect contract_type if metadata absent
+
+# ---------------------------------------------------------------------------
+# Renderer behavior
+# ---------------------------------------------------------------------------
+renderers:
+  formats: [json, markdown, pdf, docx]   # produced by report_builder.generate_report
+  output_dir: output                     # where artifact files land (gitignored)
+  pdf:
+    high_color: "#C00000"
+    medium_color: "#E08300"
+    low_color: "#2E7D32"
+
+# ---------------------------------------------------------------------------
+# Evaluation (evaluate.py)
+# ---------------------------------------------------------------------------
+evaluate:
+  rouge_metrics: [rouge1, rouge2, rougeL]

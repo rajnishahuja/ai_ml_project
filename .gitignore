@@ -106,5 +106,14 @@ temp/
 *.tmp
 refrences.txt
 
+# ============================================================
+# Stage 4 — runtime caches and generated reports
+# .cache/   : on-disk SHA-256-keyed Gemini response cache
+# output/   : generated contract reports (JSON/Markdown/PDF/DOCX)
+# ============================================================
+.cache/
+output/*
+!output/.gitkeep
+
 # Instructions 
 .github/

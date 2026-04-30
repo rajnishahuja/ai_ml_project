@@ -31,11 +31,13 @@ Contract PDF/Text
               ▼
 ┌─────────────────────────────┐
 │  Stage 4: Report Generation │  Python aggregation code
-│  Hybrid: code + LLM        │  FLAN-T5-base (explanations)
+│  Hybrid: code + LLM        │  Gemini 2.5 Flash (explanations + executive summary)
 │  Output: structured risk    │  Lookup table (recommendations)
 │          report             │
 └─────────────────────────────┘
 ```
+
+> **Stage 4 design decisions** are recorded in `docs/STAGE4_DECISION_LOG.md` (append-only). The session-resume snapshot lives at `docs/STAGE4_RESUME_HANDOFF.md`.
 
 ## Stage 3 Architecture — Hybrid Confidence-Gated (Decided 2026-04-23)
 
@@ -530,11 +532,25 @@ AIML_project/
 │   │   └── evaluate.py          ← Risk detection metrics + ablation
 │   └── stage4_report_gen/
 │       ├── __init__.py
-│       ├── aggregator.py        ← Deterministic grouping, scoring, missing-clause detection
-│       ├── explainer.py         ← FLAN-T5 / LLM explanation generation
-│       ├── recommender.py       ← Lookup table + optional LLM recommendations
-│       ├── report_builder.py    ← Assembles final report from 3 sub-tasks
-│       └── evaluate.py          ← ROUGE + optional human eval
+│       ├── aggregator.py            ← Alias-normalize, derive risk_pattern, bucket, ScoreBreakdown, missing-protection detection, contract-type inference
+│       ├── explainer.py             ← Gemini 2.5 Flash — per-clause polish + executive summary (only module that imports llm_client)
+│       ├── recommender.py           ← Lookup table — recommendations_data.yaml keyed by (canonical_clause_type, risk_pattern)
+│       ├── report_builder.py        ← Orchestrator: validate → aggregate → recommend → explain → render
+│       ├── evaluate.py              ← ROUGE + structural completeness on ContractReport
+│       ├── llm_client.py            ← Gemini wrapper — the ONLY module that calls Gemini (cache + rate limiter + soft-fail)
+│       ├── rate_limiter.py          ← Token bucket (12 RPM) + exponential backoff on 429
+│       ├── cache.py                 ← SHA-256-keyed disk cache under .cache/gemini/
+│       ├── pattern_deriver.py       ← Tier-1 regex → controlled-vocab pattern code; tier-2 LLM fallback (cached, gated)
+│       ├── nodes.py                 ← Thin LangGraph adapter → report_builder.generate_report
+│       ├── recommendations_data.yaml  ← (canonical_clause_type, risk_pattern) → Recommendation lookup
+│       ├── missing_protections.yaml   ← Per-contract-type checklist of expected protections
+│       ├── clause_type_aliases.yaml   ← Stage 3 free-form label → canonical CUAD type
+│       └── renderers/
+│           ├── __init__.py
+│           ├── json_renderer.py      ← ContractReport → JSON
+│           ├── markdown_renderer.py  ← ContractReport → Markdown
+│           ├── pdf_renderer.py       ← ContractReport → PDF (reportlab)
+│           └── docx_renderer.py     ← ContractReport → DOCX (python-docx)
 ├── data/
 │   ├── raw/                     ← Downloaded CUAD dataset files
 │   ├── processed/               ← Preprocessed data; `all_positive_spans.json` (6,702 spans)
@@ -663,7 +679,7 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
       "extraction": "microsoft/deberta-base",
       "risk_classification": "models/stage3_risk_deberta",
       "explanation": "mistralai/Mistral-7B-Instruct-v0.3",
-      "report_explanation": "google/flan-t5-base"
+      "report_explanation": "gemini-2.5-flash"
     }
   }
 }
@@ -677,7 +693,7 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
 | DeBERTa-v3-base | 3 | `microsoft/deberta-v3-base` | Risk classification (fine-tuned on merged labels from `master_label_review.csv` — 3,048 hard + 1,327 soft). Chose v3 over base: ELECTRA-style pretraining → stronger downstream performance, same VRAM; SentencePiece 128k vocab is more efficient on legal text (p99 292 tokens vs 358 with base). | ~2 GB (train ~8 GB) |
 | Mistral-7B-Instruct | 3 | `mistralai/Mistral-7B-Instruct-v0.3` | Risk explanation (high-conf path) + reasoning agent with tools (low-conf path), 4-bit quantized | ~5 GB |
 | all-MiniLM-L6-v2 | 3 | `sentence-transformers/all-MiniLM-L6-v2` | Clause embeddings for FAISS | ~0.5 GB |
-| FLAN-T5-base | 4 | `google/flan-t5-base` | Report explanation generation | ~1 GB |
+| Gemini 2.5 Flash | 4 | `gemini-2.5-flash` (Google API, free tier, JSON mode) | Per-clause polished explanations + executive summary digest. Only LLM in Stage 4; all calls go through `src/stage4_report_gen/llm_client.py` (SHA-256 disk cache + 12 RPM token bucket + 3-retry soft-fail). | API |
 | Qwen-30B (non-reasoning) | 3 (data prep, done) | `mavenir-generic1-30b-q4_k_xl` (local llama-server on A100, temp=0) | Primary labeler — 4,410 risk-relevant spans | ~20 GB (4-bit) |
 | Gemini 2.5 Flash | 3 (data prep, done) | `gemini-2.5-flash` (Google API, JSON mode, temp=0) | Primary labeler — 4,410 risk-relevant spans (independent of Qwen) | API |
 | Gemini 2.5 Pro | 3 (data prep, done) | `gemini-2.5-pro` (Google API) | Boundary-disagreement tiebreaker — 87 focus-type MEDIUM↔HIGH / LOW↔MEDIUM cases | API |
@@ -772,12 +788,44 @@ raw_label_passes:
 
 ### `configs/stage4_config.yaml`
 ```yaml
-explanation_model: google/flan-t5-base
-risk_thresholds:
-  high: 0.75
-  medium: 0.40
-output_format: json
-max_explanation_length: 200
+# All Gemini calls go through src/stage4_report_gen/llm_client.py.
+gemini:
+  model: gemini-2.5-flash         # override via env var GEMINI_MODEL
+  rate_limit_rpm: 12              # below the ~15 RPM free-tier cap
+  max_retries: 3
+  retry_delays_sec: [2, 4, 8]
+  cache_dir: .cache/gemini
+
+# Tier-2 LLM fallback when tier-1 regex returns unknown_pattern.
+pattern_deriver:
+  use_llm_tier2: true             # override via env var STAGE4_PATTERN_DERIVE_USE_LLM
+
+# Risk score formula:
+#   base_score    = (HIGH×3 + MEDIUM×2 + LOW×1) / total × (10/3)
+#   missing_boost = 0.5 × number_of_missing_critical_or_important_protections
+#   final_score   = min(base_score + missing_boost, cap)
+risk_score:
+  high_weight: 3
+  medium_weight: 2
+  low_weight: 1
+  scale: 3.333333333              # (10/3)
+  missing_protection_boost_per: 0.5
+  cap: 10.0
+
+aggregator:
+  similar_clauses_max_passthrough: 5
+  contract_type_inference: true   # auto-detect when metadata absent
+
+renderers:
+  formats: [json, markdown, pdf, docx]
+  output_dir: output              # output/<document_id>/<document_id>.{json,md,pdf,docx}
+  pdf:
+    high_color: "#C00000"
+    medium_color: "#E08300"
+    low_color: "#2E7D32"
+
+evaluate:
+  rouge_metrics: [rouge1, rouge2, rougeL]
 ```
 
 ## Known Issues & Limitations

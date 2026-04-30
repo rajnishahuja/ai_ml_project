@@ -1,0 +1,358 @@
+# Curated remediation lookup for HIGH/MEDIUM clauses.
+#
+# The recommender consults this file for every HIGH or MEDIUM ClauseReport
+# using a four-tier match:
+#
+#   1. exact       — entries[(canonical_clause_type, risk_pattern)]
+#   2. type        — entries[(canonical_clause_type, "*")]
+#   3. risk_level  — generic.HIGH or generic.MEDIUM
+#   4. universal   — generic.UNIVERSAL fallback
+#
+# The recommender records which tier matched in Recommendation.match_level
+# so we can track lookup-table coverage over time.
+#
+# Each entry has:
+#   recommendation     — concrete action the signing party should take
+#   market_standard    — what the typical balanced position looks like
+#   fallback_position  — minimum acceptable compromise if the counterparty
+#                        refuses the primary recommendation
+#   priority           — HIGH / MEDIUM / LOW / negotiable
+
+# ---------------------------------------------------------------------------
+# (canonical_clause_type, risk_pattern) — specific entries
+# ---------------------------------------------------------------------------
+entries:
+
+  # --- Anti-Assignment ---------------------------------------------------
+  - clause_type: Anti-Assignment
+    risk_pattern: assignment_restricted_only_for_signing_party
+    recommendation: |
+      Add reciprocity: assignment must require consent from BOTH parties,
+      not just the counterparty.
+    market_standard: |
+      Mutual: neither party may assign without prior written consent of the
+      other; consent not to be unreasonably withheld; permitted assignments
+      to affiliates or in connection with M&A typically excepted.
+    fallback_position: |
+      If counterparty insists on a one-way restriction, narrow it: allow
+      assignment to affiliates and to acquirers in M&A without consent.
+    priority: HIGH
+
+  - clause_type: Anti-Assignment
+    risk_pattern: auto_assignment_to_counterparty_affiliates
+    recommendation: |
+      Remove the automatic assignment-to-affiliates carve-out for the
+      counterparty, or make it mutual. Otherwise the contract can be
+      transferred to a competitor or unstable affiliate without notice.
+    market_standard: |
+      Affiliate carve-outs should be reciprocal, with notice to the other
+      party and a definition of "affiliate" tied to majority control.
+    fallback_position: |
+      Require written notice within 30 days of any assignment to an
+      affiliate; reserve termination right if assigned to a direct
+      competitor.
+    priority: HIGH
+
+  # --- Change of Control -------------------------------------------------
+  - clause_type: Change of Control
+    risk_pattern: change_of_control_termination_against_signing_party
+    recommendation: |
+      Negotiate the trigger to "material change in beneficial ownership"
+      (>50%) rather than any change, and add a cure period before
+      counterparty can terminate.
+    market_standard: |
+      CoC clauses trigger only on a >50% beneficial-ownership change AND
+      where the acquirer is a direct competitor of the counterparty;
+      30-60 day notice and cure window.
+    fallback_position: |
+      Carve out internal restructurings, IPO transactions, and same-group
+      reorganizations from the trigger.
+    priority: HIGH
+
+  # --- Liquidated Damages ------------------------------------------------
+  - clause_type: Liquidated Damages
+    risk_pattern: uncapped_financial_exposure
+    recommendation: |
+      Either remove liquidated damages and replace with actual-damages
+      recovery, or cap the LDs at a reasonable percentage of fees paid in
+      the prior 12 months.
+    market_standard: |
+      LDs are reasonable estimates of probable damages, capped at 10–25%
+      of contract value, and apply only to specific named breaches.
+    fallback_position: |
+      Insist on a stated cap (typically 12-month-fees) and a sole-remedy
+      clause so LDs are exclusive of actual damages.
+    priority: HIGH
+
+  # --- Cap On Liability --------------------------------------------------
+  - clause_type: Cap On Liability
+    risk_pattern: one_sided_against_signing_party
+    recommendation: |
+      Make the liability cap mutual. A one-sided cap that protects only
+      the counterparty leaves the signing party exposed.
+    market_standard: |
+      Mutual cap, typically 12 months of fees paid (or to be paid) under
+      the agreement; carve-outs for IP infringement, confidentiality
+      breach, and gross negligence/willful misconduct.
+    fallback_position: |
+      Accept counterparty's cap structure but mirror it for the signing
+      party's liability and add the standard carve-outs.
+    priority: HIGH
+
+  # --- Most Favored Nation -----------------------------------------------
+  - clause_type: Most Favored Nation
+    risk_pattern: mfn_against_signing_party
+    recommendation: |
+      Either remove the MFN obligation against the signing party or scope
+      it tightly: same-product/same-volume customer set, with explicit
+      exclusions for strategic deals, pilots, and bundled offerings.
+    market_standard: |
+      MFNs scoped to a defined customer cohort with apples-to-apples
+      product/volume terms; reciprocal disclosure obligations to verify.
+    fallback_position: |
+      Accept MFN only if customer base for comparison is named/closed,
+      with a sunset date (12-24 months) and no audit-on-demand right.
+    priority: HIGH
+
+  # --- Non-Compete -------------------------------------------------------
+  - clause_type: Non-Compete
+    risk_pattern: non_compete_broad_and_long
+    recommendation: |
+      Narrow the non-compete: limit duration (≤12 months post-term),
+      geography (specific named territories), and scope (specific
+      competing products/services, not the signing party's whole
+      business).
+    market_standard: |
+      6–12 months post-term, specific named competitors or product
+      categories, narrow geography. Some jurisdictions (e.g., California)
+      void overly-broad non-competes entirely.
+    fallback_position: |
+      If counterparty insists on broad scope, push for shorter duration
+      (3–6 months) and add a "good leaver" carve-out.
+    priority: HIGH
+
+  # --- Non-Disparagement -------------------------------------------------
+  - clause_type: Non-Disparagement
+    risk_pattern: non_disparagement_perpetual_one_sided
+    recommendation: |
+      Make the non-disparagement clause mutual and time-limited. Add
+      explicit carve-outs for: factual statements made under oath,
+      regulatory filings, and statements required by law.
+    market_standard: |
+      Mutual obligation, 2–5 year duration, with carve-outs for legal
+      compliance and truthful public statements.
+    fallback_position: |
+      Accept perpetual scope only with broad carve-outs for legal
+      compliance, regulatory filings, and good-faith competitor reviews.
+    priority: MEDIUM
+
+  # --- Renewal Term ------------------------------------------------------
+  - clause_type: Renewal Term
+    risk_pattern: automatic_renewal_short_notice
+    recommendation: |
+      Extend the notice-to-non-renew window to at least 60 days and add
+      a calendar reminder obligation on the counterparty (e.g., 90 days
+      before renewal date the counterparty must email a renewal notice).
+    market_standard: |
+      Auto-renewal is acceptable with 60–90 days notice-to-non-renew and
+      a counterparty obligation to send a pre-renewal reminder.
+    fallback_position: |
+      If 30-day notice cannot be extended, insist on the pre-renewal
+      reminder obligation as a procedural safeguard.
+    priority: MEDIUM
+
+  - clause_type: Renewal Term
+    risk_pattern: unilateral_renewal_right_counterparty
+    recommendation: |
+      Replace the unilateral renewal right with a mutual renewal
+      requirement (both parties must affirmatively agree to renew) or
+      remove the auto-renewal entirely.
+    market_standard: |
+      Either mutual renewal-by-agreement or auto-renewal with reasonable
+      notice; never unilateral counterparty option.
+    fallback_position: |
+      If unilateral right cannot be removed, cap the number of renewals
+      (e.g., max 2) and impose a renewal-pricing limit.
+    priority: HIGH
+
+  # --- Irrevocable / Perpetual License ----------------------------------
+  - clause_type: Irrevocable Or Perpetual License
+    risk_pattern: perpetual_irrevocable_grant_to_counterparty
+    recommendation: |
+      Replace "perpetual and irrevocable" with a defined term (e.g., 5
+      years) plus revocation rights for material breach, insolvency, or
+      change of control of the licensee.
+    market_standard: |
+      Term-limited licenses with renewal/termination rights; perpetual
+      grants are accepted only with material consideration upfront and
+      breach-revocation clauses.
+    fallback_position: |
+      If perpetual cannot be removed, carve out termination rights for:
+      payment default, IP misuse, breach of confidentiality.
+    priority: HIGH
+
+  # --- Audit Rights ------------------------------------------------------
+  - clause_type: Audit Rights
+    risk_pattern: audit_rights_excessive_against_signing_party
+    recommendation: |
+      Limit audit frequency (e.g., ≤1 per 12 months absent cause), require
+      30 days advance written notice, restrict to records directly
+      relevant to fees/compliance, and require audits to be conducted by
+      independent third-party auditors.
+    market_standard: |
+      One audit per 12 months, 30 days notice, conducted by mutually
+      acceptable auditor, paid by the auditing party unless overpayment
+      >5% is found.
+    fallback_position: |
+      Accept higher frequency only with stronger procedural protections
+      (longer notice, scope limits, cost-shifting threshold).
+    priority: MEDIUM
+
+  # --- Governing Law -----------------------------------------------------
+  - clause_type: Governing Law
+    risk_pattern: governing_law_unfavorable_jurisdiction
+    recommendation: |
+      Negotiate to a neutral jurisdiction (e.g., Delaware/New York for
+      U.S. deals; English law for cross-border deals) or apply the law
+      of the signing party's principal place of business.
+    market_standard: |
+      Neutral or signing-party jurisdiction; for international deals,
+      English or New York law with arbitration via ICC/AAA/JAMS.
+    fallback_position: |
+      If the counterparty's home jurisdiction must apply, insist on
+      arbitration in a neutral seat (e.g., Singapore, London).
+    priority: MEDIUM
+
+  # --- Termination For Convenience --------------------------------------
+  - clause_type: Termination For Convenience
+    risk_pattern: one_sided_against_signing_party
+    recommendation: |
+      Make the termination-for-convenience right mutual. If only the
+      counterparty has the right, the signing party has no exit option
+      and is locked in.
+    market_standard: |
+      Mutual termination-for-convenience with 30–90 day notice; in
+      services agreements, often paired with kill-fee or wind-down
+      payment for the disadvantaged party.
+    fallback_position: |
+      Accept counterparty-only convenience termination only if signing
+      party has equivalent termination-for-cause rights with a broad
+      definition of "cause".
+    priority: HIGH
+
+  # --- Confidentiality ---------------------------------------------------
+  - clause_type: Indemnification
+    risk_pattern: one_sided_against_signing_party
+    recommendation: |
+      Convert one-sided indemnification to mutual. The signing party
+      should not be the only one indemnifying for third-party claims.
+    market_standard: |
+      Mutual indemnification for third-party claims arising from the
+      indemnifying party's gross negligence, willful misconduct, or
+      IP infringement; capped at the liability cap (with carve-outs).
+    fallback_position: |
+      If mutual cannot be achieved, scope the indemnification narrowly
+      (specific named claim types, with sole-control-of-defense and
+      cooperation requirements).
+    priority: HIGH
+
+  # --- Volume Restriction (catch tight volume floors) -------------------
+  - clause_type: Volume Restriction
+    risk_pattern: missing_carveouts
+    recommendation: |
+      Add force-majeure and material-adverse-change carve-outs to volume
+      commitments so unforeseen events don't trigger automatic breach.
+    market_standard: |
+      Volume commitments include FM carve-outs, MAC clauses, and a
+      good-faith renegotiation obligation if conditions materially shift.
+    fallback_position: |
+      Accept the volume floor but negotiate a one-time waiver right per
+      contract year for documented business hardship.
+    priority: MEDIUM
+
+# ---------------------------------------------------------------------------
+# Type-only fallbacks — match when (clause_type, "*") is the best we have
+# ---------------------------------------------------------------------------
+type_fallbacks:
+  Indemnification:
+    recommendation: |
+      Have legal counsel review this indemnification provision against
+      market standard before signing. Mutual scope, defined claim
+      categories, and a cap-tie are the key checkpoints.
+    market_standard: |
+      Mutual indemnification for IP infringement and third-party claims,
+      capped at the liability cap with standard carve-outs.
+    fallback_position: |
+      Narrow to specific named claim types if the counterparty refuses
+      mutual scope.
+    priority: HIGH
+
+  Cap On Liability:
+    recommendation: |
+      Confirm the cap is mutual, that consequential damages are excluded
+      both ways, and that carve-outs (IP, confidentiality, gross
+      negligence) are present.
+    market_standard: |
+      Mutual cap at 12 months of fees; consequential damages excluded
+      both ways; carve-outs for IP, confidentiality, gross negligence,
+      willful misconduct.
+    fallback_position: |
+      If cap cannot be made mutual, get equivalent treatment for the
+      signing party's most likely sources of liability.
+    priority: HIGH
+
+  Non-Compete:
+    recommendation: |
+      Verify the non-compete duration, geography, and scope are narrowly
+      tailored. Check enforceability under the governing-law jurisdiction.
+    market_standard: |
+      6–12 months, specific competitors or product categories, narrow
+      geographic scope; some jurisdictions void overly broad non-competes.
+    fallback_position: |
+      If scope cannot be narrowed, push for shorter duration.
+    priority: MEDIUM
+
+# ---------------------------------------------------------------------------
+# Generic fallbacks — by risk level
+# ---------------------------------------------------------------------------
+generic:
+  HIGH:
+    recommendation: |
+      This clause has been flagged as HIGH risk by Stage 3. Have legal
+      counsel review the specific language against market standard
+      before signing. Common HIGH-risk patterns are one-sided obligations,
+      uncapped exposure, and perpetual/irrevocable grants — confirm
+      none of these apply, or negotiate the relevant carve-outs.
+    market_standard: |
+      Mutual obligations, capped exposure, defined termination rights,
+      and explicit carve-outs for the most common risk vectors.
+    fallback_position: |
+      If the clause cannot be substantively renegotiated, document the
+      risk in writing and obtain executive sign-off before proceeding.
+    priority: HIGH
+
+  MEDIUM:
+    recommendation: |
+      Review this clause with legal counsel. While not a critical risk,
+      it weakens the signing party's position relative to market standard
+      and should be improved if the counterparty is willing.
+    market_standard: |
+      Balanced obligations with reasonable notice periods, mutual
+      carve-outs, and clear definitions.
+    fallback_position: |
+      Acceptable as-is if a higher-priority concession is obtained
+      elsewhere in the agreement.
+    priority: MEDIUM
+
+  UNIVERSAL:
+    recommendation: |
+      Have legal counsel review this clause. Stage 3 flagged it as risky
+      but the specific pattern is not in the curated lookup — manual
+      review is the appropriate response.
+    market_standard: |
+      Refer to industry-standard templates for this clause type
+      (e.g., AIPLA/Practical Law) for benchmark language.
+    fallback_position: |
+      Document the deviation from market standard in a risk register
+      before signing.
+    priority: MEDIUM

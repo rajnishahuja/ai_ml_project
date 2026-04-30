@@ -1,0 +1,194 @@
+# Stage 3 free-form clause label → canonical CUAD type.
+#
+# Stage 3 emits clause_type strings that are mostly aligned with the 41 CUAD
+# categories but vary in spacing, casing, and abbreviation. This file is the
+# normalization table the aggregator consults before grouping / pattern
+# derivation / recommendation lookup.
+#
+# Canonical types are listed as identity entries so a normalize() lookup
+# always succeeds. Lookups are case-insensitive and ignore leading/trailing
+# whitespace; the aggregator handles that — store keys here in their natural
+# form for readability.
+#
+# Conventions:
+#   - Canonical names use Title Case with hyphenation matching CUAD's own
+#     usage (e.g. "Anti-Assignment", "Cap On Liability", "Most Favored Nation").
+#   - The 5 metadata types (Document Name, Parties, Agreement Date,
+#     Effective Date, Expiration Date) are NOT risk-classified — they route
+#     to the report header. They appear here so the aggregator can recognize
+#     and skip them cleanly.
+
+# ---------------------------------------------------------------------------
+# Canonical (identity) entries — risk-relevant
+# ---------------------------------------------------------------------------
+Indemnification: Indemnification
+Anti-Assignment: Anti-Assignment
+Change of Control: Change of Control
+Liquidated Damages: Liquidated Damages
+Cap On Liability: Cap On Liability
+Uncapped Liability: Uncapped Liability
+Most Favored Nation: Most Favored Nation
+Non-Compete: Non-Compete
+Non-Disparagement: Non-Disparagement
+Non-Solicit Of Customers: Non-Solicit Of Customers
+Non-Solicit Of Employees: Non-Solicit Of Employees
+Renewal Term: Renewal Term
+Notice Period To Terminate Renewal: Notice Period To Terminate Renewal
+Irrevocable Or Perpetual License: Irrevocable Or Perpetual License
+License Grant: License Grant
+Non-Transferable License: Non-Transferable License
+Affiliate License-Licensee: Affiliate License-Licensee
+Affiliate License-Licensor: Affiliate License-Licensor
+Audit Rights: Audit Rights
+Governing Law: Governing Law
+Termination For Convenience: Termination For Convenience
+Insurance: Insurance
+Volume Restriction: Volume Restriction
+Minimum Commitment: Minimum Commitment
+Post-Termination Services: Post-Termination Services
+Source Code Escrow: Source Code Escrow
+Warranty Duration: Warranty Duration
+Joint IP Ownership: Joint IP Ownership
+IP Ownership Assignment: IP Ownership Assignment
+ROFR/ROFO/ROFN: ROFR/ROFO/ROFN
+Exclusivity: Exclusivity
+Revenue/Profit Sharing: Revenue/Profit Sharing
+Price Restrictions: Price Restrictions
+Competitive Restriction Exception: Competitive Restriction Exception
+Third Party Beneficiary: Third Party Beneficiary
+Force Majeure: Force Majeure
+
+# ---------------------------------------------------------------------------
+# Canonical (identity) entries — metadata (route to header, not risk)
+# ---------------------------------------------------------------------------
+Document Name: Document Name
+Parties: Parties
+Agreement Date: Agreement Date
+Effective Date: Effective Date
+Expiration Date: Expiration Date
+
+# ---------------------------------------------------------------------------
+# Aliases — common Stage 3 / free-form variants
+# ---------------------------------------------------------------------------
+
+# Indemnification
+Indemnity: Indemnification
+Indemnify: Indemnification
+Hold Harmless: Indemnification
+
+# Liability
+Limitation of Liability: Cap On Liability
+Limitation Of Liability: Cap On Liability
+Liability Cap: Cap On Liability
+Cap on Liability: Cap On Liability
+Liability Limit: Cap On Liability
+Unlimited Liability: Uncapped Liability
+No Cap on Liability: Uncapped Liability
+
+# Assignment
+Anti Assignment: Anti-Assignment
+Anti-assignment: Anti-Assignment
+Assignment: Anti-Assignment
+Assignment Restriction: Anti-Assignment
+No Assignment: Anti-Assignment
+
+# Change of Control
+CoC: Change of Control
+Change-of-Control: Change of Control
+Change in Control: Change of Control
+
+# MFN
+MFN: Most Favored Nation
+Most-Favored-Nation: Most Favored Nation
+Most Favored Customer: Most Favored Nation
+Most Favoured Nation: Most Favored Nation
+
+# Non-Compete / Non-Solicit / Non-Disparagement
+Noncompete: Non-Compete
+Non Compete: Non-Compete
+Covenant Not To Compete: Non-Compete
+Restrictive Covenant: Non-Compete
+Nondisparagement: Non-Disparagement
+Non Disparagement: Non-Disparagement
+No-Solicit Of Employees: Non-Solicit Of Employees
+No Solicit Employees: Non-Solicit Of Employees
+Non-Solicitation: Non-Solicit Of Employees
+Non Solicit Of Customers: Non-Solicit Of Customers
+
+# Renewal
+Auto-Renewal: Renewal Term
+Auto Renewal: Renewal Term
+Automatic Renewal: Renewal Term
+Renewal: Renewal Term
+Term Renewal: Renewal Term
+Notice to Terminate: Notice Period To Terminate Renewal
+Termination Notice: Notice Period To Terminate Renewal
+
+# License
+Perpetual License: Irrevocable Or Perpetual License
+Irrevocable License: Irrevocable Or Perpetual License
+Perpetual Or Irrevocable License: Irrevocable Or Perpetual License
+Affiliate License - Licensee: Affiliate License-Licensee
+Affiliate License - Licensor: Affiliate License-Licensor
+Affiliate Licensee: Affiliate License-Licensee
+Affiliate Licensor: Affiliate License-Licensor
+License: License Grant
+Grant of License: License Grant
+Grant: License Grant
+Non Transferable License: Non-Transferable License
+Nontransferable License: Non-Transferable License
+
+# Audit / Governing Law
+Audit: Audit Rights
+Right To Audit: Audit Rights
+Inspection Rights: Audit Rights
+Choice of Law: Governing Law
+Governing-Law: Governing Law
+Jurisdiction: Governing Law
+Venue: Governing Law
+
+# Termination
+Termination: Termination For Convenience
+Termination at Will: Termination For Convenience
+Termination Without Cause: Termination For Convenience
+Termination for Convenience: Termination For Convenience
+
+# Liquidated damages
+LDs: Liquidated Damages
+Liquidated-Damages: Liquidated Damages
+
+# Insurance
+Insurance Requirements: Insurance
+Required Insurance: Insurance
+
+# IP
+IP Assignment: IP Ownership Assignment
+IP Ownership: IP Ownership Assignment
+Work for Hire: IP Ownership Assignment
+Assignment of IP: IP Ownership Assignment
+Joint IP: Joint IP Ownership
+
+# ROFR
+ROFR: ROFR/ROFO/ROFN
+ROFO: ROFR/ROFO/ROFN
+ROFN: ROFR/ROFO/ROFN
+Right of First Refusal: ROFR/ROFO/ROFN
+Right of First Offer: ROFR/ROFO/ROFN
+Right of First Negotiation: ROFR/ROFO/ROFN
+
+# Other
+Force-Majeure: Force Majeure
+Acts of God: Force Majeure
+Volume Limit: Volume Restriction
+Volume Limits: Volume Restriction
+Minimum Purchase: Minimum Commitment
+Minimum Order: Minimum Commitment
+Source Code Deposit: Source Code Escrow
+Escrow: Source Code Escrow
+Exclusive Dealing: Exclusivity
+Exclusive: Exclusivity
+Revenue Share: Revenue/Profit Sharing
+Profit Share: Revenue/Profit Sharing
+Price Cap: Price Restrictions
+Pricing: Price Restrictions
+Price Restriction: Price Restrictions
