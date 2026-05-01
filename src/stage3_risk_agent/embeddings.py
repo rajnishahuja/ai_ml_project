@@ -1,125 +1,139 @@
-import os
+"""
+Clause embeddings — FAISS index builder and query interface.
+
+Two public functions:
+  build_index()   — offline, called once by scripts/build_faiss_index.py
+  query_index()   — runtime, called by tools.py precedent_search
+
+Index type: IndexFlatIP over L2-normalised vectors = exact cosine similarity.
+At 4,276 vectors this is microseconds per query — no ANN approximation needed.
+
+Metadata is stored as a parallel JSON array (data/faiss_index/clauses_meta.json).
+Position i in the JSON corresponds to vector i in the FAISS index.
+"""
+
+import json
 import logging
 from pathlib import Path
-from dotenv import load_dotenv
 
-from langchain_ollama import OllamaEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.documents import Document
+import faiss
+import numpy as np
+from sentence_transformers import SentenceTransformer
 
-load_dotenv()
+from src.common.schema import SimilarClause
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-OLLAMA_HOST = os.getenv("OLLAMA_HOST")
-OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL")
+MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+EMBEDDING_DIM = 384
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-FAISS_INDEX_DIR = BASE_DIR / "data" / "faiss_index"
-
-
-def get_embeddings_model():
-    """Returns the globally configured Ollama embeddings client."""
-    return OllamaEmbeddings(
-        base_url=OLLAMA_HOST,
-        model=OLLAMA_EMBED_MODEL,
-    )
+# Lazy-loaded singleton — model is 87 MB, load once on first query_index() call.
+_model: SentenceTransformer | None = None
 
 
-def embed_and_store(contract_text: str, document_id: str) -> str:
+def _get_model() -> SentenceTransformer:
+    global _model
+    if _model is None:
+        logger.info("Loading embedding model: %s", MODEL_NAME)
+        _model = SentenceTransformer(MODEL_NAME)
+    return _model
+
+
+def _meta_path(index_path: str) -> Path:
+    return Path(index_path).with_suffix(".json")
+
+
+# ---------------------------------------------------------------------------
+# Build (offline, run once)
+# ---------------------------------------------------------------------------
+
+def build_index(training_data_path: str, index_path: str) -> None:
+    """Embed all labeled clauses from training_dataset.json and write FAISS index.
+
+    Skips rows with label=None (99 unresolved soft-label rows).
+    Writes two files:
+      <index_path>          — FAISS IndexFlatIP binary
+      <index_path>.json     — parallel metadata array
+
+    Args:
+        training_data_path: Path to data/processed/training_dataset.json.
+        index_path: Destination path for the FAISS index file.
     """
-    Takes raw contract text, splits it into digestible chunks,
-    embeds them synchronously through local Ollama, and merges them into the local FAISS DB.
-    """
-    FAISS_INDEX_DIR.mkdir(parents=True, exist_ok=True)
-    index_path = str(FAISS_INDEX_DIR / "legal_contracts_index")
+    logger.info("Loading training data from %s", training_data_path)
+    with open(training_data_path) as f:
+        rows = json.load(f)
 
-    logger.info(f"Chunking document {document_id}")
+    # Drop rows with no resolved label
+    skipped = sum(1 for r in rows if r.get("label") is None)
+    rows = [r for r in rows if r.get("label") is not None]
+    logger.info("Indexing %d clauses (skipped %d None-label rows)", len(rows), skipped)
 
-    # 1. Chunking logic specifically targeting legal syntax density
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000, chunk_overlap=200, separators=["\n\n", "\n", " ", ""]
-    )
-
-    chunks = text_splitter.split_text(contract_text)
-
-    # Bundle raw strings into proper Document DTOs representing state metadata
-    docs = [
-        Document(page_content=c, metadata={"document_id": document_id, "chunk_id": i})
-        for i, c in enumerate(chunks)
+    texts = [r["clause_text"] for r in rows]
+    metadata = [
+        {
+            "clause_text": r["clause_text"],
+            "clause_type": r["clause_type"],
+            "risk_level":  r["label"],
+        }
+        for r in rows
     ]
 
-    # 2. Embedding creation payload
-    logger.info(
-        f"Generating FAISS embeddings for {len(docs)} chunks via Ollama ({OLLAMA_EMBED_MODEL})"
-    )
-    embeddings = get_embeddings_model()
+    logger.info("Encoding %d clauses with %s ...", len(texts), MODEL_NAME)
+    model = _get_model()
+    vectors = model.encode(texts, batch_size=64, show_progress_bar=True,
+                           convert_to_numpy=True, normalize_embeddings=True)
+    vectors = vectors.astype(np.float32)
 
-    # 3. Securely merging to FAISS Index Storage
-    if os.path.exists(index_path):
-        logger.info("FAISS index found. Appending vectors...")
-        # allow_dangerous_deserialization=True is strictly required in newer LangChain versions to load local pickles
-        vectorstore = FAISS.load_local(
-            index_path, embeddings, allow_dangerous_deserialization=True
-        )
-        vectorstore.add_documents(docs)
-    else:
-        logger.info("Initializing Genesis FAISS index...")
-        vectorstore = FAISS.from_documents(docs, embeddings)
+    logger.info("Building FAISS IndexFlatIP (dim=%d) ...", EMBEDDING_DIM)
+    index = faiss.IndexFlatIP(EMBEDDING_DIM)
+    index.add(vectors)
 
-    # Save mutated state back sequentially to prevent corruption
-    vectorstore.save_local(index_path)
-    logger.info(f"Persisted {len(docs)} encoded chunks to vector storage.")
+    Path(index_path).parent.mkdir(parents=True, exist_ok=True)
+    faiss.write_index(index, index_path)
+    logger.info("FAISS index saved → %s (%d vectors)", index_path, index.ntotal)
 
-    return index_path
+    meta_path = _meta_path(index_path)
+    with open(meta_path, "w") as f:
+        json.dump(metadata, f)
+    logger.info("Metadata saved → %s", meta_path)
 
 
-# ==========================================
-# RETRIEVAL / EXPLORER UTILS
-# ==========================================
+# ---------------------------------------------------------------------------
+# Query (runtime, called per clause)
+# ---------------------------------------------------------------------------
 
+def query_index(clause_text: str, index_path: str, k: int = 5) -> list[SimilarClause]:
+    """Retrieve the top-k most similar clauses from the FAISS index.
 
-def _get_faiss_index():
-    """Helper to safely load the global index for querying"""
-    index_path = str(FAISS_INDEX_DIR / "legal_contracts_index")
-    if not os.path.exists(index_path):
-        return None
-    return FAISS.load_local(
-        index_path, get_embeddings_model(), allow_dangerous_deserialization=True
-    )
+    Args:
+        clause_text: The clause text to search for.
+        index_path: Path to the FAISS index file.
+        k: Number of results to return.
 
+    Returns:
+        List of SimilarClause ordered by descending similarity.
+    """
+    model = _get_model()
+    vector = model.encode([clause_text], convert_to_numpy=True,
+                          normalize_embeddings=True).astype(np.float32)
 
-def get_all_document_ids() -> list:
-    """Scans the FAISS dict and returns all unique document UUIDs"""
-    vectorstore = _get_faiss_index()
-    if not vectorstore:
-        return []
+    index = faiss.read_index(index_path)
+    meta_path = _meta_path(index_path)
+    with open(meta_path) as f:
+        metadata = json.load(f)
 
-    unique_ids = set()
-    # FAISS docstore maps an internal hash to a langchain Document
-    for doc in vectorstore.docstore._dict.values():
-        doc_id = doc.metadata.get("document_id")
-        if doc_id:
-            unique_ids.add(doc_id)
+    k = min(k, index.ntotal)
+    scores, indices = index.search(vector, k)
 
-    return list(unique_ids)
-
-
-def get_document_chunks(document_id: str) -> list:
-    """Retrieves all physical text chunks for a given document UUID"""
-    vectorstore = _get_faiss_index()
-    if not vectorstore:
-        return []
-
-    chunks = []
-    for doc in vectorstore.docstore._dict.values():
-        if doc.metadata.get("document_id") == document_id:
-            chunks.append(
-                {"chunk_id": doc.metadata.get("chunk_id", 0), "text": doc.page_content}
-            )
-
-    # Reassemble in exact sequential order
-    chunks.sort(key=lambda x: x["chunk_id"])
-    return chunks
+    results = []
+    for score, idx in zip(scores[0], indices[0]):
+        if idx < 0:
+            continue
+        m = metadata[idx]
+        results.append(SimilarClause(
+            text=m["clause_text"],
+            clause_type=m["clause_type"],
+            risk_level=m["risk_level"],
+            similarity=float(score),
+        ))
+    return results

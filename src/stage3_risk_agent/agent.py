@@ -1,64 +1,303 @@
 """
-LangGraph agent for clause risk assessment.
+Stage 3 agent — main entry point for risk assessment.
 
-StateGraph with typed state dict. For each clause:
-1. Classify risk level via DeBERTa risk classifier.
-2. If ambiguous, invoke tools (FAISS retrieval, contract search).
-3. Generate explanation via Mistral-7B-Instruct (4-bit).
-4. Output RiskAssessedClause.
+assess_clauses() is called by run_pipeline.py with all ClauseObjects from
+Stage 1+2 for a single contract. Each risk-relevant clause is routed through
+DeBERTa, then either:
+
+  Fast path  (conf >= threshold): single LLM call with precedent context.
+  Agent path (conf <  threshold): LangGraph ReAct loop with tool access.
+                                   May override DeBERTa's preliminary label.
 """
 
+import json
 import logging
-from typing import Any
+from typing import Optional
 
-from src.common.schema import ClauseObject, RiskAssessedClause
+from langchain_core.messages import AIMessage, ToolMessage
+from langchain_openai import ChatOpenAI
+from langgraph.prebuilt import create_react_agent
+from pydantic import BaseModel, Field
+
+from src.common.schema import AgentTraceEntry, ClauseObject, RiskAssessedClause
+from src.common.utils import load_config
+from src.stage3_risk_agent.embeddings import query_index
+from src.stage3_risk_agent.risk_classifier import (
+    RiskClassifier,
+    extract_signing_party,
+)
+from src.stage3_risk_agent.tools import (
+    make_contract_search_tool,
+    make_precedent_search_tool,
+)
 
 logger = logging.getLogger(__name__)
 
+# Clause types that carry contract metadata — not risk-assessed.
+# They route to the Stage 4 report header instead.
+METADATA_CLAUSE_TYPES = {
+    "Document Name", "Parties", "Agreement Date",
+    "Effective Date", "Expiration Date",
+}
 
-class RiskAgentState:
-    """Typed state dict for the LangGraph risk assessment agent."""
-
-    clauses: list[ClauseObject]
-    assessed: list[RiskAssessedClause]
-    current_index: int
-    iteration_count: int
+# Default HF Hub model IDs — overridable via assess_clauses() args for local dev.
+CE_MODEL_ID   = "rajnishahuja/cuad-risk-deberta-ce-parties"
+CORN_MODEL_ID = "rajnishahuja/cuad-risk-deberta-corn-parties"
 
 
-def create_risk_agent(config_path: str = "configs/stage3_config.yaml") -> Any:
-    """Build and return the LangGraph StateGraph for risk assessment.
+# ---------------------------------------------------------------------------
+# Structured output schema — used by both paths
+# ---------------------------------------------------------------------------
 
-    The graph has these nodes:
-        - classify: Run DeBERTa risk classifier on current clause.
-        - retrieve: Call FAISS retrieval tool for similar clauses.
-        - search: Call contract search tool for cross-references.
-        - explain: Generate explanation via Mistral-7B-Instruct.
-        - finalize: Package result as RiskAssessedClause.
+class RiskAssessment(BaseModel):
+    final_label: str = Field(
+        description="Risk level for the signing party: LOW, MEDIUM, or HIGH."
+    )
+    explanation: str = Field(
+        description=(
+            "1-3 sentence explanation of the risk level, grounded in the clause "
+            "text and any evidence gathered from tools."
+        )
+    )
+    override_reason: str = Field(
+        default="",
+        description=(
+            "If your final_label differs from DeBERTa's preliminary label, "
+            "explain why. Leave empty when confirming DeBERTa."
+        ),
+    )
 
-    Edges:
-        classify → (if ambiguous) → retrieve → search → explain → finalize
-        classify → (if clear) → explain → finalize
 
-    Args:
-        config_path: Path to stage3 config YAML.
+# ---------------------------------------------------------------------------
+# Fast path  (conf >= threshold)
+# ---------------------------------------------------------------------------
 
-    Returns:
-        Compiled LangGraph StateGraph.
-    """
-    raise NotImplementedError
+def _fast_path(
+    clause: ClauseObject,
+    deberta_result: dict,
+    signing_party: str,
+    index_path: str,
+    llm: ChatOpenAI,
+    k: int,
+) -> RiskAssessedClause:
+    similar = query_index(clause.clause_text, index_path, k)
 
+    precedent_lines = "\n".join(
+        f"  [{r.risk_level}] ({r.clause_type}, similarity={r.similarity:.2f}) "
+        f"{r.text[:120]}"
+        for r in similar
+    ) or "  (none retrieved)"
+
+    prompt = (
+        f"You are a legal risk assessor.\n\n"
+        f"DeBERTa classified this clause as {deberta_result['label']} risk "
+        f"({deberta_result['confidence']:.0%} confidence).\n\n"
+        f"Clause under review:\n"
+        f"  Type:    {clause.clause_type}\n"
+        f"  Parties: {signing_party or 'unknown'}\n"
+        f"  Text:    {clause.clause_text}\n\n"
+        f"Similar clauses from the labeled corpus:\n{precedent_lines}\n\n"
+        f"Write a concise explanation (1-3 sentences) of why this clause is "
+        f"{deberta_result['label']} risk, grounded in the clause text and precedents."
+    )
+
+    result: RiskAssessment = llm.with_structured_output(
+        RiskAssessment, method="function_calling"
+    ).invoke(prompt)
+
+    return RiskAssessedClause(
+        clause_id=clause.clause_id,
+        document_id=clause.document_id,
+        clause_text=clause.clause_text,
+        clause_type=clause.clause_type,
+        risk_level=result.final_label,
+        risk_explanation=result.explanation,
+        similar_clauses=similar,
+        cross_references=[],
+        confidence=deberta_result["confidence"],
+        agent_trace=[],
+    )
+
+
+# ---------------------------------------------------------------------------
+# Agent path  (conf < threshold)
+# ---------------------------------------------------------------------------
+
+def _agent_path(
+    clause: ClauseObject,
+    deberta_result: dict,
+    signing_party: str,
+    all_clauses: list[ClauseObject],
+    index_path: str,
+    llm: ChatOpenAI,
+    max_iterations: int,
+    k: int,
+) -> RiskAssessedClause:
+    precedent_search = make_precedent_search_tool(index_path)
+    contract_search  = make_contract_search_tool(all_clauses)
+
+    system_prompt = (
+        "You are a legal risk assessor. DeBERTa classified the clause below with "
+        "low confidence — use the available tools to gather evidence and produce "
+        "a well-grounded final assessment.\n\n"
+        "Tool usage guidelines:\n"
+        "- Always call precedent_search first (k=5) to find similar labeled clauses.\n"
+        "- Call contract_search only if precedent evidence is mixed or if knowing "
+        "the full contract context (party roles, related clauses) would resolve "
+        "the ambiguity.\n"
+        "- Base final_label on the weight of evidence, not just DeBERTa's label.\n\n"
+        f"Clause under review:\n"
+        f"  Type:               {clause.clause_type}\n"
+        f"  Parties:            {signing_party or 'unknown'}\n"
+        f"  Text:               {clause.clause_text}\n"
+        f"  DeBERTa preliminary: {deberta_result['label']} "
+        f"(confidence: {deberta_result['confidence']:.2f})"
+    )
+
+    # Don't use response_format= here: langchain-openai 1.2.1 defaults to
+    # method="json_schema" which calls openai's .parse() endpoint — llama.cpp
+    # rejects that with 400. We do one explicit function_calling structured call
+    # after the ReAct loop instead.
+    agent = create_react_agent(
+        llm,
+        [precedent_search, contract_search],
+        prompt=system_prompt,
+    )
+
+    state = agent.invoke(
+        {"messages": [{"role": "user", "content": "Assess the risk level for the clause described above."}]},
+        config={"recursion_limit": max_iterations * 2 + 4},
+    )
+
+    # Build agent trace from ToolMessage entries in the message history
+    trace = []
+    for msg in state["messages"]:
+        if isinstance(msg, ToolMessage):
+            try:
+                content = json.loads(msg.content) if isinstance(msg.content, str) else msg.content
+                count = len(content) if isinstance(content, list) else None
+            except (json.JSONDecodeError, TypeError):
+                count = None
+            trace.append(AgentTraceEntry(tool=msg.name, result_count=count))
+
+    # Extract the agent's final reasoning text (last AI message with no tool calls).
+    # Passing the full ReAct history to with_structured_output causes the model to
+    # return plain text (it sees existing tool_call messages and doesn't re-call);
+    # a clean single-turn prompt reliably triggers the function_calling tool fill.
+    agent_conclusion = ""
+    for msg in reversed(state["messages"]):
+        if isinstance(msg, AIMessage) and msg.content and not getattr(msg, "tool_calls", []):
+            agent_conclusion = msg.content if isinstance(msg.content, str) else str(msg.content)
+            break
+
+    synthesis_prompt = (
+        f"Clause under review:\n"
+        f"  Type:    {clause.clause_type}\n"
+        f"  Parties: {signing_party or 'unknown'}\n"
+        f"  Text:    {clause.clause_text}\n\n"
+        f"Agent analysis:\n{agent_conclusion}\n\n"
+        f"Produce the final structured risk assessment."
+    )
+    result: RiskAssessment = llm.with_structured_output(
+        RiskAssessment, method="function_calling"
+    ).invoke(synthesis_prompt)
+
+    return RiskAssessedClause(
+        clause_id=clause.clause_id,
+        document_id=clause.document_id,
+        clause_text=clause.clause_text,
+        clause_type=clause.clause_type,
+        risk_level=result.final_label,
+        risk_explanation=result.explanation,
+        similar_clauses=[],
+        cross_references=[],
+        confidence=deberta_result["confidence"],
+        agent_trace=trace,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------------------------
 
 def assess_clauses(
     clauses: list[ClauseObject],
     config_path: str = "configs/stage3_config.yaml",
+    ce_model_path: Optional[str] = None,
+    corn_model_path: Optional[str] = None,
 ) -> list[RiskAssessedClause]:
-    """Run the risk agent on a list of extracted clauses.
+    """Assess risk for all risk-relevant clauses from a single contract.
 
     Args:
-        clauses: Stage 1+2 output (list of ClauseObject).
-        config_path: Path to stage3 config YAML.
+        clauses:         All ClauseObjects from Stage 1+2 for this contract.
+        config_path:     Path to stage3_config.yaml.
+        ce_model_path:   Local path to CE model (defaults to HF Hub).
+        corn_model_path: Local path to CORN model (defaults to HF Hub).
 
     Returns:
-        List of RiskAssessedClause with risk levels and explanations.
+        List of RiskAssessedClause — one per risk-relevant clause.
+        Metadata clause types (Parties, dates, etc.) are excluded.
     """
-    raise NotImplementedError
+    cfg = load_config(config_path)
+
+    index_path  = cfg["faiss_index_path"]
+    threshold   = cfg["confidence_threshold"]
+    k_high      = cfg["similarity_top_k_high_conf"]
+    k_low       = cfg["similarity_top_k_low_conf"]
+    max_iter    = cfg["agent_max_iterations"]
+
+    llm = ChatOpenAI(
+        model=cfg["agent_model"],
+        base_url=cfg["agent_base_url"],
+        api_key=cfg.get("agent_api_key", "none"),
+        temperature=0,
+    )
+
+    logger.info("Loading DeBERTa risk classifier (Ens-F) ...")
+    classifier = RiskClassifier(
+        ce_model_path=ce_model_path or CE_MODEL_ID,
+        corn_model_path=corn_model_path or CORN_MODEL_ID,
+    )
+
+    # Resolve signing party once per document (O(n) not O(n²))
+    doc_ids = {c.document_id for c in clauses}
+    signing_parties = {
+        doc_id: extract_signing_party(doc_id, clauses)
+        for doc_id in doc_ids
+    }
+
+    results: list[RiskAssessedClause] = []
+    risk_clauses = [c for c in clauses if c.clause_type not in METADATA_CLAUSE_TYPES]
+    logger.info(
+        "Assessing %d risk-relevant clauses (skipped %d metadata)",
+        len(risk_clauses), len(clauses) - len(risk_clauses),
+    )
+
+    for i, clause in enumerate(risk_clauses, 1):
+        signing_party = signing_parties[clause.document_id]
+        deberta_result = classifier.predict(
+            clause_text=clause.clause_text,
+            clause_type=clause.clause_type,
+            signing_party=signing_party,
+        )
+
+        path = "fast" if deberta_result["confidence"] >= threshold else "agent"
+        logger.info(
+            "[%d/%d] %s | DeBERTa=%s (%.2f) → %s path",
+            i, len(risk_clauses), clause.clause_type,
+            deberta_result["label"], deberta_result["confidence"], path,
+        )
+
+        if path == "fast":
+            assessed = _fast_path(
+                clause, deberta_result, signing_party, index_path, llm, k_high
+            )
+        else:
+            assessed = _agent_path(
+                clause, deberta_result, signing_party, clauses,
+                index_path, llm, max_iter, k_low,
+            )
+
+        results.append(assessed)
+
+    return results

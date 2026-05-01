@@ -50,6 +50,7 @@ class ExtractionResult:
 class SimilarClause:
     """A clause retrieved from FAISS as similar to the query clause."""
     text: str
+    clause_type: str
     risk_level: str
     similarity: float
 

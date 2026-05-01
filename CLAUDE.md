@@ -4,61 +4,37 @@
 ML pipeline that analyzes legal contracts and flags risky clauses using the CUAD dataset.
 4-stage pipeline: Extract clauses (DeBERTa) → Assess risk (Agent + RAG) → Generate report (FLAN-T5).
 
-## Current State (as of 2026-04-17)
+## Current State (as of 2026-05-01)
 
 ### Branch: `main`
 
 ### What's Done
-- **Phase 0 foundation**: configs (T0.1-T0.3), schema.py (T0.9), utils.py (T0.6) — all complete
-- **data_loader.py (T0.5)**: Implemented with `theatticusproject/cuad-qa` dataset (pre-flattened, pre-split)
-  - `load_cuad_dataset()` — loads train (22,450) and test (4,182) from HuggingFace
-  - `preprocess_for_qa()` — sliding window tokenization for DeBERTa (max_length=512, stride=128)
-- **Stage 1/2 extraction**: `data/processed/all_positive_spans.json` — 6,702 positive clause spans across 510 contracts and 41 clause types (Stage 1/2 output, committed)
-- **Stage 3 synthetic label pipeline** (prompt iteration phase complete):
-  - `scripts/generate_synthetic_labels.py` — v1 prompt with perspective anchor, clause-type description injection, `risk_driver` + `risk_reason` schema, metadata filtering (Option B), and dedup (~40% API call reduction). Ready to run.
-  - `scripts/build_gold_set.py` — deterministic 25-clause stratified gold set builder
-  - `data/synthetic/gold_set.json` — 25-clause gold set (8 high-risk + 10 mixed + 4 edge + 3 random)
-  - `data/reference/cuad_category_descriptions.csv` — Atticus official one-line descriptions for all 41 CUAD types (used by labeling prompt)
+- **Phase 0 foundation**: configs, schema.py, utils.py — complete
+- **data_loader.py**: `theatticusproject/cuad-qa` dataset, train (22,450) / test (4,182)
+- **Stage 1/2 extraction**: `data/processed/all_positive_spans.json` — 6,702 positive clause spans
+- **Stage 3 labeling pipeline**: Qwen/30B + Gemini 2.5 Flash labels (4,410 rows each), manual review merged → `data/processed/training_dataset.json` (4,384 rows, signing_party field included)
+- **Stage 3 DeBERTa classifier** (Ens-F, macro_F1=0.607):
+  - Run 22 (CE + parties): `models/stage3_risk_deberta_v3_run22_parties/final/`
+  - Run 23 (CORN + parties): `models/stage3_risk_deberta_v3_run23_corn_parties/final/`
+  - HuggingFace Hub: `rajnishahuja/cuad-risk-deberta-ce-parties` + `cuad-risk-deberta-corn-parties`
+  - Inference API: `scripts/infer.py` — `RiskClassifier` class (Ens-F predict/predict_batch)
+- **Stage 3 Agent/RAG** (complete, smoke-tested 2026-05-01):
+  - `src/stage3_risk_agent/embeddings.py` — FAISS index builder + query (sentence-transformers/all-MiniLM-L6-v2)
+  - `src/stage3_risk_agent/risk_classifier.py` — wraps `RiskClassifier` + `extract_signing_party()`
+  - `src/stage3_risk_agent/tools.py` — `make_precedent_search_tool()`, `make_contract_search_tool()`
+  - `src/stage3_risk_agent/agent.py` — `assess_clauses()` entry point; fast path (conf ≥ 0.6) and agent path (LangGraph ReAct, conf < 0.6)
+  - `scripts/build_faiss_index.py` — builds `data/faiss_index/clauses.index` (4,276 vectors)
+  - `scripts/smoke_test_stage3_agent.py` — end-to-end test; all 5 clauses assessed, Parties excluded, agent override verified
 
-### Immediate Next Step (do this on GPU server)
-**Stage 3 pilot run — synthetic label generation via Qwen**
-
-The labeling script is ready. Run a test batch first, then the full pilot:
-
-```bash
-# 1. Verify the pipeline works (25 clauses, ~2 min)
-python scripts/generate_synthetic_labels.py --n_samples 25
-
-# 2. Inspect output
-cat data/synthetic/synthetic_risk_labels.json | python3 -m json.tool | head -80
-
-# 3. Full pilot run (~500 clauses, stratified)
-python scripts/generate_synthetic_labels.py --n_samples 500
-```
-
-The script currently calls `claude-sonnet-4-20250514` (Anthropic API). To use Qwen instead,
-update the `label_clause()` function in `scripts/generate_synthetic_labels.py` — specifically
-the `client.messages.create(model=...)` call — to use your local Qwen endpoint or LiteLLM wrapper.
-
-After the pilot run, audit ~100 clauses stratified by `(clause_type × risk_level)`.
-See `docs/STAGE3_SYNTHETIC_LABELS_DISCUSSION.md` for the full audit checklist and three-phase rollout plan.
-
-### What's Done (Stage 3 labeling — 2026-04-17/18)
-- **Qwen/30B labels**: `data/synthetic/synthetic_risk_labels_qwen.json` — 4,410 rows, temp=0, GPU
-- **Gemini 2.5 Flash labels**: `data/synthetic/synthetic_risk_labels_gemini.json` — 4,410 rows, temp=0, JSON mode
-- **Copilot labels cleaned**: `data/cuad_risk_labels_copilot.csv` — 6,702 rows (removed 100 bad rows)
-- **Master review file**: `data/review/master_label_review.csv` — all 6,702 spans with categories,
-  disagreement analysis, reviewer assignments, row_num 1–6702
-- **Analysis docs**: `docs/STAGE3_LABEL_ANALYSIS.md`, `docs/STAGE3_LABEL_COMPARISON.md`
+### LLM Setup (Stage 3)
+- **Model**: Qwen3-30B Q4_K_XL, llama.cpp server on port 10006
+- **Key quirk**: `langchain-openai ≥ 1.2` defaults `with_structured_output` to `method="json_schema"` (OpenAI Structured Outputs / `.parse()`), which llama.cpp rejects with HTTP 400. Always pass `method="function_calling"` explicitly. See ARCHITECTURE.md "Implementation Notes".
 
 ### Immediate Next Steps
-1. **Colleagues review 239 MANUAL_REVIEW rows** — filter `master_label_review.csv` by `reviewer` column,
-   fill `final_label` (rows 5028–5266)
-2. **Run Gemini 2.5 Pro on 87 GEMINI_PRO_REVIEW rows** — DONE (`scripts/run_gemini_pro_review.py`)
-3. **Merge final labels** — join reviewed `final_label` back on `row_num`
-4. **Build training dataset** — hard labels for AGREED/reviewed rows, soft labels for SOFT_LABEL rows
-5. **Train DeBERTa risk classifier** — fine-tune on merged labels (GPU needed)
-6. **Build FAISS index** — embed labeled clauses for Stage 3 RAG retrieval
+1. **`eval_stage3.py`** — stratified 150-clause test-split eval; pipeline F1 vs DeBERTa-only F1
+2. **Agentic behavior test** — craft mixed-precedent cases to force multi-tool path; verify override_reason
+3. **Stage 4 report generator** — takes `list[RiskAssessedClause]`, produces `RiskReport`
+4. **`run_pipeline.py`** — wire Stage 1+2 → Stage 3 → Stage 4 end-to-end
 
 ### Stage 1 — still pending (GPU needed)
 1. **Tokenize full training set** — run `preprocess_for_qa()` on all 22,450 examples

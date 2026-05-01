@@ -57,7 +57,7 @@ def _load_ce_model(model_path: str, device: torch.device):
 
 def _load_corn_model(model_path: str, device: torch.device):
     base = AutoModelForSequenceClassification.from_pretrained(
-        CE_MODEL_ID, num_labels=1,
+        CE_MODEL_ID, num_labels=1, ignore_mismatched_sizes=True,
     )
     model = CORNWrapper(base)
     from safetensors.torch import load_file

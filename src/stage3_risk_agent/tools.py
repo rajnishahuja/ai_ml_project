@@ -1,53 +1,91 @@
 """
-LangGraph-compatible tools for the risk assessment agent.
+LangGraph tools for the Stage 3 risk assessment agent.
 
-Tool 1: FAISS retrieval — find similar clauses from the knowledge base.
-Tool 2: Contract search — find related clauses in the same contract.
+Both tools are created via factory functions that close over their
+dependencies (index path, clause list). The returned @tool functions
+have clean LLM-facing signatures — the agent calls them with simple
+string arguments and gets back JSON-serialisable dicts.
+
+Usage (in agent.py):
+    precedent_search = make_precedent_search_tool(cfg["faiss_index_path"])
+    contract_search  = make_contract_search_tool(clauses)
+    agent = create_react_agent(llm, [precedent_search, contract_search])
 """
 
 import logging
+from dataclasses import asdict
 
-from src.common.schema import ClauseObject, SimilarClause
+from langchain_core.tools import tool
+
+from src.common.schema import ClauseObject
+from src.stage3_risk_agent.embeddings import query_index
 
 logger = logging.getLogger(__name__)
 
 
-def faiss_retrieval(
-    clause_text: str,
-    index_path: str,
-    top_k: int = 5,
-) -> list[SimilarClause]:
-    """Retrieve similar clauses from FAISS index.
+def make_precedent_search_tool(index_path: str):
+    """Return a @tool that searches the labeled clause corpus by similarity.
 
     Args:
-        clause_text: The clause text to query against.
-        index_path: Path to the built FAISS index file.
-        top_k: Number of similar clauses to return.
-
-    Returns:
-        List of SimilarClause with text, risk_level, and similarity score.
+        index_path: Path to the FAISS index file (data/faiss_index/clauses.index).
     """
-    raise NotImplementedError
+
+    @tool
+    def precedent_search(clause_text: str, k: int = 5) -> list[dict]:
+        """Search the labeled clause corpus for clauses similar to the one you are assessing.
+
+        Call this first when the risk level is uncertain. Returns the top-k most
+        similar clauses from real contracts, each with a verified risk label. Use
+        the distribution of labels and the clause context to reason about the
+        appropriate risk level for the clause under review.
+
+        Args:
+            clause_text: Full text of the clause to search for.
+            k: Number of similar clauses to return (default 5).
+
+        Returns:
+            List of similar clauses, each with clause_type, risk_level, similarity score,
+            and the clause text. Ordered by descending similarity.
+        """
+        results = query_index(clause_text, index_path, k)
+        return [asdict(r) for r in results]
+
+    return precedent_search
 
 
-def contract_search(
-    clause_id: str,
-    all_clauses: list[ClauseObject],
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
-    similarity_threshold: float = 0.5,
-) -> list[str]:
-    """Find related clauses within the same contract.
-
-    Computes semantic similarity between the target clause and all other
-    clauses in the same document to find cross-references.
+def make_contract_search_tool(clauses: list[ClauseObject]):
+    """Return a @tool that retrieves all other clauses from the same contract.
 
     Args:
-        clause_id: ID of the clause to search for relations.
-        all_clauses: All clauses from the same contract.
-        embedding_model: Model for computing clause embeddings.
-        similarity_threshold: Minimum similarity to consider related.
-
-    Returns:
-        List of related clause_ids.
+        clauses: All ClauseObjects extracted from the contract by Stage 1+2.
     """
-    raise NotImplementedError
+
+    @tool
+    def contract_search(document_id: str) -> list[dict]:
+        """Retrieve all clauses extracted from the same contract.
+
+        Call this when precedent evidence alone is insufficient — specifically when
+        party roles or cross-clause context could change the risk assessment. For
+        example: an IP assignment clause may look HIGH risk in isolation but be LOW
+        risk if the contract shows the signing party is the one receiving rights.
+
+        Do NOT call this if precedent_search already provided clear consensus — use
+        it only to resolve ambiguity that requires same-contract context.
+
+        Args:
+            document_id: The contract's document identifier.
+
+        Returns:
+            List of clauses from the same contract, each with clause_type and
+            clause_text. Excludes the clause currently being assessed.
+        """
+        siblings = [
+            {"clause_type": c.clause_type, "clause_text": c.clause_text}
+            for c in clauses
+            if c.document_id == document_id
+        ]
+        if not siblings:
+            logger.warning("contract_search: no clauses found for document_id=%s", document_id)
+        return siblings
+
+    return contract_search

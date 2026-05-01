@@ -52,12 +52,16 @@ risk_classifier:
   # Run E: dropout override (DeBERTa default = 0.1)
   dropout: 0.1                                   # back to default for run F
 
-# Stage 3 inference — agent + tools (unchanged)
+# Stage 3 inference — agent + tools
 embedding_model: sentence-transformers/all-MiniLM-L6-v2
 faiss_index_path: data/faiss_index/clauses.index
 
-agent_model: mistralai/Mistral-7B-Instruct-v0.3  # same instance used for explanation + agent
-quantization: 4bit
+# Agent LLM — Qwen 30B (Q4_K_XL quantized), served via local llama-server (OpenAI-compatible API).
+# Running on GPU. Swap agent_base_url + agent_model for any OpenAI-compatible endpoint
+# (e.g. Mistral-7B-Instruct or a hosted Azure model) when deploying outside this server.
+agent_model: Qwen3-30B-Q4_K_XL
+agent_base_url: http://localhost:10006/v1
+agent_api_key: none                              # llama-server needs a non-empty string
 
 confidence_threshold: 0.6                        # DeBERTa confidence gate for high-conf vs low-conf path
 agent_max_iterations: 5                          # low-conf path tool-calling loop cap

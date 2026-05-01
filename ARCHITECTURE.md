@@ -22,7 +22,7 @@ Contract PDF/Text
 ┌─────────────────────────────┐
 │  Stage 3: Risk Detection    │  Hybrid Confidence-Gated
 │  DeBERTa → Agent (low-conf) │  DeBERTa-v3-base (risk classifier)
-│  Tools: precedent_search,   │  Mistral-7B-Instruct (agent + explanations)
+│  Tools: precedent_search,   │  Qwen3-30B Q4_K_XL (agent + explanations)
 │         contract_search     │  all-MiniLM-L6-v2 (embeddings)
 │  Output: risk-assessed      │  FAISS vector store
 │          clause objects     │
@@ -71,9 +71,9 @@ Clause + METADATA  (from Stage 1+2)
      ▼             ▼
  High-Conf     Low-Conf
   Path          Path
-(1 Mistral   (1 Mistral call
- call, no     WITH tool loop —
- tools)       agent may override)
+(1 Qwen call, (1 Qwen call +
+ no tools)     ReAct tool loop —
+               agent may override)
      │             │
      └──────┬──────┘
             ▼
@@ -84,7 +84,7 @@ Clause + METADATA  (from Stage 1+2)
 
 ### Low-Level Design
 
-One Mistral-7B instance serves both paths — it's the same model, operated in two modes depending on DeBERTa's confidence.
+One Qwen3-30B instance serves both paths — it's the same model, operated in two modes depending on DeBERTa's confidence. Accessed via local llama-server OpenAI-compatible API (`agent_base_url` in `stage3_config.yaml`); swap to any compatible endpoint for deployment.
 
 #### High-Confidence Path (conf ≥ 0.6)
 
@@ -104,7 +104,7 @@ def high_confidence_path(clause, metadata, deberta_label, deberta_confidence):
 
     Write a one-sentence risk explanation grounded in the clause and precedents.
     """
-    explanation = mistral(prompt)   # single forward pass, no tool loop
+    explanation = llm(prompt)   # single forward pass, no tool loop
 
     return {
         "label": deberta_label,
@@ -120,7 +120,7 @@ Properties: deterministic, ~1 LLM call, no agent overhead.
 
 #### Low-Confidence Path (conf < 0.6)
 
-Mistral is invoked as an agent with tool access. It reasons, fetches evidence, and produces a final label (possibly overriding DeBERTa) + explanation in a single structured output.
+Qwen3-30B is invoked as a LangGraph ReAct agent with tool access. It reasons, fetches evidence, and produces a final label (possibly overriding DeBERTa) + explanation in a single structured output.
 
 ```python
 def low_confidence_path(clause, metadata, deberta_label, deberta_confidence):
@@ -151,7 +151,7 @@ def low_confidence_path(clause, metadata, deberta_label, deberta_confidence):
         },
     }
 
-    # LangGraph runs the tool-calling loop. Mistral does all reasoning.
+    # LangGraph runs the tool-calling loop. Qwen3-30B does all reasoning.
     result = agent.invoke(
         system=system_prompt,
         context=context,
@@ -175,7 +175,7 @@ Properties: non-deterministic, multi-turn, typically 2–5 LLM calls, able to ov
 
 The two retrieval tools solve different problems:
 
-- **`precedent_search`** (vector RAG) — FAISS similarity lookup over the labeled corpus (~4,410 non-metadata clauses). Embeddings: `all-MiniLM-L6-v2`. Returns top-K clauses with `{clause_text, clause_type, risk_level, risk_reason, similarity}`. Fast (ANN, microseconds).
+- **`precedent_search`** (vector RAG) — FAISS similarity lookup over the labeled corpus (~4,276 non-metadata clauses, skipping 99 None-label rows). Embeddings: `all-MiniLM-L6-v2`. Returns top-K clauses with `{clause_text, clause_type, risk_level, similarity}`. Fast (exact cosine, microseconds).
 
 - **`contract_search`** (structured lookup, **not** RAG) — given a `document_id`, returns all typed clauses already extracted by Stage 1+2 for that contract. No embeddings, no navigation, no LLM calls inside the tool. A contract averages ~9 non-metadata clauses (max 27), so all fit easily in the agent's context. Purpose: resolve same-contract cross-references (e.g., "IP was already assigned in another clause").
 
@@ -193,7 +193,7 @@ DeBERTa:     (HIGH, 0.45)   ← below threshold, escalate
 Agent loop trace:
 
 ```
-Turn 1  Mistral reads clause + DeBERTa signal
+Turn 1  Qwen reads clause + DeBERTa signal
         → "I need to see how similar clauses were labeled."
         → calls precedent_search("Consultant hereby assigns...", k=5)
 
@@ -204,7 +204,7 @@ Turn 1  Mistral reads clause + DeBERTa signal
           N4: LOW  — "mutual carve-out"
           N5: MEDIUM — "conditional on acquisition"
 
-Turn 2  Mistral reads neighbors
+Turn 2  Qwen reads neighbors
         → "4 of 5 are LOW. Key driver is who signed.
            METADATA shows AT&T and Jane Smith Consulting.
            If AT&T is the buyer/client, this is standard admin paperwork.
@@ -216,7 +216,7 @@ Turn 2  Mistral reads neighbors
           - Services: "Consultant shall provide advisory services to AT&T..."
           - [...36 more...]
 
-Turn 3  Mistral reads contract
+Turn 3  Qwen reads contract
         → "Confirmed. AT&T is the client paying Consultant for services.
            Consultant transferring IP to AT&T is standard work-for-hire.
            AT&T (signing party of interest) RECEIVES rights — not at risk.
@@ -237,6 +237,14 @@ Stop.
 
 Final output merges into the Stage 3 → Stage 4 schema (`risk_level`, `risk_explanation`, `similar_clauses`, `agent_trace`, `overridden`).
 
+### Implementation Notes (added 2026-05-01)
+
+**Structured output workaround** — `langchain-openai ≥ 1.2.0` defaults `with_structured_output()` to `method="json_schema"`, which calls OpenAI's Structured Outputs endpoint (`.parse()`). llama.cpp rejects this with HTTP 400 ("Failed to initialize samplers"). Fix: always pass `method="function_calling"` explicitly. Both `_fast_path` and `_agent_path` in `agent.py` do this.
+
+**Agent synthesis call** — `create_react_agent` is called without `response_format` (which would trigger LangGraph's internal `generate_structured_response` node using the broken default method). Instead, after the ReAct loop completes, a single explicit `with_structured_output(RiskAssessment, method="function_calling")` call is made with a clean synthesis prompt built from the agent's final text message. This avoids the model ignoring the tool when the full ReAct history (with existing `tool_call` messages) is passed.
+
+**FAISS index** — `data/faiss_index/clauses.index` (4,276 vectors, IndexFlatIP) + `data/faiss_index/clauses.json` (parallel metadata). Built from `training_dataset.json`, skipping 99 None-label rows. Entry point: `scripts/build_faiss_index.py`.
+
 ### Key Design Decisions (v1)
 
 | Decision | Choice | Rationale |
@@ -246,14 +254,14 @@ Final output merges into the Stage 3 → Stage 4 schema (`risk_level`, `risk_exp
 | DeBERTa input | `clause_type + clause_text` only | baseline — measure signing-party ceiling first |
 | Party role tagging in DeBERTa | **Not in v1** | deferred; revisit if baseline is ceilinged |
 | RAG consumer | LLM (agent + explainer), **not** DeBERTa | keeps DeBERTa training simple; RAG still load-bearing at escalation |
-| Explanation generator | Mistral-7B (same instance as agent) | one LLM, two modes based on confidence |
+| Explanation generator | Qwen3-30B Q4_K_XL (same instance as agent) | one LLM, two modes based on confidence |
 | Same-contract retrieval | `contract_search` structured lookup | data is already typed post-Stage 1+2 — no RAG needed |
 | Precedent retrieval | FAISS (vector RAG) over 4,410 clauses | standard for flat-corpus similarity |
 | Low-conf label source | Agent (may override DeBERTa) | needed to resolve signing-party ambiguity |
 
 ### Alternative Architectures Considered (Rejected)
 
-- **Static LangGraph Pipeline** (former Option A) — DeBERTa's label always final, fixed tool sequence. No dynamic reasoning; doesn't satisfy agentic-RAG learning goal.
+- **Static LangGraph Pipeline** (former Option A) — DeBERTa's label always final, fixed tool sequence. No dynamic reasoning; doesn't satisfy agentic-RAG learning goal. A full implementation of this design existed in `src/workflow/` (committed by a colleague) using a separate state schema (`app.schemas.domain`) and service layer (`app.services`). It was deleted because it conflicted with the chosen Hybrid Confidence-Gated architecture and introduced a parallel, incompatible schema track. The canonical pipeline entry point is `scripts/run_pipeline.py`; the canonical Stage 3 entry point is `src/stage3_risk_agent/agent.py`.
 - **Full Agent on Every Clause** (former Option B) — agent loop runs on all ~4,410 risk-relevant clauses. Over-engineered; majority of clauses don't need the capacity and agent latency dominates cost.
 - **Multi-Signal Verifier** — DeBERTa + Mistral label independently, reconcile on disagreement. Similar capability to Hybrid but runs expensive path even on easy cases.
 - **RAC (Retrieval-Augmented Classification)** — retrieved neighbors become part of DeBERTa's training input. Deferred to v2; brittle to retrieval quality, risk of label leakage, harder training pipeline.
@@ -662,7 +670,7 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
     "models_used": {
       "extraction": "microsoft/deberta-base",
       "risk_classification": "models/stage3_risk_deberta",
-      "explanation": "mistralai/Mistral-7B-Instruct-v0.3",
+      "explanation": "Qwen3-30B-Q4_K_XL (local llama-server)",
       "report_explanation": "google/flan-t5-base"
     }
   }
@@ -675,7 +683,7 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
 |-------|-------|---------------|--------|------|
 | DeBERTa-base | 1+2 | `microsoft/deberta-base` | QA extraction + classification | ~2 GB (train ~8 GB) |
 | DeBERTa-v3-base | 3 | `microsoft/deberta-v3-base` | Risk classification (fine-tuned on merged labels from `master_label_review.csv` — 3,048 hard + 1,327 soft). Chose v3 over base: ELECTRA-style pretraining → stronger downstream performance, same VRAM; SentencePiece 128k vocab is more efficient on legal text (p99 292 tokens vs 358 with base). | ~2 GB (train ~8 GB) |
-| Mistral-7B-Instruct | 3 | `mistralai/Mistral-7B-Instruct-v0.3` | Risk explanation (high-conf path) + reasoning agent with tools (low-conf path), 4-bit quantized | ~5 GB |
+| Qwen3-30B (Q4_K_XL) | 3 | Local llama-server (OpenAI-compatible, `http://localhost:10006/v1`). Swap `agent_base_url` + `agent_model` in `stage3_config.yaml` for any OpenAI-compatible endpoint (Mistral-7B-Instruct, Azure-hosted model, etc.) when deploying outside this server. | Risk explanation (high-conf path) + ReAct tool-calling agent (low-conf path) | ~20 GB (4-bit, GPU) |
 | all-MiniLM-L6-v2 | 3 | `sentence-transformers/all-MiniLM-L6-v2` | Clause embeddings for FAISS | ~0.5 GB |
 | FLAN-T5-base | 4 | `google/flan-t5-base` | Report explanation generation | ~1 GB |
 | Qwen-30B (non-reasoning) | 3 (data prep, done) | `mavenir-generic1-30b-q4_k_xl` (local llama-server on A100, temp=0) | Primary labeler — 4,410 risk-relevant spans | ~20 GB (4-bit) |
