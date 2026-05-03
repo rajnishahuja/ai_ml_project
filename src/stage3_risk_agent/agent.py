@@ -132,19 +132,26 @@ def _agent_path(
     llm: ChatOpenAI,
     max_iterations: int,
     k: int,
+    use_contract_search: bool = True,
 ) -> RiskAssessedClause:
     precedent_search = make_precedent_search_tool(index_path)
-    contract_search  = make_contract_search_tool(all_clauses)
+    tools = [precedent_search]
+    if use_contract_search:
+        tools.append(make_contract_search_tool(all_clauses))
 
+    contract_search_guideline = (
+        "- Call contract_search only if precedent evidence is mixed or if knowing "
+        "the full contract context (party roles, related clauses) would resolve "
+        "the ambiguity.\n"
+        if use_contract_search else ""
+    )
     system_prompt = (
         "You are a legal risk assessor. DeBERTa classified the clause below with "
         "low confidence — use the available tools to gather evidence and produce "
         "a well-grounded final assessment.\n\n"
         "Tool usage guidelines:\n"
         "- Always call precedent_search first (k=5) to find similar labeled clauses.\n"
-        "- Call contract_search only if precedent evidence is mixed or if knowing "
-        "the full contract context (party roles, related clauses) would resolve "
-        "the ambiguity.\n"
+        f"{contract_search_guideline}"
         "- Base final_label on the weight of evidence, not just DeBERTa's label.\n\n"
         f"Clause under review:\n"
         f"  Type:               {clause.clause_type}\n"
@@ -160,7 +167,7 @@ def _agent_path(
     # after the ReAct loop instead.
     agent = create_react_agent(
         llm,
-        [precedent_search, contract_search],
+        tools,
         prompt=system_prompt,
     )
 
@@ -225,14 +232,21 @@ def assess_clauses(
     config_path: str = "configs/stage3_config.yaml",
     ce_model_path: Optional[str] = None,
     corn_model_path: Optional[str] = None,
+    use_contract_search: bool = True,
+    skip_ids: Optional[set] = None,
+    checkpoint_file: Optional[str] = None,
 ) -> list[RiskAssessedClause]:
     """Assess risk for all risk-relevant clauses from a single contract.
 
     Args:
-        clauses:         All ClauseObjects from Stage 1+2 for this contract.
-        config_path:     Path to stage3_config.yaml.
-        ce_model_path:   Local path to CE model (defaults to HF Hub).
-        corn_model_path: Local path to CORN model (defaults to HF Hub).
+        clauses:              All ClauseObjects from Stage 1+2 for this contract.
+        config_path:          Path to stage3_config.yaml.
+        ce_model_path:        Local path to CE model (defaults to HF Hub).
+        corn_model_path:      Local path to CORN model (defaults to HF Hub).
+        use_contract_search:  If False, agent path uses precedent_search only.
+        skip_ids:             Clause IDs to skip (already processed in a prior run).
+        checkpoint_file:      Path to JSONL file; each result is appended immediately
+                              so an interrupted run can be resumed via skip_ids.
 
     Returns:
         List of RiskAssessedClause — one per risk-relevant clause.
@@ -266,15 +280,21 @@ def assess_clauses(
         for doc_id in doc_ids
     }
 
+    _skip = skip_ids or set()
     results: list[RiskAssessedClause] = []
     risk_clauses = [c for c in clauses if c.clause_type not in METADATA_CLAUSE_TYPES]
+    skipped_meta  = len(clauses) - len(risk_clauses)
+    skipped_done  = sum(1 for c in risk_clauses if c.clause_id in _skip)
+    pending       = [c for c in risk_clauses if c.clause_id not in _skip]
     logger.info(
-        "Assessing %d risk-relevant clauses (skipped %d metadata)",
-        len(risk_clauses), len(clauses) - len(risk_clauses),
+        "Assessing %d clauses (%d metadata skipped, %d already done)",
+        len(pending), skipped_meta, skipped_done,
     )
 
-    for i, clause in enumerate(risk_clauses, 1):
-        signing_party = signing_parties[clause.document_id]
+    ckpt_fh = open(checkpoint_file, "a") if checkpoint_file else None
+
+    for i, clause in enumerate(pending, 1):
+        signing_party  = signing_parties[clause.document_id]
         deberta_result = classifier.predict(
             clause_text=clause.clause_text,
             clause_type=clause.clause_type,
@@ -284,7 +304,7 @@ def assess_clauses(
         path = "fast" if deberta_result["confidence"] >= threshold else "agent"
         logger.info(
             "[%d/%d] %s | DeBERTa=%s (%.2f) → %s path",
-            i, len(risk_clauses), clause.clause_type,
+            i, len(pending), clause.clause_type,
             deberta_result["label"], deberta_result["confidence"], path,
         )
 
@@ -296,8 +316,23 @@ def assess_clauses(
             assessed = _agent_path(
                 clause, deberta_result, signing_party, clauses,
                 index_path, llm, max_iter, k_low,
+                use_contract_search=use_contract_search,
             )
 
         results.append(assessed)
+        if ckpt_fh:
+            ckpt_fh.write(json.dumps({
+                "clause_id":   assessed.clause_id,
+                "clause_type": assessed.clause_type,
+                "risk_level":  assessed.risk_level,
+                "confidence":  assessed.confidence,
+                "agent_trace": [{"tool": t.tool, "result_count": t.result_count}
+                                for t in assessed.agent_trace],
+                "explanation": assessed.risk_explanation,
+            }) + "\n")
+            ckpt_fh.flush()
+
+    if ckpt_fh:
+        ckpt_fh.close()
 
     return results
