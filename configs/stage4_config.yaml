@@ -1,9 +1,8 @@
 # Stage 4: Report Generation
-explanation_model: google/flan-t5-base
 
-risk_thresholds:
-  high: 0.75
-  medium: 0.40
+# LLM for executive summary (reuses the same Qwen server as Stage 3)
+agent_model:    qwen3-30b-q4_k_xl
+agent_base_url: http://localhost:10006/v1
+agent_api_key:  none
 
 output_format: json
-max_explanation_length: 200

@@ -66,11 +66,13 @@ ML pipeline that reads legal contracts and flags risky clauses.
 - Craft 2–3 clauses with mixed precedents to force `contract_search` + multi-step loop
 - Verify `override_reason` populated when agent disagrees with DeBERTa
 
-**T6.3 — Stage 4 report generator**
-- Input: `list[RiskAssessedClause]` + metadata clauses → `RiskReport`
-- Sections: high/medium/low clause groups, per-clause remedy from lookup table, LLM executive summary
+**T6.3 — Stage 4 report generator** ✅ DONE (2026-05-03)
+- `src/stage4_report_gen/aggregator.py` — group by risk level, weighted score
+- `src/stage4_report_gen/recommender.py` — 108-entry lookup table (36 CUAD types × 3 levels)
+- `src/stage4_report_gen/report_builder.py` — assembles `RiskReport` + one Qwen call for executive summary
+- `configs/stage4_config.yaml` — Qwen on port 10006 (shared with Stage 3)
 
-**T6.4 — `scripts/run_pipeline.py`** end-to-end wiring
+**T6.4 — `scripts/run_pipeline.py`** ← NEXT (end-to-end wiring)
 
 ---
 

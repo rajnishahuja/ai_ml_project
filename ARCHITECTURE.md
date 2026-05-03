@@ -31,7 +31,7 @@ Contract PDF/Text
               ▼
 ┌─────────────────────────────┐
 │  Stage 4: Report Generation │  Python aggregation code
-│  Hybrid: code + LLM        │  FLAN-T5-base (explanations)
+│  Hybrid: code + LLM        │  Qwen3-30B (executive summary)
 │  Output: structured risk    │  Lookup table (recommendations)
 │          report             │
 └─────────────────────────────┘
@@ -538,10 +538,9 @@ AIML_project/
 │   │   └── evaluate.py          ← Risk detection metrics + ablation
 │   └── stage4_report_gen/
 │       ├── __init__.py
-│       ├── aggregator.py        ← Deterministic grouping, scoring, missing-clause detection
-│       ├── explainer.py         ← FLAN-T5 / LLM explanation generation
-│       ├── recommender.py       ← Lookup table + optional LLM recommendations
-│       ├── report_builder.py    ← Assembles final report from 3 sub-tasks
+│       ├── aggregator.py        ← Deterministic grouping + risk score (✅ done)
+│       ├── recommender.py       ← Lookup table: (clause_type, risk_level) → recommendation (✅ done)
+│       ├── report_builder.py    ← Assembles RiskReport + Qwen executive summary (✅ done)
 │       └── evaluate.py          ← ROUGE + optional human eval
 ├── data/
 │   ├── raw/                     ← Downloaded CUAD dataset files
@@ -671,7 +670,7 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
       "extraction": "microsoft/deberta-base",
       "risk_classification": "models/stage3_risk_deberta",
       "explanation": "Qwen3-30B-Q4_K_XL (local llama-server)",
-      "report_explanation": "google/flan-t5-base"
+      "report_summary": "Qwen3-30B-Q4_K_XL (local llama-server)"
     }
   }
 }
@@ -685,7 +684,7 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
 | DeBERTa-v3-base | 3 | `microsoft/deberta-v3-base` | Risk classification (fine-tuned on merged labels from `master_label_review.csv` — 3,048 hard + 1,327 soft). Chose v3 over base: ELECTRA-style pretraining → stronger downstream performance, same VRAM; SentencePiece 128k vocab is more efficient on legal text (p99 292 tokens vs 358 with base). | ~2 GB (train ~8 GB) |
 | Qwen3-30B (Q4_K_XL) | 3 | Local llama-server (OpenAI-compatible, `http://localhost:10006/v1`). Swap `agent_base_url` + `agent_model` in `stage3_config.yaml` for any OpenAI-compatible endpoint (Mistral-7B-Instruct, Azure-hosted model, etc.) when deploying outside this server. | Risk explanation (high-conf path) + ReAct tool-calling agent (low-conf path) | ~20 GB (4-bit, GPU) |
 | all-MiniLM-L6-v2 | 3 | `sentence-transformers/all-MiniLM-L6-v2` | Clause embeddings for FAISS | ~0.5 GB |
-| FLAN-T5-base | 4 | `google/flan-t5-base` | Report explanation generation | ~1 GB |
+| Qwen3-30B (Q4_K_XL) | 4 | Local llama-server port 10006 (shared with Stage 3) | Executive summary generation | ~20 GB (shared, no extra VRAM) |
 | Qwen-30B (non-reasoning) | 3 (data prep, done) | `mavenir-generic1-30b-q4_k_xl` (local llama-server on A100, temp=0) | Primary labeler — 4,410 risk-relevant spans | ~20 GB (4-bit) |
 | Gemini 2.5 Flash | 3 (data prep, done) | `gemini-2.5-flash` (Google API, JSON mode, temp=0) | Primary labeler — 4,410 risk-relevant spans (independent of Qwen) | API |
 | Gemini 2.5 Pro | 3 (data prep, done) | `gemini-2.5-pro` (Google API) | Boundary-disagreement tiebreaker — 87 focus-type MEDIUM↔HIGH / LOW↔MEDIUM cases | API |

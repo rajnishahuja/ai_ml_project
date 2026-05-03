@@ -30,11 +30,17 @@ ML pipeline that analyzes legal contracts and flags risky clauses using the CUAD
 - **Model**: Qwen3-30B Q4_K_XL, llama.cpp server on port 10006
 - **Key quirk**: `langchain-openai ≥ 1.2` defaults `with_structured_output` to `method="json_schema"` (OpenAI Structured Outputs / `.parse()`), which llama.cpp rejects with HTTP 400. Always pass `method="function_calling"` explicitly. See ARCHITECTURE.md "Implementation Notes".
 
+### Stage 4 Report Generator (complete 2026-05-03)
+- `src/stage4_report_gen/aggregator.py` — groups by risk level, computes weighted score
+- `src/stage4_report_gen/recommender.py` — lookup table: 108 entries (36 types × 3 levels)
+- `src/stage4_report_gen/report_builder.py` — assembles `RiskReport`; one Qwen call for executive summary
+- `configs/stage4_config.yaml` — updated to Qwen (shared with Stage 3, port 10006)
+- `missing_protections` left as `[]` — optional enhancement (see `docs/OPTIONAL_ENHANCEMENTS.md`)
+
 ### Immediate Next Steps
-1. **`eval_stage3.py`** — stratified 150-clause test-split eval; pipeline F1 vs DeBERTa-only F1
-2. **Agentic behavior test** — craft mixed-precedent cases to force multi-tool path; verify override_reason
-3. **Stage 4 report generator** — takes `list[RiskAssessedClause]`, produces `RiskReport`
-4. **`run_pipeline.py`** — wire Stage 1+2 → Stage 3 → Stage 4 end-to-end
+1. **`eval_stage3.py`** — `--full` run in progress; `--no-contract-search` ablation pending
+2. **`run_pipeline.py`** — wire Stage 1+2 → Stage 3 → Stage 4 end-to-end
+3. **Optional enhancements** — see `docs/OPTIONAL_ENHANCEMENTS.md`
 
 ### Stage 1 — still pending (GPU needed)
 1. **Tokenize full training set** — run `preprocess_for_qa()` on all 22,450 examples
