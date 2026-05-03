@@ -59,10 +59,12 @@ faiss_index_path: data/faiss_index/clauses.index
 # Agent LLM — Qwen 30B (Q4_K_XL quantized), served via local llama-server (OpenAI-compatible API).
 # Running on GPU. Swap agent_base_url + agent_model for any OpenAI-compatible endpoint
 # (e.g. Mistral-7B-Instruct or a hosted Azure model) when deploying outside this server.
+llm_provider: openai_compatible                  # options: openai_compatible | gemini | anthropic
 agent_model: Qwen3-30B-Q4_K_XL
 agent_base_url: http://localhost:10006/v1
 agent_api_key: none                              # llama-server needs a non-empty string
 
+agent_max_tokens: 512                            # cap per LLM call; explanations avg ~75 tokens, 512 is safe headroom
 confidence_threshold: 0.6                        # DeBERTa confidence gate for high-conf vs low-conf path
 agent_max_iterations: 5                          # low-conf path tool-calling loop cap
 similarity_top_k_high_conf: 3                    # precedent_search k on high-conf path

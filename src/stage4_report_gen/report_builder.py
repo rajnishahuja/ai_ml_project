@@ -13,8 +13,6 @@ import logging
 import os
 from datetime import datetime, timezone
 
-from langchain_openai import ChatOpenAI
-
 from src.common.schema import (
     ClauseObject,
     ReportClause,
@@ -22,7 +20,7 @@ from src.common.schema import (
     RiskAssessedClause,
     RiskReport,
 )
-from src.common.utils import load_config
+from src.common.utils import load_config, make_llm
 from src.stage4_report_gen.aggregator import (
     compute_contract_risk_score,
     group_by_risk_level,
@@ -42,7 +40,7 @@ def _generate_summary(
     medium_clauses: list[RiskAssessedClause],
     low_count: int,
     overall_score: float,
-    llm: ChatOpenAI,
+    llm,
 ) -> str:
     high_types  = ", ".join(c.clause_type for c in high_clauses[:5]) or "none"
     medium_types = ", ".join(c.clause_type for c in medium_clauses[:5]) or "none"
@@ -89,12 +87,7 @@ def build_report(
     """
     cfg = load_config(config_path)
 
-    llm = ChatOpenAI(
-        model=cfg["agent_model"],
-        base_url=cfg["agent_base_url"],
-        api_key=cfg.get("agent_api_key", "none"),
-        temperature=0,
-    )
+    llm = make_llm(cfg)
 
     # 1. Aggregate
     groups = group_by_risk_level(clauses)

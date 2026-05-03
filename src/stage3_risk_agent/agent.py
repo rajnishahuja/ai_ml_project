@@ -15,7 +15,7 @@ import logging
 from typing import Optional
 
 from langchain_core.messages import AIMessage, ToolMessage
-from langchain_openai import ChatOpenAI
+from src.common.utils import make_llm
 from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel, Field
 
@@ -260,12 +260,7 @@ def assess_clauses(
     k_low       = cfg["similarity_top_k_low_conf"]
     max_iter    = cfg["agent_max_iterations"]
 
-    llm = ChatOpenAI(
-        model=cfg["agent_model"],
-        base_url=cfg["agent_base_url"],
-        api_key=cfg.get("agent_api_key", "none"),
-        temperature=0,
-    )
+    llm = make_llm(cfg)
 
     logger.info("Loading DeBERTa risk classifier (Ens-F) ...")
     classifier = RiskClassifier(

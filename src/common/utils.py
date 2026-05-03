@@ -125,6 +125,53 @@ def compute_span_iou(
 
 
 # ---------------------------------------------------------------------------
+# LLM factory — provider-agnostic chat model instantiation
+# ---------------------------------------------------------------------------
+
+def make_llm(cfg: dict):
+    """Instantiate a LangChain chat model from config.
+
+    Supported providers (set via cfg['llm_provider']):
+      - "openai_compatible" (default): any OpenAI-compatible endpoint
+            (llama.cpp, Ollama, vLLM, Azure, OpenAI). Needs agent_base_url.
+      - "gemini": Google Gemini via langchain-google-genai. Needs GOOGLE_API_KEY.
+      - "anthropic": Anthropic Claude via langchain-anthropic. Needs ANTHROPIC_API_KEY.
+
+    Common config keys: agent_model, agent_max_tokens (default 512), temperature (default 0).
+    """
+    provider    = cfg.get("llm_provider", "openai_compatible")
+    model       = cfg["agent_model"]
+    max_tokens  = cfg.get("agent_max_tokens", 512)
+    temperature = cfg.get("agent_temperature", 0)
+
+    if provider == "gemini":
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        return ChatGoogleGenerativeAI(
+            model=model,
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+        )
+
+    if provider == "anthropic":
+        from langchain_anthropic import ChatAnthropic
+        return ChatAnthropic(
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+    # Default: OpenAI-compatible endpoint (llama.cpp, Ollama, OpenAI, Azure …)
+    from langchain_openai import ChatOpenAI
+    return ChatOpenAI(
+        model=model,
+        base_url=cfg.get("agent_base_url"),
+        api_key=cfg.get("agent_api_key", "none"),
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+
+
+# ---------------------------------------------------------------------------
 # JSON serialization for dataclasses
 # ---------------------------------------------------------------------------
 

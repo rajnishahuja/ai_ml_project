@@ -1,8 +1,11 @@
 # Stage 4: Report Generation
 
-# LLM for executive summary (reuses the same Qwen server as Stage 3)
+# LLM for executive summary (reuses the same server as Stage 3)
+# To switch provider: change llm_provider + agent_model; set env var for API key
+llm_provider:   openai_compatible          # options: openai_compatible | gemini | anthropic
 agent_model:    qwen3-30b-q4_k_xl
 agent_base_url: http://localhost:10006/v1
 agent_api_key:  none
+agent_max_tokens: 256                      # executive summary is short; 256 is ample
 
 output_format: json
