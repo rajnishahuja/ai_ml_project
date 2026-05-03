@@ -6,7 +6,7 @@ from src.stage1_extract_classify.preprocessing import preprocess_contract
 
 # Robustly resolve the project root regardless of where the script is executed
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DEFAULT_MODEL_PATH = str(BASE_DIR / "stage1_2_deberta")
+DEFAULT_MODEL_PATH = str(BASE_DIR / "models" / "stage1_2_deberta")
 
 # Path to your fine-tuned model weights (Fallback to the root stage1_2_deberta directory)
 MODEL_PATH = os.getenv("LOCAL_MODEL_PATH", DEFAULT_MODEL_PATH)

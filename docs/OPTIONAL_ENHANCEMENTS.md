@@ -38,4 +38,16 @@ Consider cost vs. value trade-off before implementing.
 
 ---
 
+**OE-5 — DeBERTa confidence calibration**
+Fast path accuracy is only 70% despite conf ≥ 0.6 threshold — DeBERTa is miscalibrated
+(overconfident). Two fixes worth comparing:
+
+- **Temperature scaling** (proper fix): fit a single scalar `T` on the val split so reported
+  confidence matches empirical accuracy. ~30 lines in `scripts/calibrate.py`; bake `T` into
+  `infer.py:predict()`. After calibration, conf ≥ 0.6 should mean ~90%+ accuracy.
+- **Lower threshold** (quick test): change 0.6 → 0.75 in `configs/stage3_config.yaml` and
+  re-run `eval_stage3.py`. Pushes borderline overconfident cases to the agent path.
+
+Agent-only (threshold = 1.0) is also an option but ~2.7× slower (452 vs 169 LLM calls).
+
 *Add new entries below as they come up.*

@@ -215,34 +215,12 @@ class ClauseExtractorClassifier:
         start_logits_list = []
         end_logits_list = []
 
-        # Mixed precision logic
-        # BUGFIX: DeBERTa's internal attention masks use extreme negative numbers that instantly
-        # overflow standard FP16 (c10::Half). We MUST use bfloat16 (which shares FP32's massive range)
-        # or disable mixed precision safely.
-        use_autocast = False
-        autocast_dtype = None
-
-        if self.device.type == "cuda" and torch.cuda.is_bf16_supported():
-            use_autocast = True
-            autocast_dtype = torch.bfloat16
-        elif self.device.type == "cpu" and hasattr(torch, "bfloat16"):
-            use_autocast = True
-            autocast_dtype = torch.bfloat16
-        # MPS (Mac) primarily uses FP16 natively. To prevent the overflow crash, we force it to standard FP32.
-
         with torch.no_grad():
             for i in range(0, total_chunks, batch_size):
                 batch_inputs = {
                     k: v[i : i + batch_size].to(self.device) for k, v in inputs.items()
                 }
-
-                if use_autocast:
-                    with torch.autocast(
-                        device_type=self.device.type, dtype=autocast_dtype
-                    ):
-                        outputs = self.model(**batch_inputs)
-                else:
-                    outputs = self.model(**batch_inputs)
+                outputs = self.model(**batch_inputs)
 
                 start_logits_list.append(outputs.start_logits.cpu().numpy())
                 end_logits_list.append(outputs.end_logits.cpu().numpy())
