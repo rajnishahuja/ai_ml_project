@@ -45,6 +45,37 @@ METADATA_CLAUSE_TYPES = {
 CE_MODEL_ID   = "rajnishahuja/cuad-risk-deberta-ce-parties"
 CORN_MODEL_ID = "rajnishahuja/cuad-risk-deberta-corn-parties"
 
+# CUAD labeling convention + worked examples — injected into the synthesis prompt
+# so the LLM's "HIGH/MEDIUM/LOW" scale matches what DeBERTa was trained on.
+# "Signing party" = the party reviewing the contract for risk (counterparty to drafter).
+_CUAD_CONVENTION = """\
+CUAD risk scale (from the signing party's perspective):
+  HIGH   — clause significantly disadvantages the signing party: one-sided IP transfer,
+            unlimited/uncapped liability, no termination rights, severe penalties.
+  MEDIUM — clause creates meaningful but bounded risk: capped liability, time-limited
+            restrictions, mutual obligations with some asymmetry, conditional rights.
+  LOW    — clause is standard, balanced, or net-positive for the signing party.
+
+Examples:
+
+[Ip Ownership Assignment | signing party = OntoChem (assignor)]
+Text: "Anixa will own, and OntoChem hereby assigns to Anixa, all right, title and
+interest in and to all Inventions other than OntoChem Inventions."
+→ HIGH — signing party irrevocably transfers IP rights with no compensation carve-out.
+
+[Anti-Assignment | mutual]
+Text: "Neither party may assign this Agreement or subcontract its obligations under
+this Agreement to another party without the other party's prior, written consent."
+→ MEDIUM — mutual restriction limits both parties equally; risk is real but bounded
+  and reciprocal, not one-sided.
+
+[Governing Law | standard]
+Text: "This Agreement will be governed and construed in accordance with the laws of
+the State of California without giving effect to conflict of laws principles."
+→ LOW — standard choice-of-law clause; no unusual jurisdiction burden on signing party.
+
+"""
+
 
 # ---------------------------------------------------------------------------
 # Structured output schema — used by both paths
@@ -160,8 +191,11 @@ def _agent_path(
         if use_contract_search else ""
     )
     system_prompt = (
-        "You are a legal risk assessor. Use the available tools to gather evidence "
-        "and produce a well-grounded final assessment.\n\n"
+        "You are a legal risk assessor using the CUAD risk scale:\n"
+        "  HIGH   — one-sided IP transfer, uncapped liability, no termination rights.\n"
+        "  MEDIUM — bounded risk: capped liability, mutual restrictions, conditional rights.\n"
+        "  LOW    — standard, balanced, or net-positive for the signing party.\n\n"
+        "Use the available tools to gather evidence and produce a well-grounded assessment.\n\n"
         "Evidence-gathering strategy:\n"
         "1. Always start with precedent_search (k=5).\n"
         "2. Evaluate what you got: precedent_search only returns clauses with "
@@ -217,10 +251,11 @@ def _agent_path(
             break
 
     synthesis_prompt = (
-        f"Clause under review:\n"
-        f"  Type:    {clause.clause_type}\n"
-        f"  Parties: {signing_party or 'unknown'}\n"
-        f"  Text:    {clause.clause_text}\n\n"
+        _CUAD_CONVENTION
+        + f"Now assess the following clause:\n\n"
+        f"Clause type: {clause.clause_type}\n"
+        f"Parties: {signing_party or 'unknown'}\n"
+        f"Text: {clause.clause_text}\n\n"
         f"Agent analysis:\n{agent_conclusion}\n\n"
         f"Produce the final structured risk assessment."
     )
