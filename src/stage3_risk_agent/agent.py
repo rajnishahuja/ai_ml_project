@@ -68,7 +68,17 @@ CLAUSE_CONTEXT_TYPES: dict[str, list[str]] = {
 }
 
 FAISS_MIN_SIMILARITY = 0.75
-FAISS_ENSEMBLE_MIN_VOTES = 3   # need >= this many strong matches to trust FAISS majority
+
+# Per-label minimum FAISS votes needed to participate in the ensemble.
+# Based on measured label-precision at min_sim=0.75:
+#   LOW    = 90.1%  → trustworthy with >=2 votes
+#   MEDIUM = 67.8%  → trustworthy with >=2 votes
+#   HIGH   = 25.8%  → skip FAISS entirely; DeBERTa always wins
+FAISS_MIN_VOTES: dict[str, int | None] = {
+    "LOW":    2,
+    "MEDIUM": 2,
+    "HIGH":   None,  # None = never use FAISS when its majority is HIGH
+}
 
 
 # ---------------------------------------------------------------------------
@@ -81,14 +91,16 @@ def _ensemble_label(
 ) -> tuple[str, str]:
     """Return (final_label, decision_reason).
 
-    FAISS overrides DeBERTa only when it has >= FAISS_ENSEMBLE_MIN_VOTES results
-    AND its majority agrees with DeBERTa. If FAISS majority disagrees, we trust
-    DeBERTa — FAISS HIGH precision is only 25.8%, so disagreement is likely noise.
+    Uses per-label FAISS vote thresholds based on measured label-precision.
+    FAISS only participates when its majority is LOW or MEDIUM (not HIGH).
+    When FAISS majority agrees with DeBERTa and meets the vote threshold,
+    the label is confirmed. On disagreement, DeBERTa always wins — we do
+    not yet allow FAISS to override DeBERTa, only to confirm it.
     """
     deberta_label = deberta_result["label"]
 
-    if len(faiss_results) < FAISS_ENSEMBLE_MIN_VOTES:
-        return deberta_label, f"deberta_only (faiss={len(faiss_results)} results < {FAISS_ENSEMBLE_MIN_VOTES})"
+    if not faiss_results:
+        return deberta_label, "deberta_only (no faiss results)"
 
     # Weighted majority: each vote weighted by similarity score
     weighted = Counter()
@@ -96,11 +108,23 @@ def _ensemble_label(
         weighted[r.risk_level] += r.similarity
     faiss_majority = weighted.most_common(1)[0][0]
 
+    # Skip FAISS when its majority is HIGH — precision too low (25.8%)
+    min_votes = FAISS_MIN_VOTES.get(faiss_majority)
+    if min_votes is None:
+        return deberta_label, f"deberta_only (faiss_majority=HIGH, precision 25.8% too low)"
+
+    if len(faiss_results) < min_votes:
+        return deberta_label, (
+            f"deberta_only (faiss={len(faiss_results)} {faiss_majority} votes < {min_votes})"
+        )
+
     if faiss_majority == deberta_label:
-        return deberta_label, f"deberta+faiss_agree (faiss={len(faiss_results)}, majority={faiss_majority})"
+        return deberta_label, f"deberta+faiss_agree (n={len(faiss_results)}, label={faiss_majority})"
     else:
-        # Disagreement → trust DeBERTa; FAISS is unreliable when labels conflict
-        return deberta_label, f"deberta_wins_conflict (faiss_said={faiss_majority}, deberta={deberta_label})"
+        # Disagreement → trust DeBERTa
+        return deberta_label, (
+            f"deberta_wins_conflict (faiss={faiss_majority} x{len(faiss_results)}, deberta={deberta_label})"
+        )
 
 
 # ---------------------------------------------------------------------------
