@@ -32,24 +32,31 @@ def make_precedent_search_tool(index_path: str):
     """
 
     @tool
-    def precedent_search(clause_text: str, k: int = 5) -> list[dict]:
+    def precedent_search(clause_text: str, k: int = 5,
+                         min_similarity: float = 0.75) -> list[dict]:
         """Search the labeled clause corpus for clauses similar to the one you are assessing.
 
-        Call this first when the risk level is uncertain. Returns the top-k most
-        similar clauses from real contracts, each with a verified risk label. Use
-        the distribution of labels and the clause context to reason about the
-        appropriate risk level for the clause under review.
+        Returns only clauses with cosine similarity >= min_similarity (default 0.75),
+        so results are genuinely relevant — not just the closest available matches.
+        If fewer than k results meet the threshold, only those are returned.
+        Receiving 0 results means no strong precedents exist in the corpus for this
+        clause — in that case, call deberta_classify for a model-based signal instead.
 
         Args:
             clause_text: Full text of the clause to search for.
-            k: Number of similar clauses to return (default 5).
+            k: Maximum number of results to return (default 5).
+            min_similarity: Minimum cosine similarity to include a result (default 0.75).
+                            Lower to 0.6 only if 0.75 returns 0 results and you need
+                            any available signal.
 
         Returns:
-            List of similar clauses, each with clause_type, risk_level, similarity score,
-            and the clause text. Ordered by descending similarity.
+            List of similar clauses ordered by descending similarity, each with
+            clause_type, risk_level, similarity score, and clause text.
+            Empty list if no clauses meet the similarity threshold.
         """
         results = query_index(clause_text, index_path, k)
-        return [asdict(r) for r in results]
+        filtered = [r for r in results if r.similarity >= min_similarity]
+        return [asdict(r) for r in filtered]
 
     return precedent_search
 
