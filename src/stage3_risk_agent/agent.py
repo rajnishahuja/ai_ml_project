@@ -1,282 +1,236 @@
 """
 Stage 3 agent — main entry point for risk assessment.
 
-assess_clauses() is called by run_pipeline.py with all ClauseObjects from
-Stage 1+2 for a single contract. Each risk-relevant clause is routed through
-DeBERTa, then either:
+Architecture:
+  Label decision:  DeBERTa + FAISS ensemble (deterministic, no LLM).
+  Explanation:     Single LLM call with clause text + evidence summary.
 
-  Fast path  (conf >= threshold): single LLM call with precedent context.
-  Agent path (conf <  threshold): LangGraph ReAct loop with tool access.
-                                   May override DeBERTa's preliminary label.
+Ensemble rule:
+  1. DeBERTa predicts label + confidence.
+  2. FAISS retrieves top-k clauses with similarity >= 0.75.
+  3. If FAISS has >=3 strong matches AND majority agrees with DeBERTa
+       → use that label (88.5% historical accuracy on this case).
+     Otherwise → use DeBERTa label (more reliable when FAISS signal is weak,
+       especially for HIGH-risk clauses where FAISS precision is only 25.8%).
+  4. LLM writes a 1-3 sentence explanation using the evidence.
+     It does NOT make the label decision.
+
+Contract context (targeted):
+  For clause types where party roles matter, CLAUSE_CONTEXT_TYPES maps each
+  type to the related clause types worth fetching from the same contract.
+  Only Parties + related types are passed — not all clauses.
 """
 
-import json
 import logging
+from collections import Counter
 from typing import Optional
 
-from langchain_core.messages import AIMessage, ToolMessage
-from src.common.utils import make_llm
-from langgraph.prebuilt import create_react_agent
-from pydantic import BaseModel, Field
-
 from src.common.schema import AgentTraceEntry, ClauseObject, RiskAssessedClause
-from src.common.utils import load_config
+from src.common.utils import load_config, make_llm
 from src.stage3_risk_agent.embeddings import query_index
 from src.stage3_risk_agent.risk_classifier import (
     RiskClassifier,
     extract_signing_party,
 )
-from src.stage3_risk_agent.tools import (
-    make_contract_search_tool,
-    make_deberta_classify_tool,
-    make_precedent_search_tool,
-)
 
 logger = logging.getLogger(__name__)
 
 # Clause types that carry contract metadata — not risk-assessed.
-# They route to the Stage 4 report header instead.
 METADATA_CLAUSE_TYPES = {
     "Document Name", "Parties", "Agreement Date",
     "Effective Date", "Expiration Date",
 }
 
-# Default HF Hub model IDs — overridable via assess_clauses() args for local dev.
+# Default HF Hub model IDs.
 CE_MODEL_ID   = "rajnishahuja/cuad-risk-deberta-ce-parties"
 CORN_MODEL_ID = "rajnishahuja/cuad-risk-deberta-corn-parties"
 
-# CUAD labeling convention + worked examples — injected into the synthesis prompt
-# so the LLM's "HIGH/MEDIUM/LOW" scale matches what DeBERTa was trained on.
-# "Signing party" = the party reviewing the contract for risk (counterparty to drafter).
-_CUAD_CONVENTION = """\
-CUAD risk scale (from the signing party's perspective):
-  HIGH   — clause significantly disadvantages the signing party: one-sided IP transfer,
-            unlimited/uncapped liability, no termination rights, severe penalties.
-  MEDIUM — clause creates meaningful but bounded risk: capped liability, time-limited
-            restrictions, mutual obligations with some asymmetry, conditional rights.
-  LOW    — clause is standard, balanced, or net-positive for the signing party.
+# For each clause type, which related types provide useful context for explanation.
+# The Parties clause is always included when present.
+# Types not listed here get only the Parties clause.
+CLAUSE_CONTEXT_TYPES: dict[str, list[str]] = {
+    "Ip Ownership Assignment":        ["License Grant", "Affiliate License-Licensor", "Work For Hire"],
+    "Affiliate License-Licensee":     ["License Grant", "Ip Ownership Assignment", "Sublicense"],
+    "Affiliate License-Licensor":     ["License Grant", "Ip Ownership Assignment"],
+    "License Grant":                  ["Ip Ownership Assignment", "Exclusivity", "Sublicense"],
+    "Sublicense":                     ["License Grant", "Ip Ownership Assignment"],
+    "Non-Compete":                    ["Non-Solicitation", "Exclusivity", "Termination For Convenience"],
+    "Non-Solicitation":               ["Non-Compete"],
+    "Cap On Liability":               ["Uncapped Liability"],
+    "Uncapped Liability":             ["Cap On Liability"],
+    "Anti-Assignment":                ["Change Of Control"],
+    "Change Of Control":              ["Anti-Assignment", "Termination For Convenience"],
+    "Exclusivity":                    ["Non-Compete", "License Grant", "Minimum Commitment"],
+    "Termination For Convenience":    ["Notice Period To Terminate Renewal", "Renewal Term"],
+    "Liquidated Damages":             ["Cap On Liability", "Minimum Commitment"],
+    "Minimum Commitment":             ["Liquidated Damages", "Renewal Term"],
+    "Covenant Not To Sue":            ["License Grant", "Ip Ownership Assignment"],
+}
 
-Examples:
-
-[Ip Ownership Assignment | signing party = OntoChem (assignor)]
-Text: "Anixa will own, and OntoChem hereby assigns to Anixa, all right, title and
-interest in and to all Inventions other than OntoChem Inventions."
-→ HIGH — signing party irrevocably transfers IP rights with no compensation carve-out.
-
-[Anti-Assignment | mutual]
-Text: "Neither party may assign this Agreement or subcontract its obligations under
-this Agreement to another party without the other party's prior, written consent."
-→ MEDIUM — mutual restriction limits both parties equally; risk is real but bounded
-  and reciprocal, not one-sided.
-
-[Governing Law | standard]
-Text: "This Agreement will be governed and construed in accordance with the laws of
-the State of California without giving effect to conflict of laws principles."
-→ LOW — standard choice-of-law clause; no unusual jurisdiction burden on signing party.
-
-"""
+FAISS_MIN_SIMILARITY = 0.75
+FAISS_ENSEMBLE_MIN_VOTES = 3   # need >= this many strong matches to trust FAISS majority
 
 
 # ---------------------------------------------------------------------------
-# Structured output schema — used by both paths
+# Ensemble label decision
 # ---------------------------------------------------------------------------
 
-class RiskAssessment(BaseModel):
-    final_label: str = Field(
-        description="Risk level for the signing party: LOW, MEDIUM, or HIGH."
-    )
-    explanation: str = Field(
-        description=(
-            "1-3 sentence explanation of the risk level, grounded in the clause "
-            "text and any evidence gathered from tools."
-        )
-    )
-    override_reason: str = Field(
-        default="",
-        description=(
-            "If your final_label differs from DeBERTa's preliminary label, "
-            "explain why. Leave empty when confirming DeBERTa."
-        ),
-    )
-
-
-# ---------------------------------------------------------------------------
-# Fast path  (conf >= threshold)
-# ---------------------------------------------------------------------------
-
-def _fast_path(
-    clause: ClauseObject,
+def _ensemble_label(
     deberta_result: dict,
+    faiss_results: list,   # list[SimilarClause] already filtered to min_similarity
+) -> tuple[str, str]:
+    """Return (final_label, decision_reason).
+
+    FAISS overrides DeBERTa only when it has >= FAISS_ENSEMBLE_MIN_VOTES results
+    AND its majority agrees with DeBERTa. If FAISS majority disagrees, we trust
+    DeBERTa — FAISS HIGH precision is only 25.8%, so disagreement is likely noise.
+    """
+    deberta_label = deberta_result["label"]
+
+    if len(faiss_results) < FAISS_ENSEMBLE_MIN_VOTES:
+        return deberta_label, f"deberta_only (faiss={len(faiss_results)} results < {FAISS_ENSEMBLE_MIN_VOTES})"
+
+    # Weighted majority: each vote weighted by similarity score
+    weighted = Counter()
+    for r in faiss_results:
+        weighted[r.risk_level] += r.similarity
+    faiss_majority = weighted.most_common(1)[0][0]
+
+    if faiss_majority == deberta_label:
+        return deberta_label, f"deberta+faiss_agree (faiss={len(faiss_results)}, majority={faiss_majority})"
+    else:
+        # Disagreement → trust DeBERTa; FAISS is unreliable when labels conflict
+        return deberta_label, f"deberta_wins_conflict (faiss_said={faiss_majority}, deberta={deberta_label})"
+
+
+# ---------------------------------------------------------------------------
+# Targeted contract context
+# ---------------------------------------------------------------------------
+
+def _targeted_context(clause: ClauseObject, all_clauses: list[ClauseObject]) -> list[dict]:
+    """Return Parties clause + related clause types for this clause type.
+
+    Returns a small, focused list so the LLM explanation call is grounded in
+    relevant contract context rather than noise from unrelated clauses.
+    """
+    related_types = set(CLAUSE_CONTEXT_TYPES.get(clause.clause_type, []))
+    related_types.add("Parties")
+
+    return [
+        {"clause_type": c.clause_type, "clause_text": c.clause_text}
+        for c in all_clauses
+        if c.clause_id != clause.clause_id and c.clause_type in related_types
+    ]
+
+
+# ---------------------------------------------------------------------------
+# LLM explanation (single call, label already decided)
+# ---------------------------------------------------------------------------
+
+def _explain_label(
+    clause: ClauseObject,
     signing_party: str,
-    index_path: str,
+    final_label: str,
+    deberta_result: dict,
+    faiss_results: list,
+    context_clauses: list[dict],
     llm,
-    k: int,
-) -> RiskAssessedClause:
-    # Fast path is dead code — confidence_threshold: 0 routes all clauses to agent.
-    # Kept for reference; no FAISS call here (RAG lives in the agent's precedent_search tool).
-    prompt = (
-        f"You are a legal risk assessor.\n\n"
-        f"Clause under review:\n"
-        f"  Type:    {clause.clause_type}\n"
-        f"  Parties: {signing_party or 'unknown'}\n"
-        f"  Text:    {clause.clause_text}\n\n"
-        f"DeBERTa's label: {deberta_result['label']} "
-        f"({deberta_result['confidence']:.0%} confidence).\n\n"
-        f"Determine the correct risk level (LOW / MEDIUM / HIGH) for the signing party."
-    )
+) -> str:
+    """Ask the LLM to explain a pre-decided label. Does NOT choose the label."""
 
-    result: RiskAssessment = llm.with_structured_output(
-        RiskAssessment, method="function_calling"
-    ).invoke(prompt)
-
-    if result is None:
-        logger.warning("fast_path: structured output returned None, falling back to DeBERTa label")
-        result = RiskAssessment(
-            final_label=deberta_result["label"],
-            explanation="(LLM structured output failed — DeBERTa label used as fallback)",
+    # Build a compact evidence summary
+    if faiss_results:
+        label_counts = Counter(r.risk_level for r in faiss_results)
+        avg_sim = sum(r.similarity for r in faiss_results) / len(faiss_results)
+        faiss_summary = (
+            f"{len(faiss_results)} precedents found (avg similarity {avg_sim:.2f}): "
+            + ", ".join(f"{label}×{cnt}" for label, cnt in label_counts.most_common())
         )
+    else:
+        faiss_summary = "No strong precedents found in corpus (similarity < 0.75)"
 
-    return RiskAssessedClause(
-        clause_id=clause.clause_id,
-        document_id=clause.document_id,
-        clause_text=clause.clause_text,
-        clause_type=clause.clause_type,
-        risk_level=result.final_label,
-        risk_explanation=result.explanation,
-        similar_clauses=[],
-        cross_references=[],
-        confidence=deberta_result["confidence"],
-        agent_trace=[],
+    context_block = ""
+    if context_clauses:
+        lines = "\n".join(
+            f"  [{c['clause_type']}] {c['clause_text'][:200]}"
+            for c in context_clauses[:5]
+        )
+        context_block = f"\nRelated clauses from this contract:\n{lines}\n"
+
+    prompt = (
+        f"You are a legal contract analyst. The risk label for the clause below has "
+        f"been determined to be {final_label}. Write a 1-3 sentence explanation "
+        f"grounded in the clause text and evidence provided.\n\n"
+        f"Clause type: {clause.clause_type}\n"
+        f"Signing party: {signing_party or 'unknown'}\n"
+        f"Text: {clause.clause_text}\n\n"
+        f"Evidence:\n"
+        f"  DeBERTa: {deberta_result['label']} ({deberta_result['confidence']:.0%} confidence)\n"
+        f"  FAISS:   {faiss_summary}\n"
+        f"{context_block}\n"
+        f"Explanation (1-3 sentences, do not state the label — just explain why):"
     )
 
+    try:
+        response = llm.invoke(prompt)
+        text = response.content if hasattr(response, "content") else str(response)
+        return text.strip()
+    except Exception as e:
+        logger.warning("LLM explanation failed: %s", e)
+        return f"({deberta_result['label']} predicted by DeBERTa at {deberta_result['confidence']:.0%} confidence)"
+
 
 # ---------------------------------------------------------------------------
-# Agent path  (conf < threshold)
+# Per-clause assessment
 # ---------------------------------------------------------------------------
 
-def _agent_path(
+def _assess_clause(
     clause: ClauseObject,
     deberta_result: dict,
     signing_party: str,
     all_clauses: list[ClauseObject],
     index_path: str,
     llm,
-    max_iterations: int,
     k: int,
-    classifier=None,
-    use_contract_search: bool = True,
+    use_contract_context: bool = True,
 ) -> RiskAssessedClause:
-    precedent_search = make_precedent_search_tool(index_path)
-    tools = [precedent_search]
-    if classifier is not None:
-        tools.append(make_deberta_classify_tool(classifier, signing_party))
-    if use_contract_search:
-        tools.append(make_contract_search_tool(all_clauses))
+    # 1. FAISS retrieval
+    faiss_raw     = query_index(clause.clause_text, index_path, k)
+    faiss_results = [r for r in faiss_raw if r.similarity >= FAISS_MIN_SIMILARITY]
 
-    deberta_tool_guideline = (
-        "- Call deberta_classify(clause_text, clause_type) if precedent similarity "
-        "scores are low (below 0.75) or votes are split — it is a model trained on "
-        "3,400 labeled CUAD clauses and is useful as a tiebreaker.\n"
-        "  Interpreting deberta_classify results:\n"
-        "    * confidence > 0.75 + agrees with precedent majority → strong signal, trust it\n"
-        "    * confidence > 0.75 + disagrees with precedents → genuine conflict, call contract_search\n"
-        "    * confidence < 0.60 → DeBERTa itself is uncertain, weight it lightly\n"
-        if classifier is not None else ""
-    )
-    contract_search_guideline = (
-        f"- Call contract_search(current_clause_id='{clause.clause_id}') when party "
-        "roles or cross-clause context could change the assessment — especially for "
-        "IP Ownership, License Grant, Affiliate License, and Assignment clause types "
-        "where who signed determines the risk direction.\n"
-        if use_contract_search else ""
-    )
-    system_prompt = (
-        "You are a legal risk assessor using the CUAD risk scale:\n"
-        "  HIGH   — one-sided IP transfer, uncapped liability, no termination rights.\n"
-        "  MEDIUM — bounded risk: capped liability, mutual restrictions, conditional rights.\n"
-        "  LOW    — standard, balanced, or net-positive for the signing party.\n\n"
-        "Use the available tools to gather evidence and produce a well-grounded assessment.\n\n"
-        "Evidence-gathering strategy:\n"
-        "1. Always start with precedent_search (k=5).\n"
-        "2. Evaluate what you got: precedent_search only returns clauses with "
-        "similarity >= 0.75, so every result is a strong match. If it returns 0 "
-        "results, no good precedents exist — skip to step 3 immediately.\n"
-        "   If results are returned, check vote distribution: 4+ unanimous → conclude.\n"
-        "3. If precedents are absent or votes are split, gather more evidence:\n"
-        f"{deberta_tool_guideline}"
-        f"{contract_search_guideline}"
-        "4. Weigh all evidence. If multiple tools agree, that convergence is meaningful. "
-        "If they conflict, explain which evidence you find more compelling and why.\n\n"
-        f"Clause under review:\n"
-        f"  clause_id:  {clause.clause_id}\n"
-        f"  Type:       {clause.clause_type}\n"
-        f"  Parties:    {signing_party or 'unknown'}\n"
-        f"  Text:       {clause.clause_text}\n"
+    # 2. Ensemble label decision (no LLM)
+    final_label, decision_reason = _ensemble_label(deberta_result, faiss_results)
+
+    # 3. Targeted contract context
+    context_clauses = (
+        _targeted_context(clause, all_clauses) if use_contract_context else []
     )
 
-    # Don't use response_format= here: langchain-openai 1.2.1 defaults to
-    # method="json_schema" which calls openai's .parse() endpoint — llama.cpp
-    # rejects that with 400. We do one explicit function_calling structured call
-    # after the ReAct loop instead.
-    agent = create_react_agent(
-        llm,
-        tools,
-        prompt=system_prompt,
+    logger.debug(
+        "  %s | deberta=%s faiss=%d results | decision: %s",
+        clause.clause_type, deberta_result["label"], len(faiss_results), decision_reason,
     )
 
-    state = agent.invoke(
-        {"messages": [{"role": "user", "content": "Assess the risk level for the clause described above."}]},
-        config={"recursion_limit": max_iterations * 2 + 4},
+    # 4. LLM explanation only
+    explanation = _explain_label(
+        clause, signing_party, final_label,
+        deberta_result, faiss_results, context_clauses, llm,
     )
 
-    # Build agent trace from ToolMessage entries in the message history
+    # Trace: record what signals were used (for eval/audit, no tool calls)
     trace = []
-    for msg in state["messages"]:
-        if isinstance(msg, ToolMessage):
-            try:
-                content = json.loads(msg.content) if isinstance(msg.content, str) else msg.content
-                count = len(content) if isinstance(content, list) else None
-            except (json.JSONDecodeError, TypeError):
-                count = None
-            trace.append(AgentTraceEntry(tool=msg.name, result_count=count))
-
-    # Extract the agent's final reasoning text (last AI message with no tool calls).
-    # Passing the full ReAct history to with_structured_output causes the model to
-    # return plain text (it sees existing tool_call messages and doesn't re-call);
-    # a clean single-turn prompt reliably triggers the function_calling tool fill.
-    agent_conclusion = ""
-    for msg in reversed(state["messages"]):
-        if isinstance(msg, AIMessage) and msg.content and not getattr(msg, "tool_calls", []):
-            agent_conclusion = msg.content if isinstance(msg.content, str) else str(msg.content)
-            break
-
-    synthesis_prompt = (
-        _CUAD_CONVENTION
-        + f"Now assess the following clause:\n\n"
-        f"Clause type: {clause.clause_type}\n"
-        f"Parties: {signing_party or 'unknown'}\n"
-        f"Text: {clause.clause_text}\n\n"
-        f"Agent analysis:\n{agent_conclusion}\n\n"
-        f"Produce the final structured risk assessment."
-    )
-    result: RiskAssessment = llm.with_structured_output(
-        RiskAssessment, method="function_calling"
-    ).invoke(synthesis_prompt)
-
-    if result is None:
-        logger.warning("agent_path: structured output returned None, falling back to DeBERTa label")
-        result = RiskAssessment(
-            final_label=deberta_result["label"],
-            explanation="(LLM structured output failed — DeBERTa label used as fallback)",
-        )
+    if faiss_results:
+        trace.append(AgentTraceEntry(tool="precedent_search", result_count=len(faiss_results)))
+    if context_clauses:
+        trace.append(AgentTraceEntry(tool="contract_context", result_count=len(context_clauses)))
 
     return RiskAssessedClause(
         clause_id=clause.clause_id,
         document_id=clause.document_id,
         clause_text=clause.clause_text,
         clause_type=clause.clause_type,
-        risk_level=result.final_label,
-        risk_explanation=result.explanation,
+        risk_level=final_label,
+        risk_explanation=explanation,
         similar_clauses=[],
         cross_references=[],
         confidence=deberta_result["confidence"],
@@ -293,7 +247,7 @@ def assess_clauses(
     config_path: str = "configs/stage3_config.yaml",
     ce_model_path: Optional[str] = None,
     corn_model_path: Optional[str] = None,
-    use_contract_search: bool = True,
+    use_contract_search: bool = True,   # kept for API compatibility
     skip_ids: Optional[set] = None,
     checkpoint_file: Optional[str] = None,
 ) -> list[RiskAssessedClause]:
@@ -304,22 +258,19 @@ def assess_clauses(
         config_path:          Path to stage3_config.yaml.
         ce_model_path:        Local path to CE model (defaults to HF Hub).
         corn_model_path:      Local path to CORN model (defaults to HF Hub).
-        use_contract_search:  If False, agent path uses precedent_search only.
+        use_contract_search:  If False, skip targeted contract context lookup.
         skip_ids:             Clause IDs to skip (already processed in a prior run).
-        checkpoint_file:      Path to JSONL file; each result is appended immediately
-                              so an interrupted run can be resumed via skip_ids.
+        checkpoint_file:      Path to JSONL file; each result is appended immediately.
 
     Returns:
         List of RiskAssessedClause — one per risk-relevant clause.
-        Metadata clause types (Parties, dates, etc.) are excluded.
     """
+    import json
+
     cfg = load_config(config_path)
 
-    index_path  = cfg["faiss_index_path"]
-    threshold   = cfg["confidence_threshold"]
-    k_high      = cfg["similarity_top_k_high_conf"]
-    k_low       = cfg["similarity_top_k_low_conf"]
-    max_iter    = cfg["agent_max_iterations"]
+    index_path = cfg["faiss_index_path"]
+    k          = cfg["similarity_top_k_low_conf"]   # always use low-conf k (= max k)
 
     llm = make_llm(cfg)
 
@@ -329,7 +280,6 @@ def assess_clauses(
         corn_model_path=corn_model_path or CORN_MODEL_ID,
     )
 
-    # Resolve signing party once per document (O(n) not O(n²))
     doc_ids = {c.document_id for c in clauses}
     signing_parties = {
         doc_id: extract_signing_party(doc_id, clauses)
@@ -338,10 +288,10 @@ def assess_clauses(
 
     _skip = skip_ids or set()
     results: list[RiskAssessedClause] = []
-    risk_clauses = [c for c in clauses if c.clause_type not in METADATA_CLAUSE_TYPES]
-    skipped_meta  = len(clauses) - len(risk_clauses)
-    skipped_done  = sum(1 for c in risk_clauses if c.clause_id in _skip)
-    pending       = [c for c in risk_clauses if c.clause_id not in _skip]
+    risk_clauses   = [c for c in clauses if c.clause_type not in METADATA_CLAUSE_TYPES]
+    skipped_meta   = len(clauses) - len(risk_clauses)
+    skipped_done   = sum(1 for c in risk_clauses if c.clause_id in _skip)
+    pending        = [c for c in risk_clauses if c.clause_id not in _skip]
     logger.info(
         "Assessing %d clauses (%d metadata skipped, %d already done)",
         len(pending), skipped_meta, skipped_done,
@@ -357,24 +307,22 @@ def assess_clauses(
             signing_party=signing_party,
         )
 
-        path = "fast" if deberta_result["confidence"] >= threshold else "agent"
         logger.info(
-            "[%d/%d] %s | DeBERTa=%s (%.2f) → %s path",
+            "[%d/%d] %s | DeBERTa=%s (%.2f)",
             i, len(pending), clause.clause_type,
-            deberta_result["label"], deberta_result["confidence"], path,
+            deberta_result["label"], deberta_result["confidence"],
         )
 
-        if path == "fast":
-            assessed = _fast_path(
-                clause, deberta_result, signing_party, index_path, llm, k_high
-            )
-        else:
-            assessed = _agent_path(
-                clause, deberta_result, signing_party, clauses,
-                index_path, llm, max_iter, k_low,
-                classifier=classifier,
-                use_contract_search=use_contract_search,
-            )
+        assessed = _assess_clause(
+            clause=clause,
+            deberta_result=deberta_result,
+            signing_party=signing_party,
+            all_clauses=clauses,
+            index_path=index_path,
+            llm=llm,
+            k=k,
+            use_contract_context=use_contract_search,
+        )
 
         results.append(assessed)
         if ckpt_fh:
