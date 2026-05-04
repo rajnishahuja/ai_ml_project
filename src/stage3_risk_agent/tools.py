@@ -61,31 +61,33 @@ def make_contract_search_tool(clauses: list[ClauseObject]):
     """
 
     @tool
-    def contract_search(document_id: str) -> list[dict]:
-        """Retrieve all clauses extracted from the same contract.
+    def contract_search(current_clause_id: str) -> list[dict]:
+        """Retrieve all other clauses extracted from the same contract.
 
         Call this when precedent evidence alone is insufficient — specifically when
         party roles or cross-clause context could change the risk assessment. For
         example: an IP assignment clause may look HIGH risk in isolation but be LOW
         risk if the contract shows the signing party is the one receiving rights.
+        Seeing the Parties clause, Governing Law, or related restrictions from the
+        same document can resolve ambiguity that precedent search cannot.
 
         Do NOT call this if precedent_search already provided clear consensus — use
         it only to resolve ambiguity that requires same-contract context.
 
         Args:
-            document_id: The contract's document identifier.
+            current_clause_id: The clause_id of the clause currently being assessed
+                               (excluded from results so you only see sibling clauses).
 
         Returns:
-            List of clauses from the same contract, each with clause_type and
-            clause_text. Excludes the clause currently being assessed.
+            List of all other clauses from this contract, each with clause_type
+            and clause_text.
         """
         siblings = [
             {"clause_type": c.clause_type, "clause_text": c.clause_text}
             for c in clauses
-            if c.document_id == document_id
+            if c.clause_id != current_clause_id
         ]
-        if not siblings:
-            logger.warning("contract_search: no clauses found for document_id=%s", document_id)
+        logger.debug("contract_search: returning %d sibling clauses", len(siblings))
         return siblings
 
     return contract_search

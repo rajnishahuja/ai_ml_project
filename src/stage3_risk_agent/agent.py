@@ -140,9 +140,9 @@ def _agent_path(
         tools.append(make_contract_search_tool(all_clauses))
 
     contract_search_guideline = (
-        "- Call contract_search only if precedent evidence is mixed or if knowing "
-        "the full contract context (party roles, related clauses) would resolve "
-        "the ambiguity.\n"
+        f"- Call contract_search(current_clause_id='{clause.clause_id}') if precedent "
+        "evidence is mixed or if knowing the full contract context (party roles, related "
+        "clauses) would resolve the ambiguity.\n"
         if use_contract_search else ""
     )
     system_prompt = (
@@ -154,9 +154,10 @@ def _agent_path(
         f"{contract_search_guideline}"
         "- Base final_label on the weight of evidence, not just DeBERTa's label.\n\n"
         f"Clause under review:\n"
-        f"  Type:               {clause.clause_type}\n"
-        f"  Parties:            {signing_party or 'unknown'}\n"
-        f"  Text:               {clause.clause_text}\n"
+        f"  clause_id:           {clause.clause_id}\n"
+        f"  Type:                {clause.clause_type}\n"
+        f"  Parties:             {signing_party or 'unknown'}\n"
+        f"  Text:                {clause.clause_text}\n"
         f"  DeBERTa preliminary: {deberta_result['label']} "
         f"(confidence: {deberta_result['confidence']:.2f})"
     )
