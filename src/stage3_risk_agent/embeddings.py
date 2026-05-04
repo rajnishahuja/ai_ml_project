@@ -27,8 +27,9 @@ logger = logging.getLogger(__name__)
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384
 
-# Lazy-loaded singleton — model is 87 MB, load once on first query_index() call.
+# Lazy-loaded singletons — loaded once on first query_index() call.
 _model: SentenceTransformer | None = None
+_faiss_cache: dict[str, tuple] = {}   # index_path → (faiss.Index, list[dict])
 
 
 def _get_model() -> SentenceTransformer:
@@ -37,6 +38,18 @@ def _get_model() -> SentenceTransformer:
         logger.info("Loading embedding model: %s", MODEL_NAME)
         _model = SentenceTransformer(MODEL_NAME)
     return _model
+
+
+def _get_index(index_path: str) -> tuple:
+    """Load FAISS index + metadata once, cache in memory for subsequent calls."""
+    global _faiss_cache
+    if index_path not in _faiss_cache:
+        logger.info("Loading FAISS index from %s", index_path)
+        index = faiss.read_index(index_path)
+        with open(_meta_path(index_path)) as f:
+            metadata = json.load(f)
+        _faiss_cache[index_path] = (index, metadata)
+    return _faiss_cache[index_path]
 
 
 def _meta_path(index_path: str) -> Path:
@@ -130,11 +143,7 @@ def query_index(clause_text: str, index_path: str, k: int = 5) -> list[SimilarCl
     vector = model.encode([clause_text], convert_to_numpy=True,
                           normalize_embeddings=True).astype(np.float32)
 
-    index = faiss.read_index(index_path)
-    meta_path = _meta_path(index_path)
-    with open(meta_path) as f:
-        metadata = json.load(f)
-
+    index, metadata = _get_index(index_path)
     k = min(k, index.ntotal)
     scores, indices = index.search(vector, k)
 
