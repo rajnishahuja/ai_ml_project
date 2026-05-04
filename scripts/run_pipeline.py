@@ -27,7 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-DEFAULT_STAGE1_MODEL  = "models/stage1_2_deberta"
+DEFAULT_STAGE1_MODEL  = "rajnishahuja/cuad-stage1-deberta"
 DEFAULT_STAGE3_CONFIG = "configs/stage3_config.yaml"
 DEFAULT_STAGE4_CONFIG = "configs/stage4_config.yaml"
 DEFAULT_CE_MODEL      = "models/stage3_risk_deberta_v3_run22_parties/final"
