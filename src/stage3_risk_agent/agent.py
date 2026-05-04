@@ -28,6 +28,7 @@ from src.stage3_risk_agent.risk_classifier import (
 )
 from src.stage3_risk_agent.tools import (
     make_contract_search_tool,
+    make_deberta_classify_tool,
     make_precedent_search_tool,
 )
 
@@ -77,33 +78,32 @@ def _fast_path(
     deberta_result: dict,
     signing_party: str,
     index_path: str,
-    llm: ChatOpenAI,
+    llm,
     k: int,
 ) -> RiskAssessedClause:
-    similar = query_index(clause.clause_text, index_path, k)
-
-    precedent_lines = "\n".join(
-        f"  [{r.risk_level}] ({r.clause_type}, similarity={r.similarity:.2f}) "
-        f"{r.text[:120]}"
-        for r in similar
-    ) or "  (none retrieved)"
-
+    # Fast path is dead code — confidence_threshold: 0 routes all clauses to agent.
+    # Kept for reference; no FAISS call here (RAG lives in the agent's precedent_search tool).
     prompt = (
         f"You are a legal risk assessor.\n\n"
-        f"DeBERTa classified this clause as {deberta_result['label']} risk "
-        f"({deberta_result['confidence']:.0%} confidence).\n\n"
         f"Clause under review:\n"
         f"  Type:    {clause.clause_type}\n"
         f"  Parties: {signing_party or 'unknown'}\n"
         f"  Text:    {clause.clause_text}\n\n"
-        f"Similar clauses from the labeled corpus:\n{precedent_lines}\n\n"
-        f"Write a concise explanation (1-3 sentences) of why this clause is "
-        f"{deberta_result['label']} risk, grounded in the clause text and precedents."
+        f"DeBERTa's label: {deberta_result['label']} "
+        f"({deberta_result['confidence']:.0%} confidence).\n\n"
+        f"Determine the correct risk level (LOW / MEDIUM / HIGH) for the signing party."
     )
 
     result: RiskAssessment = llm.with_structured_output(
         RiskAssessment, method="function_calling"
     ).invoke(prompt)
+
+    if result is None:
+        logger.warning("fast_path: structured output returned None, falling back to DeBERTa label")
+        result = RiskAssessment(
+            final_label=deberta_result["label"],
+            explanation="(LLM structured output failed — DeBERTa label used as fallback)",
+        )
 
     return RiskAssessedClause(
         clause_id=clause.clause_id,
@@ -112,7 +112,7 @@ def _fast_path(
         clause_type=clause.clause_type,
         risk_level=result.final_label,
         risk_explanation=result.explanation,
-        similar_clauses=similar,
+        similar_clauses=[],
         cross_references=[],
         confidence=deberta_result["confidence"],
         agent_trace=[],
@@ -129,37 +129,53 @@ def _agent_path(
     signing_party: str,
     all_clauses: list[ClauseObject],
     index_path: str,
-    llm: ChatOpenAI,
+    llm,
     max_iterations: int,
     k: int,
+    classifier=None,
     use_contract_search: bool = True,
 ) -> RiskAssessedClause:
     precedent_search = make_precedent_search_tool(index_path)
     tools = [precedent_search]
+    if classifier is not None:
+        tools.append(make_deberta_classify_tool(classifier, signing_party))
     if use_contract_search:
         tools.append(make_contract_search_tool(all_clauses))
 
+    deberta_tool_guideline = (
+        "- Call deberta_classify(clause_text, clause_type) if precedent similarity "
+        "scores are low (below 0.75) or votes are split — it is a model trained on "
+        "3,400 labeled CUAD clauses and is useful as a tiebreaker.\n"
+        "  Interpreting deberta_classify results:\n"
+        "    * confidence > 0.75 + agrees with precedent majority → strong signal, trust it\n"
+        "    * confidence > 0.75 + disagrees with precedents → genuine conflict, call contract_search\n"
+        "    * confidence < 0.60 → DeBERTa itself is uncertain, weight it lightly\n"
+        if classifier is not None else ""
+    )
     contract_search_guideline = (
-        f"- Call contract_search(current_clause_id='{clause.clause_id}') if precedent "
-        "evidence is mixed or if knowing the full contract context (party roles, related "
-        "clauses) would resolve the ambiguity.\n"
+        f"- Call contract_search(current_clause_id='{clause.clause_id}') when party "
+        "roles or cross-clause context could change the assessment — especially for "
+        "IP Ownership, License Grant, Affiliate License, and Assignment clause types "
+        "where who signed determines the risk direction.\n"
         if use_contract_search else ""
     )
     system_prompt = (
-        "You are a legal risk assessor. DeBERTa classified the clause below with "
-        "low confidence — use the available tools to gather evidence and produce "
-        "a well-grounded final assessment.\n\n"
-        "Tool usage guidelines:\n"
-        "- Always call precedent_search first (k=5) to find similar labeled clauses.\n"
+        "You are a legal risk assessor. Use the available tools to gather evidence "
+        "and produce a well-grounded final assessment.\n\n"
+        "Evidence-gathering strategy:\n"
+        "1. Always start with precedent_search (k=5).\n"
+        "2. Evaluate what you got: are similarity scores > 0.75? Are 4+ of 5 votes "
+        "unanimous? If yes, you have strong evidence — conclude.\n"
+        "3. If similarity is low or votes are split, gather more evidence:\n"
+        f"{deberta_tool_guideline}"
         f"{contract_search_guideline}"
-        "- Base final_label on the weight of evidence, not just DeBERTa's label.\n\n"
+        "4. Weigh all evidence. If multiple tools agree, that convergence is meaningful. "
+        "If they conflict, explain which evidence you find more compelling and why.\n\n"
         f"Clause under review:\n"
-        f"  clause_id:           {clause.clause_id}\n"
-        f"  Type:                {clause.clause_type}\n"
-        f"  Parties:             {signing_party or 'unknown'}\n"
-        f"  Text:                {clause.clause_text}\n"
-        f"  DeBERTa preliminary: {deberta_result['label']} "
-        f"(confidence: {deberta_result['confidence']:.2f})"
+        f"  clause_id:  {clause.clause_id}\n"
+        f"  Type:       {clause.clause_type}\n"
+        f"  Parties:    {signing_party or 'unknown'}\n"
+        f"  Text:       {clause.clause_text}\n"
     )
 
     # Don't use response_format= here: langchain-openai 1.2.1 defaults to
@@ -209,6 +225,13 @@ def _agent_path(
     result: RiskAssessment = llm.with_structured_output(
         RiskAssessment, method="function_calling"
     ).invoke(synthesis_prompt)
+
+    if result is None:
+        logger.warning("agent_path: structured output returned None, falling back to DeBERTa label")
+        result = RiskAssessment(
+            final_label=deberta_result["label"],
+            explanation="(LLM structured output failed — DeBERTa label used as fallback)",
+        )
 
     return RiskAssessedClause(
         clause_id=clause.clause_id,
@@ -312,6 +335,7 @@ def assess_clauses(
             assessed = _agent_path(
                 clause, deberta_result, signing_party, clauses,
                 index_path, llm, max_iter, k_low,
+                classifier=classifier,
                 use_contract_search=use_contract_search,
             )
 

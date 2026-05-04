@@ -47,10 +47,14 @@ def _meta_path(index_path: str) -> Path:
 # Build (offline, run once)
 # ---------------------------------------------------------------------------
 
-def build_index(training_data_path: str, index_path: str) -> None:
-    """Embed all labeled clauses from training_dataset.json and write FAISS index.
+def build_index(training_data_path: str, index_path: str,
+                splits_path: str | None = None) -> None:
+    """Embed labeled clauses from training_dataset.json and write FAISS index.
 
-    Skips rows with label=None (99 unresolved soft-label rows).
+    Only indexes the train split when splits_path is provided — prevents test
+    clauses from appearing in FAISS results during evaluation (data leakage).
+
+    Skips rows with label=None.
     Writes two files:
       <index_path>          — FAISS IndexFlatIP binary
       <index_path>.json     — parallel metadata array
@@ -58,10 +62,19 @@ def build_index(training_data_path: str, index_path: str) -> None:
     Args:
         training_data_path: Path to data/processed/training_dataset.json.
         index_path: Destination path for the FAISS index file.
+        splits_path: Path to splits.json; if given, only train-split rows are indexed.
     """
     logger.info("Loading training data from %s", training_data_path)
     with open(training_data_path) as f:
         rows = json.load(f)
+
+    if splits_path:
+        with open(splits_path) as f:
+            splits = json.load(f)
+        train_nums = set(splits["train"])
+        before = len(rows)
+        rows = [r for r in rows if r.get("row_num") in train_nums]
+        logger.info("Filtered to train split: %d → %d rows", before, len(rows))
 
     # Drop rows with no resolved label
     skipped = sum(1 for r in rows if r.get("label") is None)

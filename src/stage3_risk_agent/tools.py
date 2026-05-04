@@ -19,6 +19,7 @@ from langchain_core.tools import tool
 
 from src.common.schema import ClauseObject
 from src.stage3_risk_agent.embeddings import query_index
+from src.stage3_risk_agent.risk_classifier import RiskClassifier
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,44 @@ def make_precedent_search_tool(index_path: str):
         return [asdict(r) for r in results]
 
     return precedent_search
+
+
+def make_deberta_classify_tool(classifier: RiskClassifier, signing_party: str):
+    """Return a @tool that runs DeBERTa risk classification on a clause.
+
+    Args:
+        classifier: Loaded RiskClassifier instance (Ens-F).
+        signing_party: Pre-resolved signing party for this document.
+    """
+
+    @tool
+    def deberta_classify(clause_text: str, clause_type: str) -> dict:
+        """Get DeBERTa's risk classification for a clause.
+
+        Use this when precedent evidence is weak (low similarity scores or
+        split votes) and you want a model-based signal to help resolve
+        uncertainty. DeBERTa was fine-tuned on 3,400 labeled CUAD clauses
+        and captures clause-type patterns that may not appear in precedents.
+
+        Treat the result as one signal among others — not a final answer.
+        It is most reliable when confidence is high (> 0.75) and most
+        useful as a tiebreaker when precedents are split.
+
+        Args:
+            clause_text: Full text of the clause to classify.
+            clause_type: CUAD clause type (e.g. "Cap On Liability").
+
+        Returns:
+            dict with keys: label (LOW/MEDIUM/HIGH), confidence (0-1).
+        """
+        result = classifier.predict(
+            clause_text=clause_text,
+            clause_type=clause_type,
+            signing_party=signing_party,
+        )
+        return {"label": result["label"], "confidence": round(result["confidence"], 3)}
+
+    return deberta_classify
 
 
 def make_contract_search_tool(clauses: list[ClauseObject]):

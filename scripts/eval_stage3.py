@@ -86,9 +86,11 @@ def stratified_sample(rows: list[dict], n_per_class: int, seed: int) -> list[dic
 
     sampled = []
     for label in LABELS:
-        pool = by_label[label]
-        k    = min(n_per_class, len(pool))
-        sampled.extend(rng.sample(pool, k))
+        pool = sorted(by_label[label], key=lambda r: r["clause_text"])  # deterministic base order
+        shuffled = pool.copy()
+        rng.shuffle(shuffled)   # one permutation per seed — slicing is monotonic
+        k = min(n_per_class, len(shuffled))
+        sampled.extend(shuffled[:k])
         logger.info("  Sampled %d / %d rows for label=%s", k, len(pool), label)
 
     rng.shuffle(sampled)

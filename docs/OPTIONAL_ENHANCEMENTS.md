@@ -13,10 +13,10 @@ to fire. Verify `override_reason` is populated when agent disagrees with DeBERTa
 Verify multi-step loop (agent calls a tool, re-evaluates, calls another).
 Currently: smoke test only verified single-tool agent path.
 
-**OE-2 — Fast-path LLM label override**
-Fast path currently has 0% label change rate — LLM echoes DeBERTa's label.
-Explore whether allowing the fast path to override (not just explain) would improve F1,
-or whether the confidence gate already handles this correctly via the agent path.
+**OE-2 — Fast-path LLM label override** *(superseded)*
+Fast path was removed — all clauses now go through the agent. DeBERTa confidence
+was too miscalibrated (0.91 confidence with wrong label) to be a reliable gate.
+See OE-5 for calibration notes.
 
 ## Stage 4
 
@@ -49,5 +49,23 @@ Fast path accuracy is only 70% despite conf ≥ 0.6 threshold — DeBERTa is mis
   re-run `eval_stage3.py`. Pushes borderline overconfident cases to the agent path.
 
 Agent-only (threshold = 1.0) is also an option but ~2.7× slower (452 vs 169 LLM calls).
+
+**OE-6 — DeBERTa + FAISS probability ensemble (no LLM)**
+DeBERTa already outputs a probability vector [p_LOW, p_MEDIUM, p_HIGH]. FAISS vote counts
+can be normalized to the same space. A weighted average α×DeBERTa + (1-α)×FAISS_votes,
+with α tuned on the validation split, would combine both signals without any LLM call.
+This would add a clean ablation row between "DeBERTa only" and "Agent":
+  DeBERTa only → DeBERTa+FAISS ensemble → Agent (FAISS+LLM)
+showing whether FAISS improves over DeBERTa before the LLM is introduced.
+Implementation: ~30 lines in eval_stage3.py as a new --ensemble ablation flag.
+
+**OE-7 — Refactor agent to static LangGraph**
+The current ReAct agent (`create_react_agent`) always executes the same sequence:
+precedent_search → contract_search → synthesis. This is a fixed execution pattern,
+not dynamic agentic reasoning. A static LangGraph with three explicit nodes would be
+simpler, more predictable, faster (no ReAct overhead), and easier to test.
+True dynamic behavior would require more tools with non-obvious selection criteria
+(e.g. jurisdiction lookup, clause-type-specific tools) — worth revisiting if the
+tool set expands.
 
 *Add new entries below as they come up.*

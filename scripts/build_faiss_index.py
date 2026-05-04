@@ -20,13 +20,15 @@ logger = logging.getLogger(__name__)
 def main(config_path: str = "configs/stage3_config.yaml") -> None:
     cfg = load_config(config_path)
     training_data_path = cfg["risk_classifier"]["training_data_path"]
-    index_path = cfg["faiss_index_path"]
+    splits_path        = cfg["risk_classifier"].get("splits_path")
+    index_path         = cfg["faiss_index_path"]
 
     logger.info("Building FAISS index")
     logger.info("  Source : %s", training_data_path)
+    logger.info("  Splits : %s", splits_path or "none (all rows indexed)")
     logger.info("  Output : %s", index_path)
 
-    build_index(training_data_path, index_path)
+    build_index(training_data_path, index_path, splits_path=splits_path)
     logger.info("Done.")
 
 
