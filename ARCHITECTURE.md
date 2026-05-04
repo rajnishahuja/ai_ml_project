@@ -20,11 +20,12 @@ Contract PDF/Text
               │
               ▼
 ┌─────────────────────────────┐
-│  Stage 3: Risk Detection    │  Hybrid Confidence-Gated
-│  DeBERTa → Agent (low-conf) │  DeBERTa-v3-base (risk classifier)
-│  Tools: precedent_search,   │  Qwen3-30B Q4_K_XL (agent + explanations)
-│         contract_search     │  all-MiniLM-L6-v2 (embeddings)
-│  Output: risk-assessed      │  FAISS vector store
+│  Stage 3: Risk Detection    │  DeBERTa → LangGraph ReAct Agent
+│  DeBERTa default signal     │  DeBERTa-v3-base (risk classifier)
+│  Agent verifies with tools  │  Qwen3-30B Q4_K_XL (agent + explanation)
+│  Tools: precedent_search,   │  all-MiniLM-L6-v2 (embeddings)
+│         contract_search     │  FAISS vector store
+│  Output: risk-assessed      │
 │          clause objects     │
 └─────────────┬───────────────┘
               │
@@ -37,235 +38,164 @@ Contract PDF/Text
 └─────────────────────────────┘
 ```
 
-## Stage 3 Architecture — Hybrid Confidence-Gated (Decided 2026-04-23)
+## Stage 3 Architecture — DeBERTa + LangGraph ReAct Agent (Updated 2026-05-04)
 
-> **Decision**: Hybrid Confidence-Gated architecture. DeBERTa classifies every clause; high-confidence predictions ship directly through a single explanation LLM call; low-confidence predictions escalate to a reasoning agent with tool access that can override DeBERTa's label.
->
-> **Project goal satisfied**: exercises agentic RAG on the escalated path (~30–40% of clauses expected), while keeping the easy cases cheap and deterministic.
+> **Decision**: Every clause runs through the LangGraph ReAct agent. DeBERTa classifies
+> first and its label is injected into the agent's system prompt as the default signal.
+> The agent uses `precedent_search` and `contract_search` to gather evidence, then
+> produces a final label and explanation. It is instructed to confirm DeBERTa unless
+> tool evidence provides clear, convergent consensus for a different label.
 
-### Why This Choice
+### Why This Design
 
-- **Practical efficiency** — the majority of clauses are expected to be high-confidence; no need to pay agent latency/tokens for easy cases
-- **Exercises agentic RAG** — low-confidence path is a full tool-calling loop (precedent_search + contract_search), satisfies the learning goal
-- **Addresses known label ambiguity** — signing-party direction was the #1 driver in manual review (81% of flips). The low-confidence escalation is exactly where METADATA + tools resolve this
-- **Clean academic framing** — "specialist when confident, generalist when uncertain"
-- **Cost-aware** — agent loop runs only on a minority of clauses
+- **DeBERTa as prior** — 3,400 labeled CUAD clauses are baked into the classifier. The agent
+  inherits this signal for free rather than reasoning from scratch.
+- **Agent verifies, not re-classifies** — LLM alone (without retrieval) was 47–58% accurate
+  on overrides vs DeBERTa's 59.3% baseline. Grounding overrides in tool consensus raises the
+  bar and reduces arbitrary LLM drift.
+- **Full agent on every clause** — avoids a confidence threshold that was fragile to calibrate
+  and caused the easy cases (high-conf) to never benefit from retrieval context.
+- **Signing-party ambiguity resolved at inference** — `contract_search` gives the agent the
+  Parties clause and sibling clauses to determine who bears the risk, which is the #1 driver
+  of label ambiguity (81% of human-review flips).
 
 ### High-Level Flow
 
 ```
-Clause + METADATA  (from Stage 1+2)
+Clause  (from Stage 1+2)
      │
      ▼
-┌─────────────────────────────┐
-│  DeBERTa Risk Classifier    │
-│  input: clause_type + text  │
-│  output: (label, conf)      │
-└──────────┬──────────────────┘
-           │
-           ▼
-      confidence ≥ 0.6 ?
-     ┌──────┴──────┐
-   YES             NO
-     │             │
-     ▼             ▼
- High-Conf     Low-Conf
-  Path          Path
-(1 Qwen call, (1 Qwen call +
- no tools)     ReAct tool loop —
-               agent may override)
-     │             │
-     └──────┬──────┘
-            ▼
-     {label, explanation,
-      similar_clauses,
-      agent_trace}  → Stage 4
+┌──────────────────────────────┐
+│  DeBERTa Risk Classifier     │
+│  input: clause_type + text   │
+│         + signing_party      │
+│  output: (label, confidence) │
+└────────────┬─────────────────┘
+             │  label + conf passed into system prompt
+             ▼
+┌──────────────────────────────┐
+│  LangGraph ReAct Agent       │  Qwen3-30B, max_iterations=5
+│  system: "DeBERTa says X.    │
+│   Confirm unless tools show  │
+│   clear consensus otherwise" │
+│                              │
+│  Tool loop:                  │
+│    precedent_search (always) │  FAISS top-5, min_sim=0.75
+│    contract_search (if       │  sibling clauses, same contract
+│      party/context matters)  │
+│                              │
+│  Synthesis call:             │  structured output (function_calling)
+│    RiskAssessment {          │
+│      final_label,            │
+│      explanation,            │
+│      override_reason }       │
+└────────────┬─────────────────┘
+             ▼
+   RiskAssessedClause → Stage 4
 ```
 
-### Low-Level Design
+### Agent Decision Rule (system prompt)
 
-One Qwen3-30B instance serves both paths — it's the same model, operated in two modes depending on DeBERTa's confidence. Accessed via local llama-server OpenAI-compatible API (`agent_base_url` in `stage3_config.yaml`); swap to any compatible endpoint for deployment.
-
-#### High-Confidence Path (conf ≥ 0.6)
-
-DeBERTa's label is final. Mistral runs once with no tools, just to generate the explanation.
-
-```python
-def high_confidence_path(clause, metadata, deberta_label, deberta_confidence):
-    # Optional: retrieve a couple of precedents to enrich explanation quality
-    neighbors = precedent_search(clause.text, k=3)
-
-    prompt = f"""
-    Clause: {clause.text}
-    Type: {clause.type}
-    METADATA: {metadata}
-    Risk Level: {deberta_label}  (classifier confidence: {deberta_confidence:.2f})
-    Similar labeled precedents: {format_neighbors(neighbors)}
-
-    Write a one-sentence risk explanation grounded in the clause and precedents.
-    """
-    explanation = llm(prompt)   # single forward pass, no tool loop
-
-    return {
-        "label": deberta_label,
-        "confidence": deberta_confidence,
-        "explanation": explanation,
-        "similar_clauses": neighbors,
-        "agent_trace": [],        # no tool calls made
-        "overridden": False,
-    }
 ```
-
-Properties: deterministic, ~1 LLM call, no agent overhead.
-
-#### Low-Confidence Path (conf < 0.6)
-
-Qwen3-30B is invoked as a LangGraph ReAct agent with tool access. It reasons, fetches evidence, and produces a final label (possibly overriding DeBERTa) + explanation in a single structured output.
-
-```python
-def low_confidence_path(clause, metadata, deberta_label, deberta_confidence):
-    system_prompt = """
-    You are a legal risk assessor. DeBERTa produced an uncertain preliminary label.
-    Use the available tools to gather evidence (similar labeled clauses, other
-    clauses from the same contract), then output JSON:
-      {
-        "final_label": "LOW" | "MEDIUM" | "HIGH",
-        "explanation": "...",
-        "override_reason": "..."    # if disagreeing with DeBERTa
-      }
-
-    Tools available:
-      - precedent_search(clause_text, k=5)
-          → top-K similar labeled clauses across the corpus (vector RAG)
-      - contract_search(document_id)
-          → all typed clauses from the same contract (structured lookup)
-    """
-
-    context = {
-        "clause": clause.text,
-        "clause_type": clause.type,
-        "metadata": metadata,
-        "deberta_preliminary": {
-            "label": deberta_label,
-            "confidence": deberta_confidence,
-        },
-    }
-
-    # LangGraph runs the tool-calling loop. Qwen3-30B does all reasoning.
-    result = agent.invoke(
-        system=system_prompt,
-        context=context,
-        tools=[precedent_search, contract_search],
-        max_iterations=5,
-    )
-
-    return {
-        "label": result.final_label,
-        "confidence": None,                          # agent-derived, no calibrated score
-        "explanation": result.explanation,
-        "similar_clauses": result.retrieved_precedents,
-        "agent_trace": result.tool_calls,
-        "overridden": result.final_label != deberta_label,
-    }
+- Tool evidence agrees with DeBERTa, or is weak/split → confirm DeBERTa's label.
+- Strong consensus from BOTH tools contradicts DeBERTa → may override, but must
+  explain exactly what evidence outweighs the DeBERTa signal.
+- Do NOT override based on solo legal reasoning — only on convergent tool evidence.
 ```
-
-Properties: non-deterministic, multi-turn, typically 2–5 LLM calls, able to override DeBERTa.
 
 ### Tool Definitions
 
-The two retrieval tools solve different problems:
+- **`precedent_search`** (vector RAG) — FAISS similarity lookup over the labeled training
+  corpus (4,276 vectors, train split only — test clauses excluded to prevent leakage).
+  Embeddings: `all-MiniLM-L6-v2`. Only returns clauses with similarity ≥ 0.75 — every
+  result is a strong semantic match. Returns `{clause_text, clause_type, risk_level,
+  similarity}`. Fast (IndexFlatIP, exact cosine, microseconds per query).
 
-- **`precedent_search`** (vector RAG) — FAISS similarity lookup over the labeled corpus (~4,276 non-metadata clauses, skipping 99 None-label rows). Embeddings: `all-MiniLM-L6-v2`. Returns top-K clauses with `{clause_text, clause_type, risk_level, similarity}`. Fast (exact cosine, microseconds).
+- **`contract_search`** (structured lookup) — given `current_clause_id`, returns all other
+  clauses already extracted from the same contract by Stage 1+2. No embeddings, no LLM calls
+  inside the tool. Contracts average ~9 non-metadata clauses so all fit in context. Purpose:
+  resolve party-role ambiguity and cross-clause interactions (e.g., "IP already assigned
+  elsewhere — this clause is administrative paperwork").
 
-- **`contract_search`** (structured lookup, **not** RAG) — given a `document_id`, returns all typed clauses already extracted by Stage 1+2 for that contract. No embeddings, no navigation, no LLM calls inside the tool. A contract averages ~9 non-metadata clauses (max 27), so all fit easily in the agent's context. Purpose: resolve same-contract cross-references (e.g., "IP was already assigned in another clause").
+### Worked Example
 
-### Worked Example — Low-Confidence Path
-
-Clause arrives:
 ```
-clause_type: "IP Ownership Assignment"
+clause_type: "Ip Ownership Assignment"
 clause_text: "Consultant hereby assigns to Company all right, title,
               and interest in any deliverables..."
-metadata:    {Parties: ["AT&T Inc.", "Jane Smith Consulting"]}
-DeBERTa:     (HIGH, 0.45)   ← below threshold, escalate
+signing_party: "Jane Smith Consulting"
+DeBERTa:      HIGH (0.45 confidence) ← passed to agent as default
 ```
 
-Agent loop trace:
+Agent loop:
 
 ```
-Turn 1  Qwen reads clause + DeBERTa signal
-        → "I need to see how similar clauses were labeled."
-        → calls precedent_search("Consultant hereby assigns...", k=5)
+Turn 1  → calls precedent_search("Consultant hereby assigns...", k=5)
+          Returns:
+            N1: LOW  — "signing party is the recipient of rights"
+            N2: HIGH — "one-party-committed IP assignment to a vendor"
+            N3: LOW  — "standard admin paperwork, IP already owned upstream"
+            N4: LOW  — "mutual carve-out"
+            N5: MEDIUM — "conditional on acquisition"
 
-        Tool returns:
-          N1: LOW  — "signing party is the recipient of rights"
-          N2: HIGH — "one-party-committed IP assignment to a vendor"
-          N3: LOW  — "standard admin paperwork, IP already owned upstream"
-          N4: LOW  — "mutual carve-out"
-          N5: MEDIUM — "conditional on acquisition"
+Turn 2  → 4 of 5 precedents are LOW; key question is party direction.
+          calls contract_search(current_clause_id="...")
+          Returns: Compensation clause shows AT&T pays Consultant $50K.
+                   Services clause shows Consultant provides services to AT&T.
 
-Turn 2  Qwen reads neighbors
-        → "4 of 5 are LOW. Key driver is who signed.
-           METADATA shows AT&T and Jane Smith Consulting.
-           If AT&T is the buyer/client, this is standard admin paperwork.
-           Let me verify by inspecting the full contract."
-        → calls contract_search(document_id="contract_042")
-
-        Tool returns 38 sibling clauses:
-          - Compensation: "AT&T shall pay Consultant $50K..."
-          - Services: "Consultant shall provide advisory services to AT&T..."
-          - [...36 more...]
-
-Turn 3  Qwen reads contract
-        → "Confirmed. AT&T is the client paying Consultant for services.
-           Consultant transferring IP to AT&T is standard work-for-hire.
-           AT&T (signing party of interest) RECEIVES rights — not at risk.
-           Overriding DeBERTa HIGH → LOW."
-        → returns JSON:
-          {
-            "final_label": "LOW",
-            "explanation": "Standard work-for-hire IP assignment from
-                            Consultant to AT&T. AT&T receives rights;
-                            no exposure to signing party.",
-            "override_reason": "DeBERTa could not resolve signing-party
-                                direction from clause text alone;
-                                precedents + contract context confirm LOW."
-          }
-
-Stop.
+Turn 3  → Confirmed: AT&T is the client; Consultant transfers IP as standard
+          work-for-hire. Signing party (Consulting) is at HIGH risk per DeBERTa,
+          but tool consensus (4 LOW precedents + contract confirms work-for-hire)
+          overrides.
+          → final_label: LOW, override_reason: "4/5 precedents LOW + contract
+            confirms Consultant is the services provider assigning IP to client."
 ```
 
-Final output merges into the Stage 3 → Stage 4 schema (`risk_level`, `risk_explanation`, `similar_clauses`, `agent_trace`, `overridden`).
+### Implementation Notes
 
-### Implementation Notes (added 2026-05-01)
+**Structured output workaround** — `langchain-openai ≥ 1.2.0` defaults
+`with_structured_output()` to `method="json_schema"`, which llama.cpp rejects with
+HTTP 400. Fix: always pass `method="function_calling"` explicitly. Applied to the
+synthesis call in `_agent_path`.
 
-**Structured output workaround** — `langchain-openai ≥ 1.2.0` defaults `with_structured_output()` to `method="json_schema"`, which calls OpenAI's Structured Outputs endpoint (`.parse()`). llama.cpp rejects this with HTTP 400 ("Failed to initialize samplers"). Fix: always pass `method="function_calling"` explicitly. Both `_fast_path` and `_agent_path` in `agent.py` do this.
+**Agent synthesis call** — `create_react_agent` is called without `response_format`
+(LangGraph's internal structured-response node uses the broken default method). Instead,
+after the ReAct loop, a single explicit `with_structured_output(RiskAssessment,
+method="function_calling")` call is made with a clean single-turn prompt containing the
+agent's final reasoning text. Passing the full ReAct history (which contains existing
+`tool_call` messages) to structured output causes the model to return plain text instead
+of filling the schema.
 
-**Agent synthesis call** — `create_react_agent` is called without `response_format` (which would trigger LangGraph's internal `generate_structured_response` node using the broken default method). Instead, after the ReAct loop completes, a single explicit `with_structured_output(RiskAssessment, method="function_calling")` call is made with a clean synthesis prompt built from the agent's final text message. This avoids the model ignoring the tool when the full ReAct history (with existing `tool_call` messages) is passed.
+**FAISS index** — `data/faiss_index/clauses.index` (4,276 vectors, IndexFlatIP) +
+`data/faiss_index/clauses.json` (parallel metadata). Built from `training_dataset.json`
+train split only (`splits_path` filter in `build_index()`). Entry point:
+`scripts/build_faiss_index.py`.
 
-**FAISS index** — `data/faiss_index/clauses.index` (4,276 vectors, IndexFlatIP) + `data/faiss_index/clauses.json` (parallel metadata). Built from `training_dataset.json`, skipping 99 None-label rows. Entry point: `scripts/build_faiss_index.py`.
-
-### Key Design Decisions (v1)
+### Key Design Decisions
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Architecture | Hybrid Confidence-Gated | practical + exercises agentic RAG |
-| Confidence threshold | 0.6 | tunable post-training on validation set |
-| DeBERTa input | `clause_type + clause_text` only | baseline — measure signing-party ceiling first |
-| Party role tagging in DeBERTa | **Not in v1** | deferred; revisit if baseline is ceilinged |
-| RAG consumer | LLM (agent + explainer), **not** DeBERTa | keeps DeBERTa training simple; RAG still load-bearing at escalation |
-| Explanation generator | Qwen3-30B Q4_K_XL (same instance as agent) | one LLM, two modes based on confidence |
-| Same-contract retrieval | `contract_search` structured lookup | data is already typed post-Stage 1+2 — no RAG needed |
-| Precedent retrieval | FAISS (vector RAG) over 4,410 clauses | standard for flat-corpus similarity |
-| Low-conf label source | Agent (may override DeBERTa) | needed to resolve signing-party ambiguity |
+| All clauses → agent | No confidence gating | Threshold was fragile; easy cases benefit from retrieval context too |
+| DeBERTa as default signal | Label + conf in system prompt | 3,400 CUAD examples baked in; agent inherits vs. reasoning from scratch |
+| Override policy | Tools must show clear consensus | LLM-alone overrides were 47–58% accurate vs DeBERTa's 59.3% |
+| No `deberta_classify` tool | DeBERTa already ran | Redundant to expose it again; result already in system prompt |
+| Precedent retrieval | FAISS (all-MiniLM-L6-v2), min_sim=0.75 | Only strong matches influence the agent |
+| Contract context | `contract_search` structured lookup | Data already typed post-Stage 1+2; resolves party-role ambiguity |
+| Signing party | Passed to DeBERTa + agent | #1 driver of label ambiguity (81% of human-review flips) |
 
-### Alternative Architectures Considered (Rejected)
+### Alternative Architectures Tried
 
-- **Static LangGraph Pipeline** (former Option A) — DeBERTa's label always final, fixed tool sequence. No dynamic reasoning; doesn't satisfy agentic-RAG learning goal. A full implementation of this design existed in `src/workflow/` (committed by a colleague) using a separate state schema (`app.schemas.domain`) and service layer (`app.services`). It was deleted because it conflicted with the chosen Hybrid Confidence-Gated architecture and introduced a parallel, incompatible schema track. The canonical pipeline entry point is `scripts/run_pipeline.py`; the canonical Stage 3 entry point is `src/stage3_risk_agent/agent.py`.
-- **Full Agent on Every Clause** (former Option B) — agent loop runs on all ~4,410 risk-relevant clauses. Over-engineered; majority of clauses don't need the capacity and agent latency dominates cost.
-- **Multi-Signal Verifier** — DeBERTa + Mistral label independently, reconcile on disagreement. Similar capability to Hybrid but runs expensive path even on easy cases.
-- **RAC (Retrieval-Augmented Classification)** — retrieved neighbors become part of DeBERTa's training input. Deferred to v2; brittle to retrieval quality, risk of label leakage, harder training pipeline.
-- **Pure Reasoning Model (no DeBERTa)** — abandons ML learning goal; synthetic labels are already LLM-distilled signal that a fine-tuned DeBERTa absorbs more cheaply at inference.
+- **Hybrid Confidence-Gated** (v1, 2026-04-23) — high-conf clauses took a fast path (1 LLM
+  call, no tools); low-conf escalated to the ReAct agent. *Removed*: threshold was fragile;
+  high-conf clauses never got retrieval context; and eval showed LLM overrides on the
+  low-conf path were 47–58% accurate vs DeBERTa's 59.3% baseline.
+- **DeBERTa+FAISS Ensemble, no LLM for labels** (2026-05-04) — deterministic ensemble,
+  LLM for explanation only. *Reverted*: removed the agent loop entirely, which is a core
+  project learning goal; also FAISS coverage at 0.75 is only 42% so the ensemble rarely fired.
+- **Static LangGraph** — fixed tool sequence, DeBERTa label always final. *Superseded*:
+  went to full ReAct instead.
+- **RAC (Retrieval-Augmented Classification)** — retrieved neighbors as DeBERTa training
+  input. *Deferred*: risk of label leakage; harder training pipeline.
 
 ## Open Design Question — METADATA in DeBERTa Training (v1: Option 1 chosen)
 
