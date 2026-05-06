@@ -65,7 +65,8 @@ agent_base_url: http://localhost:10006/v1
 agent_api_key: none                              # llama-server needs a non-empty string
 
 agent_max_tokens: 512                            # cap per LLM call; explanations avg ~75 tokens, 512 is safe headroom
-agent_max_iterations: 5                          # ReAct tool-calling loop cap per clause
+agent_max_iterations: 2                          # cap at 2: precedent_search + optional contract_search; ablation shows >2 never used
+agent_num_workers: 1                             # parallel clause workers; set equal to llama.cpp -np slot count (default 1 = sequential)
 similarity_top_k_low_conf: 10                    # k=10: +10% MEDIUM vote accuracy vs k=5 (58% vs 48% at sim>=0.75)
 
 # Raw label passes — preserved for audit; training uses the merged master_label_review.csv

@@ -1,59 +1,61 @@
 import os
 from pathlib import Path
 
+from src.common.schema import ClauseObject
 from src.stage1_extract_classify.model import ClauseExtractorClassifier
 from src.stage1_extract_classify.preprocessing import preprocess_contract
+from src.stage3_risk_agent.agent import assess_clauses
+from src.stage4_report_gen.report_builder import build_report
 
-# Robustly resolve the project root regardless of where the script is executed
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-DEFAULT_MODEL_PATH = str(BASE_DIR / "models" / "stage1_2_deberta")
+BASE_DIR           = Path(__file__).resolve().parent.parent.parent
+DEFAULT_STAGE1     = str(BASE_DIR / "models" / "stage1_2_deberta")
+DEFAULT_CE_MODEL   = str(BASE_DIR / "models" / "stage3_risk_deberta_v3_run22_parties" / "final")
+DEFAULT_CORN_MODEL = str(BASE_DIR / "models" / "stage3_risk_deberta_v3_run23_corn_parties" / "final")
 
-# Path to your fine-tuned model weights (Fallback to the root stage1_2_deberta directory)
-MODEL_PATH = os.getenv("LOCAL_MODEL_PATH", DEFAULT_MODEL_PATH)
+STAGE1_MODEL_PATH = os.getenv("STAGE1_MODEL_PATH", DEFAULT_STAGE1)
+
+_extractor: ClauseExtractorClassifier | None = None
 
 
-class Stage1ExtractionService:
+def _get_extractor() -> ClauseExtractorClassifier:
+    global _extractor
+    if _extractor is None:
+        _extractor = ClauseExtractorClassifier(STAGE1_MODEL_PATH)
+    return _extractor
+
+
+def _to_schema_clause(c, document_id: str) -> ClauseObject:
+    return ClauseObject(
+        clause_id=c.clause_id,
+        document_id=document_id,
+        clause_text=c.clause_text,
+        clause_type=c.clause_type,
+        start_pos=c.start_pos,
+        end_pos=c.end_pos,
+        confidence=c.confidence,
+    )
+
+
+def run_full_pipeline(file_path: str, doc_id: str) -> dict:
+    """Run Stage 1 → Stage 3 → Stage 4 synchronously.
+
+    Called via asyncio.run_in_executor() so it never blocks the FastAPI event loop.
+    Returns report.to_dict() ready for JSON serialisation.
     """
-    Singleton Wrapper for the Stage 1 CUAD Inference Engine.
-    Instantiated once when the FastAPI server boots.
-    """
+    contract_text = preprocess_contract(file_path, doc_id)
+    raw_clauses = _get_extractor().extract(contract_text, doc_id=doc_id)
+    if not raw_clauses:
+        return {"document_id": doc_id, "error": "No clauses extracted from document"}
 
-    def __init__(self, model_path: str):
-        # Initialize the professional extractor once
-        self.extractor = ClauseExtractorClassifier(model_path)
+    schema_clauses = [_to_schema_clause(c, doc_id) for c in raw_clauses]
 
-    def infer_from_file(self, file_path: str):
-        """
-        Processes a file (PDF/DOCX/TXT) from the disk and returns detected legal clauses.
-        """
-        # 1. Convert file to clean text using the pipeline's helper
-        text = preprocess_contract(file_path)
-        doc_id = Path(file_path).stem
+    ce_path   = DEFAULT_CE_MODEL   if os.path.exists(DEFAULT_CE_MODEL)   else None
+    corn_path = DEFAULT_CORN_MODEL if os.path.exists(DEFAULT_CORN_MODEL) else None
+    assessed = assess_clauses(
+        clauses=schema_clauses,
+        ce_model_path=ce_path,
+        corn_model_path=corn_path,
+    )
 
-        # 2. Run the 41-query model logic
-        clauses = self.extractor.extract(text, doc_id=doc_id)
-
-        # 3. Convert dataclasses to dicts so FastAPI can send them as JSON
-        return [c.to_dict() for c in clauses]
-
-    def infer_from_text(self, text: str, doc_id: str = "custom_text"):
-        """
-        Processes raw text strings directly (e.g., if uploaded via JSON instead of File).
-        """
-        clauses = self.extractor.extract(text, doc_id=doc_id)
-        return [c.to_dict() for c in clauses]
-
-
-# Initialize the singleton instance lazily or safely
-extraction_service = None
-
-
-def get_extraction_service() -> Stage1ExtractionService:
-    """
-    FastAPI Dependency to retrieve the initialized extraction service.
-    Ensures model weights are loaded efficiently just once.
-    """
-    global extraction_service
-    if extraction_service is None:
-        extraction_service = Stage1ExtractionService(MODEL_PATH)
-    return extraction_service
+    report = build_report(clauses=assessed, document_id=doc_id)
+    return report.to_dict()

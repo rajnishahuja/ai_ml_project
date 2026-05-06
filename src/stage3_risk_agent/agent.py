@@ -15,6 +15,8 @@ Decision guideline injected into the system prompt:
 
 import json
 import logging
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
 from langchain_core.messages import AIMessage, ToolMessage
@@ -280,9 +282,10 @@ def assess_clauses(
     """
     cfg = load_config(config_path)
 
-    index_path = cfg["faiss_index_path"]
-    k          = cfg["similarity_top_k_low_conf"]   # always use max k
-    max_iter   = cfg["agent_max_iterations"]
+    index_path   = cfg["faiss_index_path"]
+    k            = cfg["similarity_top_k_low_conf"]
+    max_iter     = cfg["agent_max_iterations"]
+    num_workers  = cfg.get("agent_num_workers", 1)
 
     llm = make_llm(cfg)
 
@@ -298,33 +301,48 @@ def assess_clauses(
         for doc_id in doc_ids
     }
 
-    _skip = skip_ids or set()
-    results: list[RiskAssessedClause] = []
-    risk_clauses   = [c for c in clauses if c.clause_type not in METADATA_CLAUSE_TYPES]
-    skipped_meta   = len(clauses) - len(risk_clauses)
-    skipped_done   = sum(1 for c in risk_clauses if c.clause_id in _skip)
-    pending        = [c for c in risk_clauses if c.clause_id not in _skip]
+    _skip        = skip_ids or set()
+    risk_clauses = [c for c in clauses if c.clause_type not in METADATA_CLAUSE_TYPES]
+    skipped_meta = len(clauses) - len(risk_clauses)
+    skipped_done = sum(1 for c in risk_clauses if c.clause_id in _skip)
+    pending      = [c for c in risk_clauses if c.clause_id not in _skip]
     logger.info(
         "Assessing %d clauses (%d metadata skipped, %d already done)",
         len(pending), skipped_meta, skipped_done,
     )
 
-    ckpt_fh = open(checkpoint_file, "a") if checkpoint_file else None
-
-    for i, clause in enumerate(pending, 1):
-        signing_party  = signing_parties[clause.document_id]
-        deberta_result = classifier.predict(
-            clause_text=clause.clause_text,
-            clause_type=clause.clause_type,
-            signing_party=signing_party,
+    # ------------------------------------------------------------------
+    # Phase 1 — DeBERTa batch (sequential: GPU inference is not thread-safe)
+    # ------------------------------------------------------------------
+    deberta_cache: dict[str, tuple[dict, str]] = {}
+    for clause in pending:
+        sp = signing_parties[clause.document_id]
+        deberta_cache[clause.clause_id] = (
+            classifier.predict(
+                clause_text=clause.clause_text,
+                clause_type=clause.clause_type,
+                signing_party=sp,
+            ),
+            sp,
         )
 
+    # ------------------------------------------------------------------
+    # Phase 2 — Agent loop (parallel when num_workers > 1)
+    # Each worker makes independent HTTP calls to the LLM server.
+    # With num_workers == llama.cpp -np slot count, calls run truly in parallel.
+    # With num_workers == 1 (default), behaviour is identical to the old loop.
+    # ------------------------------------------------------------------
+    ckpt_fh   = open(checkpoint_file, "a") if checkpoint_file else None
+    ckpt_lock = threading.Lock() if (num_workers > 1 and ckpt_fh) else None
+
+    def _assess_one(idx: int, clause: ClauseObject) -> tuple[int, RiskAssessedClause]:
+        deberta_result, signing_party = deberta_cache[clause.clause_id]
         logger.info(
-            "[%d/%d] %s | DeBERTa=%s (%.2f) → agent",
-            i, len(pending), clause.clause_type,
+            "[%d/%d] %s | DeBERTa=%s (%.2f) → agent (worker %s)",
+            idx + 1, len(pending), clause.clause_type,
             deberta_result["label"], deberta_result["confidence"],
+            threading.current_thread().name,
         )
-
         assessed = _agent_path(
             clause=clause,
             deberta_result=deberta_result,
@@ -337,21 +355,41 @@ def assess_clauses(
             use_contract_search=use_contract_search,
             free_override=free_override,
         )
-
-        results.append(assessed)
         if ckpt_fh:
-            ckpt_fh.write(json.dumps({
-                "clause_id":    assessed.clause_id,
-                "clause_type":  assessed.clause_type,
-                "risk_level":   assessed.risk_level,
-                "confidence":   assessed.confidence,
-                "agent_trace":  [{"tool": t.tool, "result_count": t.result_count}
-                                 for t in assessed.agent_trace],
-                "explanation":  assessed.risk_explanation,
-            }) + "\n")
-            ckpt_fh.flush()
+            entry = json.dumps({
+                "clause_id":   assessed.clause_id,
+                "clause_type": assessed.clause_type,
+                "risk_level":  assessed.risk_level,
+                "confidence":  assessed.confidence,
+                "agent_trace": [{"tool": t.tool, "result_count": t.result_count}
+                                for t in assessed.agent_trace],
+                "explanation": assessed.risk_explanation,
+            }) + "\n"
+            if ckpt_lock:
+                with ckpt_lock:
+                    ckpt_fh.write(entry)
+                    ckpt_fh.flush()
+            else:
+                ckpt_fh.write(entry)
+                ckpt_fh.flush()
+        return idx, assessed
+
+    results: list[RiskAssessedClause | None] = [None] * len(pending)
+
+    if num_workers == 1:
+        for idx, clause in enumerate(pending):
+            _, assessed = _assess_one(idx, clause)
+            results[idx] = assessed
+    else:
+        logger.info("Parallel agent mode: %d workers", num_workers)
+        with ThreadPoolExecutor(max_workers=num_workers, thread_name_prefix="agent") as pool:
+            futures = {pool.submit(_assess_one, idx, clause): idx
+                       for idx, clause in enumerate(pending)}
+            for future in as_completed(futures):
+                idx, assessed = future.result()
+                results[idx] = assessed
 
     if ckpt_fh:
         ckpt_fh.close()
 
-    return results
+    return [r for r in results if r is not None]
