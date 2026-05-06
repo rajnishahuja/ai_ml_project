@@ -113,6 +113,7 @@ def _agent_path(
     max_iterations: int,
     k: int,
     use_contract_search: bool = True,
+    free_override: bool = False,
 ) -> RiskAssessedClause:
     precedent_search = make_precedent_search_tool(index_path)
     tools = [precedent_search]
@@ -126,6 +127,24 @@ def _agent_path(
         "where who signed determines the risk direction.\n"
         if use_contract_search else ""
     )
+
+    if free_override:
+        decision_rule = (
+            "3. Decision rule:\n"
+            "   Use all evidence — DeBERTa's label, precedent patterns, and contract context "
+            "— together with your own legal reasoning to reach the best assessment. "
+            "DeBERTa is a strong signal but you may override it whenever your analysis "
+            "suggests a different label.\n\n"
+        )
+    else:
+        decision_rule = (
+            "3. Decision rule:\n"
+            "   - Tool evidence agrees with DeBERTa, or is weak/mixed → keep DeBERTa's label.\n"
+            "   - Strong consensus from tools contradicts DeBERTa → you may override, but "
+            "you MUST explain exactly what evidence overrides the DeBERTa signal.\n"
+            "   Do NOT override based on your own legal reasoning alone — only when tools "
+            "provide clear, convergent evidence for a different label.\n\n"
+        )
 
     system_prompt = (
         "You are a legal risk assessor using the CUAD risk scale:\n"
@@ -145,12 +164,7 @@ def _agent_path(
         "   - 0 results → no precedent exists; keep DeBERTa's label.\n"
         "   - Votes split or pointing away from DeBERTa → gather more context.\n"
         f"{contract_search_guideline}"
-        "3. Decision rule:\n"
-        "   - Tool evidence agrees with DeBERTa, or is weak/mixed → keep DeBERTa's label.\n"
-        "   - Strong consensus from tools contradicts DeBERTa → you may override, but "
-        "you MUST explain exactly what evidence overrides the DeBERTa signal.\n"
-        "   Do NOT override based on your own legal reasoning alone — only when tools "
-        "provide clear, convergent evidence for a different label.\n\n"
+        f"{decision_rule}"
         f"Clause under review:\n"
         f"  clause_id:  {clause.clause_id}\n"
         f"  Type:       {clause.clause_type}\n"
@@ -188,6 +202,18 @@ def _agent_path(
             agent_conclusion = msg.content if isinstance(msg.content, str) else str(msg.content)
             break
 
+    synthesis_instruction = (
+        "Make the best risk assessment using all available evidence: "
+        "DeBERTa's classification, tool evidence gathered, and your own legal reasoning."
+        if free_override else
+        "Produce the final structured risk assessment. "
+        "If the agent analysis does not provide strong tool-based evidence to "
+        "contradict DeBERTa, use DeBERTa's label. "
+        "Important: HIGH-risk clauses are under-represented in the precedent corpus — "
+        "precedent_search returning MEDIUM votes does not constitute strong counter-evidence "
+        "when DeBERTa predicts HIGH. Absence of HIGH precedents is expected, not a signal to downgrade."
+    )
+
     synthesis_prompt = (
         _CUAD_CONVENTION
         + f"Now assess the following clause:\n\n"
@@ -197,9 +223,7 @@ def _agent_path(
         f"DeBERTa pre-classification: {deberta_result['label']} "
         f"({deberta_result['confidence']:.0%} confidence)\n\n"
         f"Agent analysis:\n{agent_conclusion}\n\n"
-        f"Produce the final structured risk assessment. "
-        f"If the agent analysis does not provide strong tool-based evidence to "
-        f"contradict DeBERTa, use DeBERTa's label."
+        f"{synthesis_instruction}"
     )
     result: RiskAssessment = llm.with_structured_output(
         RiskAssessment, method="function_calling"
@@ -238,6 +262,7 @@ def assess_clauses(
     use_contract_search: bool = True,
     skip_ids: Optional[set] = None,
     checkpoint_file: Optional[str] = None,
+    free_override: bool = False,
 ) -> list[RiskAssessedClause]:
     """Assess risk for all risk-relevant clauses from a single contract.
 
@@ -310,6 +335,7 @@ def assess_clauses(
             max_iterations=max_iter,
             k=k,
             use_contract_search=use_contract_search,
+            free_override=free_override,
         )
 
         results.append(assessed)

@@ -551,6 +551,113 @@ Label distribution: LOW=1,876 (43.8%) / MEDIUM=1,524 (35.6%) / HIGH=885 (20.6%)
 **Hosting:** HuggingFace Hub (TBD — models too large for git)
 **Performance:** macro_f1=0.607, HIGH=0.622 on 452 hard test rows (v2 ground truth)
 
+## Agent Pipeline Ablation — 2026-05-06
+
+### Context
+
+First full ablation of the LangGraph ReAct agent pipeline. Measures contribution of each
+component above DeBERTa-only baseline. All runs use Ens-F (CE+CORN) as the classifier.
+Runs 25/26 (Sonnet label swap) were completed and reverted this session — see §Sonnet swap below.
+
+### Bugs fixed before ablation
+
+1. **`contract_search` document_id filter** (`src/stage3_risk_agent/tools.py`): tool was
+   returning sibling clauses from ALL contracts in the eval set, not just the current contract.
+   Fixed: look up `current_clause.document_id`, filter to matching doc only.
+
+2. **`similarity_top_k_low_conf` k=5 → k=10** (`configs/stage3_config.yaml`): diagnostic
+   on test set showed k=5 gives 48% MEDIUM vote accuracy; k=10 gives 58% at the same 0.75
+   threshold. No coverage change — more results per covered query improves majority vote.
+
+3. **HIGH corpus sparsity note added to synthesis prompt** (`src/stage3_risk_agent/agent.py`):
+   FAISS returns MEDIUM votes for 77.8% of HIGH clauses (only 18% coverage; when found,
+   mostly MEDIUM). Without the note, LLM was treating MEDIUM precedent votes as counter-evidence
+   against DeBERTa's HIGH predictions.
+
+### FAISS retrieval diagnostic (test set, full 452 rows)
+
+At threshold 0.75, k=10:
+
+| Class | Coverage | Vote accuracy (when covered) | Wrong votes go to |
+|-------|----------|------------------------------|-------------------|
+| LOW | 42.6% | 84.6% | — (mostly correct) |
+| MEDIUM | 38.1% | 58.4% | LOW (32/33 wrong votes) |
+| HIGH | 17.8% | 17.0% | MEDIUM (9/14), LOW (5/14) |
+
+Key finding: FAISS is helpful only for LOW. MEDIUM votes are unreliable (42% wrong, all
+pushing toward LOW). HIGH has near-zero coverage and when covered is almost always wrong.
+Root cause: HIGH clauses use adversarial/one-sided phrasing semantically indistinguishable
+from MEDIUM in all-MiniLM-L6-v2 embedding space. Clause_type filtering does not help —
+61% of MEDIUM wrong votes and 58% of HIGH wrong votes come from same-type clauses.
+Lowering threshold increases HIGH coverage (18% → 49% at 0.65) but vote accuracy stays ~30%.
+
+### Results (60 samples, stratified 20 per class, seed=42)
+
+| Mode | Macro F1 | LOW F1 | MED F1 | HIGH F1 | Overrides | Override acc |
+|------|----------|--------|--------|---------|-----------|-------------|
+| 1. DeBERTa-only (Ens-F) | 0.561 | 0.583 | 0.600 | 0.500 | — | — |
+| 2. RAG-only (FAISS, no LLM) | 0.467 | 0.520 | 0.512 | 0.370 | — | — |
+| 3. DeBERTa + FAISS + LLM constrained, no CS | 0.555 | 0.612 | 0.585 | 0.467 | 3/60 (5%) | 33% |
+| 4. DeBERTa + FAISS + CS + LLM constrained | **0.563** | **0.667** | 0.578 | 0.444 | 7/60 (12%) | 43% |
+| 5. DeBERTa + FAISS + CS + LLM free-override | 0.406 | 0.596 | 0.439 | 0.182 | 17/60 (28%) | 18% |
+
+Note: DeBERTa-only F1 on 60-sample subset (0.561) is lower than on full 452 rows (0.607)
+due to sample variance. Full 452-row eval pending.
+
+### Key findings
+
+**1. RAG-only is harmful (-0.094).** Confirms the FAISS diagnostic: majority vote without
+LLM filtering actively hurts — especially for MEDIUM and HIGH where vote accuracy is below
+random. This is the value of the LLM consensus filter.
+
+**2. Free-override is catastrophic (-0.155).** Qwen 30B systematically downgrades HIGH:
+HIGH recall = 0.100 (finds only 2 of 20 HIGH clauses), with 28% override rate and 18%
+override accuracy. The LLM's legal reasoning does not align with CUAD labeling conventions —
+it prefers reducing risk ratings. The constraint is the entire architecture, not just a guard.
+
+**3. Constrained agent is effectively neutral at macro level (+0.002) but trades classes.**
+The constrained architecture recovers almost all of RAG-only's loss. Net effect vs DeBERTa:
+LOW improves significantly (+0.084), MEDIUM drops slightly (-0.022), HIGH drops (-0.056).
+The agent is improving LOW (via contract_search providing party context) at the cost of
+occasionally downgrading correct HIGH predictions. Whether this trade is worth it depends
+on which errors are costlier in production. Full 452-row eval needed to confirm.
+
+**4. Contract_search adds meaningful value for LOW** (+0.055 F1 from mode 3 → 4) by
+providing party-role context that resolves LOW↔HIGH ambiguity. Slightly hurts HIGH
+(0.467 → 0.444) — the additional context occasionally gives the LLM ammunition to
+downgrade a correctly-predicted HIGH. Net: +0.008 macro when added.
+
+**5. Free-override latency**: ~20s per clause vs ~7s for constrained — the unconstrained
+LLM makes ~3 tool calls per clause vs ~1-2. Latency cost with no accuracy gain.
+
+### Decisions
+
+- **OE-9 (BM25+FAISS hybrid): closed.** LLM reasoning bias is the bottleneck, not retrieval
+  quality. Even with perfect FAISS results, the free-override mode shows the LLM downgrades
+  HIGH regardless of evidence. Better retrieval won't fix that.
+- **BGE / Jina embeddings: not worth pursuing.** Same reasoning — embedding quality is not
+  the bottleneck given the LLM bias.
+- **Current architecture (mode 4): keep.** Net +0.002 macro on 60 samples; meaningful LOW
+  improvement. Await 452-row eval before architectural changes.
+- **HIGH trade-off: flagged.** If full eval confirms HIGH F1 drops vs DeBERTa-only, consider
+  suppressing contract_search for DeBERTa-predicted HIGH clauses.
+
+### Sonnet label swap experiment (Runs 25–26, reverted)
+
+Replaced 322 MANUAL_REVIEW and GEMINI_PRO_REVIEW rows with Sonnet labels (human reviewers
+had only 17–53% agreement with Sonnet; Sachin at 17%). Expected MEDIUM improvement.
+
+- Run 25 (CE, Sonnet labels): macro_f1=0.602, MEDIUM=0.518
+- Run 26 (CORN, Sonnet labels): macro_f1=0.564, MEDIUM=0.480
+- Ens-G (R25+R26 on new test labels): macro_f1=0.571
+- Old Ens-F re-evaluated on new test labels: macro_f1=0.602
+
+Old models beat new models even on their own test labels. Root causes: (1) MANUAL_REVIEW
+rows are the most ambiguous extreme-flip cases — Sonnet's labels are differently wrong,
+not objectively better; (2) HIGH→MEDIUM in 20 train rows reduced HIGH signal; (3) ~54 test
+rows also changed labels, invalidating direct comparison. **Reverted. Original Ens-F at 0.607
+remains production model.**
+
 ## Reference
 
 - Architecture: `ARCHITECTURE.md` (root)

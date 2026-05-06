@@ -1,16 +1,17 @@
 """
-Quick ablation study — run all 4 modes on a small stratified sample.
+Quick ablation study — run all 5 modes on a small stratified sample.
 
 Runs:
-  1. DeBERTa-only         (no LLM — always fast)
-  2. RAG-only             (no LLM — always fast)
-  3. Pipeline, no CS      (LLM, ~N * 7s)
-  4. Pipeline, full       (LLM + contract_search fix, ~N * 8s)
+  1. DeBERTa-only                               (no LLM — always fast)
+  2. DeBERTa + FAISS majority vote              (no LLM — always fast)
+  3. DeBERTa + FAISS + LLM constrained, no CS   (LLM, ~N * 7s)
+  4. DeBERTa + FAISS + CS + LLM constrained     (LLM + contract_search, ~N * 8s)
+  5. DeBERTa + FAISS + CS + LLM free reasoning  (unconstrained override, ~N * 8s)
 
 Each mode writes its own output + checkpoint file so you can resume
 any of them to the full 452-clause set afterward:
 
-  python scripts/eval_stage3.py --full [--no-contract-search] \\
+  python scripts/eval_stage3.py --full [--no-contract-search | --free-override] \\
       --output <same output path> --resume
 
 Usage:
@@ -29,21 +30,27 @@ EVAL   = "scripts/eval_stage3.py"
 
 MODES = [
     {
-        "label":  "RAG-only (FAISS majority vote)",
+        "label":  "RAG-only (FAISS majority vote, no LLM)",
         "flags":  ["--rag-only"],
         "output": "data/eval/quick_rag_only.json",
         "llm":    False,
     },
     {
-        "label":  "Pipeline — no contract_search",
+        "label":  "DeBERTa + FAISS + LLM constrained (no CS)",
         "flags":  ["--no-contract-search"],
         "output": "data/eval/quick_no_cs.json",
         "llm":    True,
     },
     {
-        "label":  "Pipeline — full (contract_search fix)",
+        "label":  "DeBERTa + FAISS + CS + LLM constrained",
         "flags":  [],
         "output": "data/eval/quick_full.json",
+        "llm":    True,
+    },
+    {
+        "label":  "DeBERTa + FAISS + CS + LLM free reasoning",
+        "flags":  ["--free-override"],
+        "output": "data/eval/quick_free_override.json",
         "llm":    True,
     },
 ]
@@ -106,18 +113,19 @@ def main():
     print(f"\n{'='*60}")
     print(f"  QUICK ABLATION SUMMARY  (n={args.sample}, seed={args.seed})")
     print(f"{'='*60}")
-    print(f"  {'Mode':<40}  Macro F1")
-    print(f"  {'-'*40}  --------")
-    print(f"  {'DeBERTa-only baseline':<40}  ~0.607  (training val)")
+    print(f"  {'Mode':<50}  Macro F1")
+    print(f"  {'-'*50}  --------")
+    print(f"  {'1. DeBERTa-only (Ens-F baseline)':<50}  always shown above")
     for label, f1 in results.items():
         val = f"{f1:.4f}" if f1 is not None else "  FAILED"
-        print(f"  {label:<40}  {val}")
+        print(f"  {label:<50}  {val}")
     print(f"{'='*60}")
 
-    print("\nTo resume any mode to the full 452-clause eval:")
+    print("\nTo run any mode to the full 452-clause eval:")
     for mode in MODES:
         flag = " ".join(mode["flags"]) if mode["flags"] else ""
-        print(f"  python scripts/eval_stage3.py --full {flag} "
+        flag_str = f"{flag} " if flag else ""
+        print(f"  python scripts/eval_stage3.py --full {flag_str}"
               f"--output {mode['output']} --resume")
 
 

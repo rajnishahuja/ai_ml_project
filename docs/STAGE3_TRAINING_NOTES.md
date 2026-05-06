@@ -15,12 +15,17 @@ After filtering (see §4), the training pool is:
 | | Count |
 |---|---|
 | Total rows | 4,375 |
-| Hard labels | 3,048 (CE loss) |
-| Soft labels | 1,327 (KLDiv loss) |
+| Hard labels | 4,276 (CE loss) |
+| Soft labels | 99 (KLDiv loss) |
 | Unique contracts | 474 |
 | Unique clause types | 36 |
 
-Hard-label class mix: LOW 44.5% / MEDIUM 32.3% / HIGH 23.1%.
+Hard-label class mix: LOW 42.8% / MEDIUM 37.1% / HIGH 20.1% (train split).
+
+**Note (2026-05-05):** Counts updated after v2 soft-label relabeling (1,228 of the original
+1,327 soft rows resolved to hard labels via 3-way Qwen+Gemini+Sonnet vote) and after the
+Sonnet label swap (MANUAL_REVIEW + GEMINI_PRO_REVIEW → SONNET_REVIEW, 322 rows).
+See `docs/STAGE3_LABELING.md` for full history.
 
 Source: `data/processed/training_dataset.json` via `scripts/build_training_dataset.py`.
 
@@ -477,23 +482,34 @@ same data + same seed on the same GPU gives results within ~0.1 F1 of each other
 
 ---
 
-## 11. Training status (updated 2026-04-27)
+## 11. Training status (updated 2026-05-05)
 
-**Training is complete.** 17 runs + 13 ensemble configurations have been executed and
-documented in `docs/STAGE3_EXPERIMENTS.md`. All prep sections (A–G) are done.
+**Previous training complete (Runs 1–24 + ensembles); retrain pending with clean labels.**
 
-Current ceilings on current label quality:
+Results on old labels (for reference):
 - **Single model:** Run 14 macro_f1=0.610, hard-only=0.657
 - **Best HIGH single model:** Run 17 CORN = 0.681 (but MEDIUM collapsed to 0.074)
-- **Ensemble:** Ens-B (R5+R8+R10+R14+R15) macro_f1=0.6264, hard-only=0.6733
+- **Best ensemble (Ens-F, CE+CORN):** macro_f1=0.607 — uploaded to HF Hub
 
-Diagnosed bottleneck: **MEDIUM label noise** (SOFT_LABEL rows). Evidence: stronger
-regularisation hurts (Run 7 regressed), seed variance is high (std=0.020 macro / 0.035
-MEDIUM), train loss descends normally, and every structural approach regresses MEDIUM.
+Diagnosed bottleneck: **MEDIUM label noise**. Two sources identified:
 
-**Next action:** Gemini Pro relabel of the 1,055 SOFT_LABEL rows in the train split
-(~$10-13 total). Script precedent: `scripts/run_gemini_pro_review.py`.
-After relabel, retry CORN (Run 18) — CORN's HIGH=0.681 on noisy labels suggests the
-architecture is sound; clean MEDIUM labels should allow classifier2 to recover.
+1. **SOFT_LABEL rows (1,327)**: adjacent Qwen/Gemini disagreements encoded as soft vectors.
+   Evidence: seed variance std=0.035 on MEDIUM F1, stronger regularisation hurts.
+   **Fix**: v2 relabeling (Qwen+Gemini+Sonnet 3-way vote with party metadata) resolved
+   1,228 of 1,327 to hard labels. 99 remain as soft vectors.
 
-See `docs/STAGE3_EXPERIMENTS.md` for full run details, closed paths, and ensemble results.
+2. **MANUAL_REVIEW rows (235)**: four human reviewers applied inconsistent thresholds.
+   Sachin 17% agreement with Sonnet vs Vishal 53%. Human labels: MEDIUM only 20% of rows;
+   Sonnet labels: MEDIUM 48%. Humans systematically under-labeled MEDIUM.
+   **Fix**: Sonnet labels replaced all 235 MANUAL_REVIEW + 87 GEMINI_PRO_REVIEW rows
+   (SONNET_REVIEW, 2026-05-05). 172 train-split rows changed label.
+
+~~**Next action:** Gemini Pro relabel of the 1,055 SOFT_LABEL rows~~ — superseded by
+the above fixes. MEDIUM in train split improved from 32.3% → 37.1%.
+
+**Current next action:** Retrain with updated `training_dataset.json` + rebuild FAISS index
+(172 stale entries). Expected improvement: MEDIUM F1 recovery; previous MEDIUM collapse
+was directly caused by the label noise now fixed.
+
+See `docs/STAGE3_EXPERIMENTS.md` for full run details. See `docs/STAGE3_LABELING.md`
+for complete labeling history.

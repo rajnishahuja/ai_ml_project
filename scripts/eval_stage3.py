@@ -216,6 +216,7 @@ def run_rag_only(rows: list[dict], classifier: RiskClassifier, index_path: str, 
 def run_pipeline(
     rows: list[dict],
     use_contract_search: bool = True,
+    free_override: bool = False,
     checkpoint_path: Optional[str] = None,
     resume: bool = False,
 ) -> list[dict]:
@@ -247,6 +248,7 @@ def run_pipeline(
         ce_model_path=CE_MODEL_PATH,
         corn_model_path=CORN_MODEL_PATH,
         use_contract_search=use_contract_search,
+        free_override=free_override,
         skip_ids=done_ids,
         checkpoint_file=checkpoint_path,
     )
@@ -360,6 +362,8 @@ def main():
                                 help="FAISS majority vote only — no LLM")
     ablation_group.add_argument("--no-contract-search", action="store_true",
                                 help="Agent path uses precedent_search only")
+    ablation_group.add_argument("--free-override", action="store_true",
+                                help="LLM may override DeBERTa using own reasoning (no consensus constraint)")
     parser.add_argument("--output",  default="data/eval/eval_stage3_results.json")
     parser.add_argument("--seed",    type=int, default=42)
     parser.add_argument("--resume",  action="store_true",
@@ -403,12 +407,14 @@ def main():
         cfg        = load_config("configs/stage3_config.yaml")
         index_path = cfg["faiss_index_path"]
         pipeline_rows = run_rag_only(eval_rows, classifier, index_path)
-        mode_label = "RAG-only (FAISS majority vote)"
+        mode_label = "RAG-only (FAISS majority vote, no LLM)"
     else:
-        use_cs = not args.no_contract_search
+        use_cs       = not args.no_contract_search
+        free_ov      = args.free_override
         pipeline_rows = run_pipeline(
             eval_rows,
             use_contract_search=use_cs,
+            free_override=free_ov,
             checkpoint_path=checkpoint_path,
             resume=args.resume,
         )
@@ -418,11 +424,12 @@ def main():
             if db:
                 r["deberta_label"] = db["deberta_label"]
                 r["override"] = (r["deberta_label"] != r["pipeline_label"])
-        mode_label = (
-            "Pipeline: DeBERTa + FAISS + LLM (no contract_search)"
-            if args.no_contract_search
-            else "Full pipeline: DeBERTa + FAISS + LLM + contract_search"
-        )
+        if args.no_contract_search:
+            mode_label = "DeBERTa + FAISS + LLM constrained (no contract_search)"
+        elif args.free_override:
+            mode_label = "DeBERTa + FAISS + contract_search + LLM free reasoning"
+        else:
+            mode_label = "DeBERTa + FAISS + contract_search + LLM constrained (current)"
 
     pipeline_macro = print_report(
         mode_label,

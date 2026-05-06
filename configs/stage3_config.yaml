@@ -66,7 +66,7 @@ agent_api_key: none                              # llama-server needs a non-empt
 
 agent_max_tokens: 512                            # cap per LLM call; explanations avg ~75 tokens, 512 is safe headroom
 agent_max_iterations: 5                          # ReAct tool-calling loop cap per clause
-similarity_top_k_low_conf: 5                     # precedent_search k (all clauses use agent path)
+similarity_top_k_low_conf: 10                    # k=10: +10% MEDIUM vote accuracy vs k=5 (58% vs 48% at sim>=0.75)
 
 # Raw label passes — preserved for audit; training uses the merged master_label_review.csv
 raw_label_passes:

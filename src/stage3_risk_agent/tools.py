@@ -128,12 +128,17 @@ def make_contract_search_tool(clauses: list[ClauseObject]):
             List of all other clauses from this contract, each with clause_type
             and clause_text.
         """
+        current = next((c for c in clauses if c.clause_id == current_clause_id), None)
+        if current is None:
+            logger.warning("contract_search: clause_id %s not found", current_clause_id)
+            return []
         siblings = [
             {"clause_type": c.clause_type, "clause_text": c.clause_text}
             for c in clauses
-            if c.clause_id != current_clause_id
+            if c.clause_id != current_clause_id and c.document_id == current.document_id
         ]
-        logger.debug("contract_search: returning %d sibling clauses", len(siblings))
+        logger.debug("contract_search: returning %d sibling clauses for doc %s",
+                     len(siblings), current.document_id)
         return siblings
 
     return contract_search
