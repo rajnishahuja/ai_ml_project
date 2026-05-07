@@ -630,17 +630,124 @@ downgrade a correctly-predicted HIGH. Net: +0.008 macro when added.
 **5. Free-override latency**: ~20s per clause vs ~7s for constrained — the unconstrained
 LLM makes ~3 tool calls per clause vs ~1-2. Latency cost with no accuracy gain.
 
-### Decisions
+### Decisions (60-sample)
 
 - **OE-9 (BM25+FAISS hybrid): closed.** LLM reasoning bias is the bottleneck, not retrieval
   quality. Even with perfect FAISS results, the free-override mode shows the LLM downgrades
   HIGH regardless of evidence. Better retrieval won't fix that.
 - **BGE / Jina embeddings: not worth pursuing.** Same reasoning — embedding quality is not
   the bottleneck given the LLM bias.
-- **Current architecture (mode 4): keep.** Net +0.002 macro on 60 samples; meaningful LOW
-  improvement. Await 452-row eval before architectural changes.
+- **Current architecture (mode 4): keep tentatively.** Net +0.002 macro on 60 samples.
+  Await 452-row eval before architectural changes.
 - **HIGH trade-off: flagged.** If full eval confirms HIGH F1 drops vs DeBERTa-only, consider
   suppressing contract_search for DeBERTa-predicted HIGH clauses.
+
+---
+
+## Full Ablation — 452-row test set (2026-05-06)
+
+Full run on the complete hard-labeled test set (452 rows: 183 LOW, 168 MEDIUM, 101 HIGH).
+Script: `scripts/run_full_ablation.sh`. Individual outputs in `data/eval/full_*.json`.
+
+### Results
+
+| Mode | Macro F1 | LOW F1 | MED F1 | HIGH F1 | Overrides | Override acc | Delta |
+|------|----------|--------|--------|---------|-----------|-------------|-------|
+| DeBERTa-only (Ens-F) | 0.6097 | 0.6898 | 0.5143 | 0.6250 | — | — | — |
+| RAG-only (FAISS, no LLM) | 0.4691 | 0.5652 | 0.4773 | 0.3648 | — | — | -0.141 |
+| **No-CS constrained (best)** | **0.6257** | **0.7053** | **0.5379** | **0.6339** | **28/452 (6%)** | **54%** | **+0.016** |
+| Full constrained + CS | 0.5922 | 0.6968 | 0.4948 | 0.5848 | 38/452 (8%) | 37% | -0.018 |
+| Free-override | 0.5375 | 0.6987 | 0.4821 | 0.4317 | 109/452 (24%) | 33% | -0.072 |
+
+### Detailed classification report
+
+**No-CS constrained (best mode):**
+```
+              precision  recall  f1
+LOW               0.613   0.831  0.705
+MEDIUM            0.639   0.464  0.538
+HIGH              0.707   0.574  0.634
+macro avg         0.653   0.623  0.626
+```
+
+**Full constrained + CS:**
+```
+              precision  recall  f1
+LOW               0.595   0.842  0.697
+MEDIUM            0.585   0.429  0.495
+HIGH              0.714   0.495  0.585
+macro avg         0.631   0.588  0.592
+```
+
+**Free-override:**
+```
+              precision  recall  f1
+LOW               0.582   0.874  0.699
+MEDIUM            0.532   0.440  0.482
+HIGH              0.789   0.297  0.432
+macro avg         0.635   0.537  0.537
+```
+
+### Override direction analysis
+
+**No-CS constrained (28 overrides, 54% accurate):**
+| Direction | Count | Accuracy |
+|---|---|---|
+| LOW→MEDIUM | 12 | 58% |
+| MEDIUM→LOW | 7 | 57% |
+| HIGH→MEDIUM | 5 | 40% |
+| HIGH→LOW | 4 | 50% |
+
+**Full constrained + CS (38 overrides, 37% accurate):**
+| Direction | Count | Accuracy |
+|---|---|---|
+| HIGH→MEDIUM | 12 | 25% ❌ |
+| HIGH→LOW | 10 | 60% |
+| MEDIUM→LOW | 8 | 25% ❌ |
+| LOW→MEDIUM | 7 | 43% |
+
+### Key findings (full 452-row eval)
+
+**1. No-CS is now the best mode (+0.016 over DeBERTa).** The 60-sample ablation suggested
+full constrained (with CS) was best. The full eval reverses this: contract_search hurts
+at scale. The no-CS constrained mode improves all three classes simultaneously: LOW +0.016,
+MEDIUM +0.023, HIGH +0.009.
+
+**2. contract_search actively harms quality at scale.** Full constrained mode is -0.018
+macro vs DeBERTa (worse than baseline). The 38-override, 37%-accurate pattern tells the
+story: 12 HIGH→MEDIUM overrides with only 25% accuracy — the LLM is using cross-clause
+context to rationalize downgrading HIGH predictions incorrectly. The cross-clause party
+context that helps LOW clauses in isolation confuses the LLM on HIGH clauses.
+
+**3. FREE-override: HIGH recall collapses to 0.297** (retrieves only 30 of 101 HIGH
+clauses). Precision is high (0.789) but Qwen 30B is far too conservative — it correctly
+identifies HIGH when it picks it, but systematically avoids that label. Confirmed at scale:
+the constraint is essential architecture, not optional guardrail.
+
+**4. Override quality gap: no-CS (54%) vs full+CS (37%).** No-CS overrides are cleaner —
+the agent is making better decisions without the extra context noise. More overrides from
+contract_search are wrong than right, confirming it adds noise rather than signal at this
+scale.
+
+**5. RAG-only confirmed harmful at scale (-0.141).** FAISS votes alone without LLM
+filtering are worse than DeBERTa alone across all classes. HIGH suffers most (0.365 vs
+0.625 DeBERTa). This definitively closes any path toward a pure retrieval-based system.
+
+### Decisions (updated after full 452-row eval)
+
+- **contract_search hurts at scale: root cause unknown — under investigation.**
+  The 60-sample ablation suggested CS helped (+0.008 macro), but the full 452-row eval
+  shows it hurts (-0.018 vs DeBERTa, -0.033 vs no-CS). The key symptom: 12 HIGH→MEDIUM
+  overrides with only 25% accuracy. Hypothesis: cross-clause context gives the LLM
+  spurious grounds to downgrade HIGH predictions (e.g. seeing a liability cap elsewhere
+  in the contract lowers perceived risk even when the clause itself is clearly HIGH).
+  **Default kept at `use_contract_search=True` pending investigation.**
+- **Immediate investigation needed:** compare contract_search results on the HIGH clauses
+  it overrode incorrectly — what siblings was it finding, and why did the LLM treat them
+  as counter-evidence?
+- **HIGH trade-off resolved for no-CS.** No-CS constrained improves all three classes
+  simultaneously vs DeBERTa (LOW +0.016, MED +0.023, HIGH +0.009). If investigation
+  confirms CS is adding noise, switch default.
 
 ### Sonnet label swap experiment (Runs 25–26, reverted)
 
