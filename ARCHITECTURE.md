@@ -74,7 +74,7 @@ Clause  (from Stage 1+2)
              │  label + conf passed into system prompt
              ▼
 ┌──────────────────────────────┐
-│  LangGraph ReAct Agent       │  Qwen3-30B, max_iterations=5
+│  LangGraph ReAct Agent       │  Qwen3-30B, max_iterations=2
 │  system: "DeBERTa says X.    │
 │   Confirm unless tools show  │
 │   clear consensus otherwise" │
@@ -216,12 +216,12 @@ The same clause text can be LOW or HIGH depending on who signed:
 - Establishes baseline accuracy ceiling
 - **Chosen for v1 because**: we need to measure how far text + clause_type alone can go before adding complexity. The Hybrid architecture absorbs the residual ambiguity through the low-confidence escalation path (Option 3 below, handled at inference by the reasoning agent).
 
-**Option 2 — Add party role tag at training + inference time**
-`[CLS] signing_party_role=licensor [SEP] clause_type [SEP] clause_text [SEP]`
-- Stage 1+2 extracts METADATA (Parties field) and infers role (licensor/licensee, vendor/customer)
-- DeBERTa trained with role tag → directly resolves signing party ambiguity
-- Requires role inference logic from contract METADATA
-- **Deferred**: revisit only if v1 accuracy is clearly ceilinged by signing-party ambiguity and the escalation path proves insufficient.
+<!-- Updated 2026-05-13: Option 2 effectively in place — superseded "Deferred" status -->
+**Option 2 — Add party-text injection at training + inference time** ✅
+`[CLS] signing_party_text [SEP] clause_type [SEP] clause_text [SEP]`
+- Stage 1+2 extracts the "Parties" clause; its text is passed to DeBERTa as the first segment at both train and inference time. See `src/stage3_risk_agent/risk_classifier.py::extract_signing_party()` and Ens-F training in `src/stage3_risk_agent/train.py`.
+- The classifier learns party direction directly rather than relying on the agent loop to resolve it. The agent still uses `contract_search` to disambiguate when DeBERTa is low-confidence.
+- **Locked 2026-04-30** (commit `66d5bbc`): "signing-party metadata + Ens-F (macro_f1=0.607)".
 
 **Option 3 — Reasoning model resolves METADATA ambiguity (built into Hybrid architecture)** ✅
 - DeBERTa classifies on text alone, will be uncertain on party-dependent cases
@@ -276,7 +276,10 @@ it's needed for a reliable production system.
 ## Stage 3 Training Data Pipeline
 
 > **Decided 2026-04-18, merged 2026-04-23.** Canonical source: `data/review/master_label_review.csv`.
-> Full labeling history + disagreement analysis: `docs/STAGE3_LABEL_COMPARISON.md`.
+> Full labeling history + disagreement analysis: `docs/STAGE3_LABELING.md`.
+
+<!-- Updated 2026-05-13: dataset re-consolidated via Sonnet relabeling pass; current headline supersedes the v1 row-category breakdown below -->
+> **Current locked state (per `docs/STAGE3_LABELING.md`):** **4,375 rows = 4,276 hard + 99 soft**, after a Claude Sonnet relabeling pass replaced 322 inconsistently-labeled human/Gemini-Pro rows (`SONNET_REVIEW`) and consolidated 1,228 three-way-agreed rows (`SOFT_LABEL_V2_AGREED`). Train split: 3,398 rows; test split: 452 rows. The category breakdown immediately below is the **v1 pipeline (preserved for historical context)**; for the current row-category counts and label provenance, see `docs/STAGE3_LABELING.md`.
 
 Risk labels were produced through a multi-labeler + human-review pipeline on the 6,702 positive
 spans output by Stage 1+2.
@@ -401,18 +404,22 @@ Sharp boundaries are learned where labelers agreed (one-hot targets → standard
 Calibration is preserved on borderline LOW/MEDIUM and MEDIUM/HIGH cases (soft targets →
 model is trained to output matching uncertainty).
 
-**Class weights** (`weight` tensor above) compensate for mild imbalance in the hard-label
-distribution (LOW 44.5% / MEDIUM 32.3% / HIGH 23.1%):
+<!-- Updated 2026-05-13: Option B (effective_counts) is the locked recipe; Option A caused MEDIUM collapse -->
+**Class weights** (`weight` tensor above) compensate for mild imbalance. The locked recipe is
+**Option B — `effective_counts`**: the per-class denominator includes soft-label probability
+mass alongside hard-row counts.
 
 ```
-weight_c = N / (K · count_c),  N = 3,049 hard rows, K = 3 classes
-→ LOW 0.749, MEDIUM 1.030, HIGH 1.442
+weight_c = N_eff / (K · effective_count_c),  K = 3 classes
 ```
 
-Computed from hard-row counts only — soft rows contribute uncertainty directly through the
-loss and don't add bias that needs compensating. (Option B — include soft-label probability
-mass in the counts — available as a one-line ablation if HIGH recall is weak in v1; see
-`docs/STAGE3_TRAINING_NOTES.md` §7.)
+**Why Option B (locked).** The initial recipe (Option A — `hard_counts`) produced a MEDIUM
+collapse: Run 1, macro_f1=0.21, MEDIUM recall ≈ 0 because soft-row probability mass on the
+MEDIUM class wasn't reflected in the weights. Switching to `effective_counts` restored MEDIUM
+learning and remains the production setting in `configs/stage3_config.yaml`. See `docs/STAGE3_EXPERIMENTS.md` for the run log.
+
+**Option A — `hard_counts`** (LOW 0.749, MEDIUM 1.030, HIGH 1.442, N = 3,049 hard rows) is
+preserved as an ablation flag in code but should not be used by default.
 
 ### Row Provenance (columns in `master_label_review.csv`)
 
@@ -429,71 +436,131 @@ mass in the counts — available as a one-line ablation if HIGH recall is weak i
 
 ## Directory Structure
 
+<!-- Updated 2026-05-13: synced with actual filesystem. Added app/ (FastAPI), src/workflow/ (experimental DAG), expanded scripts/ and docs/, removed predict.py/data_loader.py and notebook stubs that were never built. Empty/dead-code files omitted — see Known Issues #6/#7. -->
+
 ```
 AIML_project/
 ├── ARCHITECTURE.md          ← THIS FILE (AI context reference)
-├── README.md                ← Project readme (create when ready)
-├── requirements.txt         ← Python dependencies
-├── .github/
-│   └── copilot-instructions.md  ← Auto-loaded by GitHub Copilot
+├── CLAUDE.md                ← Cross-session pointer file; downstream of ARCHITECTURE.md
+├── README.md
+├── CODE_README.md           ← Engineering-side readme (alt entry point)
+├── CODE_ARCHITECTURE.md     ← Engineering-side architecture sketch
+├── requirements.txt         ← Python dependencies (see Known Issues #4)
+├── pyproject.toml
+├── uv.lock
+├── .env.example             ← Env template (OLLAMA_* keys are legacy)
+├── .gitignore               ← Ignores .github/, model weights, data/raw|processed|synthetic
+├── .github/                 ← Gitignored — local-only Copilot instructions
 ├── configs/
-│   ├── stage1_config.yaml   ← Hyperparams for extraction/classification
-│   ├── stage3_config.yaml   ← Agent config, RAG params, model paths
-│   └── stage4_config.yaml   ← Report template config
+│   ├── stage1_config.yaml   ← Stage 1+2 hyperparams
+│   ├── stage3_config.yaml   ← Stage 3 training recipe + agent/RAG inference settings
+│   └── stage4_config.yaml   ← Stage 4 summary LLM settings (Qwen)
 ├── docs/
-│   ├── LegalAgents.docx                              ← Original project proposal
-│   ├── Legal_Contract_Risk_Analyzer_Research_Analysis.docx  ← Research analysis v1
-│   └── Legal_Contract_Risk_Analyzer_Project_Plan_v2.docx    ← Finalized plan v2
+│   ├── LegalAgents.docx                                       ← Original proposal
+│   ├── Legal_Contract_Risk_Analyzer_Research_Analysis.docx    ← Research analysis v1
+│   ├── Legal_Contract_Risk_Analyzer_Project_Plan_v2.docx      ← Finalized plan v2
+│   ├── STAGE3_LABELING.md           ← Canonical label-pipeline reference (4,375 rows)
+│   ├── STAGE3_EXPERIMENTS.md        ← Every training run, ablation, closed hypothesis
+│   ├── STAGE3_TRAINING_NOTES.md     ← Locked Section A–G training decisions
+│   ├── STAGE1_REVIEW_NOTES.md       ← Stage 1+2 alignment notes
+│   ├── OPTIONAL_ENHANCEMENTS.md     ← OE-1…OE-N deferred work
+│   ├── TASK_LIST.md                 ← Master task tracker
+│   ├── HANDOFF.md                   ← Cross-teammate handoff state
+│   ├── REVIEW_REQUEST.md            ← External-review framing doc
+│   └── dataset_insights.md          ← CUAD per-clause-type breakdown
 ├── src/
 │   ├── common/
 │   │   ├── __init__.py
-│   │   ├── schema.py             ← Shared dataclasses (ClauseObject, RiskAssessedClause, RiskReport)
-│   │   ├── preprocessing.py     ← PDF/DOCX text extraction, cleaning
-│   │   ├── data_loader.py       ← CUAD dataset loading and formatting
-│   │   └── utils.py             ← Shared utilities (config loader, metrics, logging)
+│   │   ├── schema.py             ← Shared dataclasses (ClauseObject, RiskAssessedClause, RiskReport, …)
+│   │   ├── constants.py          ← CUAD clause types + question templates
+│   │   ├── preprocessing.py      ← PDF/DOCX/TXT text extraction
+│   │   └── utils.py              ← load_config, make_llm, save_json, metric helpers
 │   ├── stage1_extract_classify/
 │   │   ├── __init__.py
-│   │   ├── model.py             ← DeBERTa QA model wrapper
-│   │   ├── train.py             ← Fine-tuning script
-│   │   ├── predict.py           ← Inference: contract → clause objects
-│   │   ├── baseline.py          ← spaCy + regex baseline
-│   │   └── evaluate.py          ← Extraction + classification metrics
+│   │   ├── model.py              ← ClauseExtractorClassifier (DeBERTa QA, bf16 inference)
+│   │   ├── pipeline.py           ← End-to-end Stage 1+2 flow
+│   │   ├── train.py              ← Fine-tuning entry
+│   │   ├── preprocess_cuad.py    ← CUAD → QA-format conversion
+│   │   ├── preprocessing.py      ← Contract-text preprocessing
+│   │   ├── constants.py          ← Stage-1-local constants
+│   │   ├── baseline.py           ← spaCy + regex baseline
+│   │   └── evaluate.py           ← Extraction + classification metrics
 │   ├── stage3_risk_agent/
 │   │   ├── __init__.py
-│   │   ├── agent.py             ← LangGraph agent definition
-│   │   ├── tools.py             ← RAG retrieval tool + contract search tool
-│   │   ├── risk_classifier.py   ← DeBERTa risk classifier
-│   │   ├── embeddings.py        ← FAISS index builder + query
-│   │   ├── synthetic_labels.py  ← LLM-based risk label generation
-│   │   └── evaluate.py          ← Risk detection metrics + ablation
-│   └── stage4_report_gen/
+│   │   ├── agent.py              ← assess_clauses() entry; LangGraph ReAct loop; parallel workers
+│   │   ├── tools.py              ← precedent_search (FAISS) + contract_search (siblings)
+│   │   ├── risk_classifier.py    ← Wraps scripts/infer.py RiskClassifier; extract_signing_party()
+│   │   ├── embeddings.py         ← FAISS index builder + cached query
+│   │   ├── train.py              ← DeBERTa-v3 trainer (Ens-F CE + CORN)
+│   │   ├── synthetic_labels.py   ← LLM-based label generation (historical)
+│   │   └── evaluate.py           ← Risk detection metrics + ablation
+│   ├── stage4_report_gen/
+│   │   ├── __init__.py
+│   │   ├── aggregator.py         ← Deterministic grouping + risk score
+│   │   ├── recommender.py        ← Lookup table (clause_type, risk_level) → recommendation
+│   │   ├── report_builder.py     ← Assembles RiskReport + Qwen executive summary
+│   │   └── evaluate.py           ← ROUGE + optional human eval
+│   └── workflow/                  ← ⚠ EXPERIMENTAL / not in active pipeline (see "End-to-End Workflow" §)
 │       ├── __init__.py
-│       ├── aggregator.py        ← Deterministic grouping + risk score (✅ done)
-│       ├── recommender.py       ← Lookup table: (clause_type, risk_level) → recommendation (✅ done)
-│       ├── report_builder.py    ← Assembles RiskReport + Qwen executive summary (✅ done)
-│       └── evaluate.py          ← ROUGE + optional human eval
+│       ├── state.py              ← RiskAnalysisState (LangGraph TypedDict)
+│       └── graph.py              ← Stage 1→3→4 DAG with Map-Reduce fan-out
+├── app/                           ← FastAPI service layer (see "API Layer" §)
+│   ├── main.py                   ← FastAPI app + CORS + router wiring
+│   ├── routers/
+│   │   ├── documents.py          ← /api/v1/documents — FAISS index metadata
+│   │   ├── stage1_extract.py     ← /api/v1/stage1/analyze — full pipeline endpoint
+│   │   ├── stage3_agent.py       ← /api/v1/stage3/assess — Stage 3 only
+│   │   └── stage4_report.py      ← /api/v1/stage4/report — Stage 4 only
+│   ├── services/
+│   │   ├── stage1_extract_svc.py ← Synchronous Stage 1→3→4 runner (executor-friendly)
+│   │   ├── stage3_agent_svc.py   ← Stage 3 wrapper around assess_clauses()
+│   │   └── stage4_report_svc.py  ← Stage 4 wrapper around build_report()
+│   └── schemas/
+│       ├── domain.py             ← Pydantic FinalRiskReport, RiskAssessedClause (API-facing)
+│       └── requests.py           ← Pydantic Stage3Request, Stage4Request, ClauseInput
 ├── data/
-│   ├── raw/                     ← Downloaded CUAD dataset files
-│   ├── processed/               ← Preprocessed data; `all_positive_spans.json` (6,702 spans)
-│   ├── synthetic/               ← Raw LLM labeler outputs (Qwen, Gemini Flash, Gemini Pro)
-│   ├── review/                  ← `master_label_review.csv` (canonical merged labels, 6,702 rows)
-│   └── faiss_index/             ← Built FAISS vector index
+│   ├── raw/                      ← Contract PDFs/DOCX (gitignored)
+│   ├── processed/                ← all_positive_spans.json, training_dataset.json, splits.json
+│   ├── synthetic/                ← Raw LLM labeler outputs (gitignored except .gitkeep)
+│   ├── review/                   ← master_label_review.csv + per-reviewer CSVs
+│   ├── reference/                ← cuad_category_descriptions.csv
+│   ├── output/                   ← Sample API response JSON
+│   └── faiss_index/              ← Generated artifact (gitignored); built by scripts/build_faiss_index.py
 ├── notebooks/
-│   ├── 01_cuad_exploration.ipynb      ← Dataset exploration and stats
-│   ├── 02_synthetic_labeling.ipynb    ← Risk label generation + validation
-│   ├── 03_stage1_training.ipynb       ← Extraction/classification training
-│   ├── 04_stage3_agent_dev.ipynb      ← Agent development and testing
-│   └── 05_evaluation.ipynb            ← End-to-end eval and ablation
-├── tests/
+│   ├── cuad_explore.ipynb        ← Dataset exploration (only live notebook)
+│   ├── EXPERIMENT_NOTES.md       ← Free-form run notes
+│   ├── analyze_relabel_v2.py     ← Ad-hoc relabel-set analysis
+│   ├── plot_label_consistency.py
+│   ├── tokenisation.py
+│   ├── test_clause.py
+│   ├── learn_sliding_window.py
+│   ├── run22_errors.json         ← Error-analysis dump
+│   └── label_consistency.png
+├── tests/                         ← Scaffolding only — every method raises NotImplementedError (Known Issues #6)
 │   ├── test_preprocessing.py
 │   ├── test_stage1.py
 │   ├── test_stage3.py
 │   └── test_stage4.py
 └── scripts/
-    ├── download_cuad.py         ← Download CUAD from HuggingFace
-    ├── generate_synthetic.py    ← Batch synthetic label generation
-    ├── build_faiss_index.py     ← Build FAISS index from labeled clauses
-    └── run_pipeline.py          ← End-to-end pipeline runner
+    ├── download_cuad.py
+    ├── build_faiss_index.py            ← Builds data/faiss_index/clauses.index from train split
+    ├── build_splits.py                 ← Stratified train/val/test splits
+    ├── build_training_dataset.py       ← Merges master_label_review.csv → training_dataset.json
+    ├── build_gold_set.py
+    ├── generate_synthetic.py
+    ├── generate_synthetic_labels.py
+    ├── infer.py                        ← Stage 3 Ens-F inference API (CE + CORN ensemble)
+    ├── eval_stage3.py                  ← Stage 3 evaluation with ablation flags + resume
+    ├── quick_ablation.py
+    ├── run_ensemble.py                 ← Probability-averaging across multiple runs
+    ├── run_gemini_pro_review.py        ← Gemini-Pro tiebreaker pass
+    ├── prepare_relabel_batch.py        ← Sonnet relabel batch preparation
+    ├── relabel_soft_labels_v2.py
+    ├── save_relabel_results.py
+    ├── show_run.py                     ← Inspect a single training run's metrics
+    ├── smoke_test_stage3.py            ← Trainer numerical-stability smoke test
+    ├── smoke_test_stage3_agent.py      ← End-to-end agent smoke test
+    └── run_pipeline.py                 ← CLI: contract → report
 ```
 
 ## Data Contracts (Shared Dataclasses)
@@ -541,6 +608,7 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
 > One object per detected clause. Clauses with confidence below threshold are excluded. Clause types with empty model answers (clause absent) are omitted.
 
 ### Stage 3 Output → Stage 4 Input
+<!-- Updated 2026-05-13: removed `overridden` field (not in schema), aligned to current `RiskAssessedClause` shape -->
 ```json
 [
   {
@@ -550,22 +618,18 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
     "clause_type": "Indemnification",
     "risk_level": "HIGH",
     "risk_explanation": "One-sided indemnification covering counterparty negligence",
-    "similar_clauses": [
-      {"text": "...", "risk_level": "HIGH", "similarity": 0.92},
-      {"text": "...", "risk_level": "LOW", "similarity": 0.87}
-    ],
-    "cross_references": ["contract_001_Cap_On_Liability_0034"],
+    "similar_clauses": [],
+    "cross_references": [],
     "confidence": 0.88,
-    "overridden": true,
     "agent_trace": [
       {"tool": "precedent_search", "result_count": 5},
-      {"tool": "contract_search", "related_clauses": 2}
+      {"tool": "contract_search", "result_count": 12}
     ]
   }
 ]
 ```
 
-> `risk_explanation` is generated by Mistral-7B-Instruct. `agent_trace` records which tools the LangGraph agent invoked for this clause (populated only on the low-confidence path; high-confidence path emits `[]`). `overridden` is `true` when the agent's `final_label` differs from DeBERTa's preliminary label. See the **Stage 3 Training Data Pipeline** section below for how these labels are produced and the **Stage 3 Architecture — Hybrid Confidence-Gated** section above for inference flow.
+> `risk_explanation` is generated by the Qwen3-30B agent (see Stage 3 architecture section above). `agent_trace` is populated for every clause — every clause now routes through the LangGraph ReAct agent, so there is no longer a gated fast-path with empty traces. `similar_clauses` and `cross_references` are reserved fields in the schema (currently emitted as empty lists by `_agent_path`); retrieval results live inside `agent_trace` instead. `confidence` is DeBERTa's confidence in its pre-classification label. See the **Stage 3 Training Data Pipeline** section below for how training labels are produced and the **Stage 3 Architecture — DeBERTa + LangGraph ReAct Agent** section above for inference flow.
 
 ### Stage 4 Output (Final Report)
 ```json
@@ -606,13 +670,74 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
 }
 ```
 
+<!-- Updated 2026-05-13: new sections — API Layer + End-to-End Workflow -->
+
+## API Layer (FastAPI)
+
+A FastAPI service in `app/` exposes the pipeline over HTTP. Long-running stages run in
+`asyncio.run_in_executor()` threads so they never block the event loop.
+
+### Endpoints
+
+| Method | Path | Body | Effect |
+|---|---|---|---|
+| GET  | `/health` | — | Liveness probe |
+| GET  | `/api/v1/documents/` | — | Returns FAISS index metadata (vectors, dim, model name) |
+| POST | `/api/v1/stage1/analyze` | `multipart/form-data` file | Full pipeline: Stage 1 → 3 → 4. Returns a `FinalRiskReport`. Typical 5–15 min per contract. |
+| POST | `/api/v1/stage3/assess` | `Stage3Request` (list of `ClauseInput`) | Stage 3 only: takes pre-extracted clauses, returns list of `RiskAssessedClause` dicts. |
+| POST | `/api/v1/stage4/report`  | `Stage4Request` (list of `AssessedClauseInput`) | Stage 4 only: takes assessed clauses, returns a `FinalRiskReport`. |
+
+### Service-layer flow
+
+```
+app/routers/stage1_extract.py::analyze_contract
+    └─ asyncio.run_in_executor →
+        app/services/stage1_extract_svc.py::run_full_pipeline
+            ├─ src.stage1_extract_classify.preprocessing.preprocess_contract
+            ├─ src.stage1_extract_classify.model.ClauseExtractorClassifier.extract
+            ├─ src.stage3_risk_agent.agent.assess_clauses    ← all clauses, agent path
+            └─ src.stage4_report_gen.report_builder.build_report
+```
+
+The Stage-3 and Stage-4 endpoints call `assess_clauses()` and `build_report()` directly without going through `src/workflow/`. The DAG in `src/workflow/` is **not** on the request path (see next section).
+
+### Pydantic vs. dataclass schemas
+
+`app/schemas/domain.py` and `app/schemas/requests.py` define **Pydantic** request/response models for HTTP serialisation. `src/common/schema.py` defines **dataclasses** for in-process pipeline contracts. The two layers parallel each other; the service layer converts at the boundary (`_to_schema_clause` / `_to_internal`). Keep both in sync when adding fields.
+
+### CORS
+
+`app/main.py` sets `allow_origins=["*"]` for development. Tighten before any non-local deployment.
+
+## End-to-End Workflow (`src/workflow/`) — experimental, not on request path
+
+> **Status (2026-05-13): not wired in.** The FastAPI services and `scripts/run_pipeline.py` both call `assess_clauses()` and `build_report()` directly. The LangGraph DAG below was scaffolded in commit `7a88981` as an alternative orchestration but its Stage-3 node module (`src/stage3_risk_agent/nodes.py`) is absent on `main`, so the graph cannot be instantiated as-is. Treat as deferred / experimental.
+
+### Intended shape
+
+```
+START
+  └─ Node_A_Stage1_Extract       (src/stage1_extract_classify/nodes.py — also missing)
+       └─ Node_C_Stage3_RiskClassify  (dispatcher, fan-out per clause)
+            ├─ Node_D_Mistral_Router   (parallel workers, one per clause)  ← named "Mistral" historically; actually Qwen now
+            └─ … (Map-Reduce fan-in)
+                 └─ Node_E_Stage4_ReportGen  (src/stage4_report_gen/nodes.py — exists, uses print())
+                      └─ END
+```
+
+State carrier is `src/workflow/state.py::RiskAnalysisState` (TypedDict). Note the import from `app.schemas.domain` — this couples the workflow package to the API layer, which is a smell to revisit before reviving the DAG.
+
+### Recommendation
+Either (a) restore the missing `nodes.py` files and add a smoke test, or (b) retire `src/workflow/` along with `src/stage4_report_gen/nodes.py` and the empty `src/stage4_report/` package. The current request path does not need this DAG.
+
 ## Key Models
 
 | Model | Stage | HuggingFace ID | Purpose | VRAM |
 |-------|-------|---------------|--------|------|
-| DeBERTa-base | 1+2 | `microsoft/deberta-base` | QA extraction + classification | ~2 GB (train ~8 GB) |
-| DeBERTa-v3-base | 3 | `microsoft/deberta-v3-base` | Risk classification (fine-tuned on merged labels from `master_label_review.csv` — 3,048 hard + 1,327 soft). Chose v3 over base: ELECTRA-style pretraining → stronger downstream performance, same VRAM; SentencePiece 128k vocab is more efficient on legal text (p99 292 tokens vs 358 with base). | ~2 GB (train ~8 GB) |
-| Qwen3-30B (Q4_K_XL) | 3 | Local llama-server (OpenAI-compatible, `http://localhost:10006/v1`). Swap `agent_base_url` + `agent_model` in `stage3_config.yaml` for any OpenAI-compatible endpoint (Mistral-7B-Instruct, Azure-hosted model, etc.) when deploying outside this server. | Risk explanation (high-conf path) + ReAct tool-calling agent (low-conf path) | ~20 GB (4-bit, GPU) |
+<!-- Updated 2026-05-13: Stage 1 default model now HF Hub; dropped stale Mistral references; reflect locked all-clause agent routing -->
+| DeBERTa-base | 1+2 | HF Hub default: `rajnishahuja/cuad-stage1-deberta` (fine-tuned from `microsoft/deberta-base`) | QA extraction + classification | ~2 GB (train ~8 GB) |
+| DeBERTa-v3-base | 3 | `microsoft/deberta-v3-base` fine-tuned. **Ens-F** = two-model ensemble: `rajnishahuja/cuad-risk-deberta-ce-parties` (CE loss, seed 42) + `rajnishahuja/cuad-risk-deberta-corn-parties` (CORN loss, seed 7), both with signing-party text in segment A. Inference API: `scripts/infer.py::RiskClassifier`. Chose v3 over base: ELECTRA-style pretraining → stronger downstream performance, same VRAM; SentencePiece 128k vocab is more efficient on legal text (p99 292 tokens vs 358 with base). | ~2 GB (train ~8 GB) |
+| Qwen3-30B (Q4_K_XL) | 3 | Local llama-server (OpenAI-compatible, `http://localhost:10006/v1`). Swap `agent_base_url` + `agent_model` in `stage3_config.yaml` for any OpenAI-compatible endpoint (vLLM, Ollama, Azure-hosted, OpenAI, etc.) when deploying outside this server. Provider can also be switched via `llm_provider: gemini \| anthropic` (`src/common/utils.py::make_llm`). | LangGraph ReAct agent — runs on every clause; produces final label + explanation. | ~20 GB (4-bit, GPU) |
 | all-MiniLM-L6-v2 | 3 | `sentence-transformers/all-MiniLM-L6-v2` | Clause embeddings for FAISS | ~0.5 GB |
 | Qwen3-30B (Q4_K_XL) | 4 | Local llama-server port 10006 (shared with Stage 3) | Executive summary generation | ~20 GB (shared, no extra VRAM) |
 | Qwen-30B (non-reasoning) | 3 (data prep, done) | `mavenir-generic1-30b-q4_k_xl` (local llama-server on A100, temp=0) | Primary labeler — 4,410 risk-relevant spans | ~20 GB (4-bit) |
@@ -635,7 +760,9 @@ All stages communicate through typed Python dataclasses defined in `src/common/s
 ## Config File Schemas
 
 ### `configs/stage1_config.yaml`
+<!-- Updated 2026-05-13: synced with current YAML. NOTE: live config has `dataset: kenlevine/CUAD` which is a regression — see Known Issues #5. -->
 ```yaml
+# Stage 1+2: Clause Extraction & Classification
 model_name: microsoft/deberta-base
 max_seq_length: 512
 doc_stride: 128
@@ -644,86 +771,109 @@ learning_rate: 2.0e-5
 epochs: 3
 output_dir: models/stage1_2_deberta
 confidence_threshold: 0.01
-dataset: theatticusproject/cuad-qa
+dataset: theatticusproject/cuad-qa          # CANONICAL — see Known Issues #5 (live YAML has a regression)
 fp16: true
 ```
 
 ### `configs/stage3_config.yaml`
+<!-- Updated 2026-05-13: synced with locked training recipe; removed confidence_threshold / similarity_top_k_high_conf (all clauses route through agent); dropped Mistral; added llm_provider + agent_num_workers -->
 ```yaml
 risk_classifier:
   # Model
   model_name: microsoft/deberta-v3-base
-  output_dir: models/stage3_risk_deberta_v3
+  output_dir: models/stage3_risk_deberta_v3       # versioned per experiment
 
   # Data
   training_data_path: data/processed/training_dataset.json
-  splits_path: data/processed/splits.json
+  splits_path:        data/processed/splits.json
   max_length: 512
 
   # Loss & signal (unified soft-target CE)
-  class_weights_method: hard_counts          # LOW 0.749 / MED 1.030 / HIGH 1.442
+  class_weights_method: effective_counts          # Option B (locked) — Option A produced MEDIUM collapse
   soft_label_weighting: confidence_weighted
 
   # Fine-tuning strategy
-  fine_tuning: full                           # all 86M params trainable
-  llrd: false                                 # layer-wise LR decay — deferred to v1.1
+  fine_tuning: full                                # all 86M params trainable
+  llrd: true                                       # layer-wise LR decay (locked winning recipe)
+  llrd_decay: 0.95                                 # embeddings ≈ 0.54× base_lr
 
   # Optimizer + schedule
   batch_size: 16
-  learning_rate: 2.0e-5
-  warmup_ratio: 0.1                           # linear warmup
-  lr_scheduler_type: linear                   # linear decay after warmup
-  epochs: 5
-  weight_decay: 0.01
+  learning_rate: 5.0e-5
+  warmup_ratio: 0.1
+  lr_scheduler_type: cosine
+  epochs: 20
+  weight_decay: 0.05
 
   # Early stopping
-  early_stopping_patience: 2
+  early_stopping_patience: 5
   metric_for_best_model: val_macro_f1
+  greater_is_better: true
 
-  # Precision
-  # Target bf16; fall back to fp32 if smoke test NaNs.
-  # DO NOT use fp16 — DeBERTa attention + torch.finfo(fp16).min → NaN softmax.
+  # Precision (bf16; DO NOT use fp16 — DeBERTa attention NaN)
   precision: bf16
   allow_fp32_fallback: true
 
   # Reproducibility
-  seed: 42                                    # independent from splits seed=100
+  seed: 42                                         # independent from splits seed=100
   strict_determinism: false
+  dropout: 0.1                                     # DeBERTa default
 
 # Stage 3 inference — agent + tools
-embedding_model: sentence-transformers/all-MiniLM-L6-v2
+embedding_model:  sentence-transformers/all-MiniLM-L6-v2
 faiss_index_path: data/faiss_index/clauses.index
-agent_model: mistralai/Mistral-7B-Instruct-v0.3
-quantization: 4bit
-confidence_threshold: 0.6                     # DeBERTa confidence gate
-agent_max_iterations: 5                       # low-conf path tool-calling loop cap
-similarity_top_k_high_conf: 3
-similarity_top_k_low_conf: 5
+
+# Agent LLM — Qwen3-30B Q4_K_XL via local llama-server (OpenAI-compatible).
+llm_provider:     openai_compatible              # options: openai_compatible | gemini | anthropic
+agent_model:      Qwen3-30B-Q4_K_XL
+agent_base_url:   http://localhost:10006/v1
+agent_api_key:    none                           # llama-server needs a non-empty string
+
+agent_max_tokens:        512                     # per LLM call
+agent_max_iterations:    2                       # ablation showed >2 unused
+agent_num_workers:       1                       # set to llama.cpp -np slot count for parallelism
+similarity_top_k_low_conf: 10                    # k=10 gave +10% MEDIUM vote accuracy vs k=5
 
 # Raw label passes — preserved for audit, not used at train time
 raw_label_passes:
-  qwen:              data/synthetic/synthetic_risk_labels_qwen.json
-  gemini_flash:      data/synthetic/synthetic_risk_labels_gemini.json
+  qwen:                data/synthetic/synthetic_risk_labels_qwen.json
+  gemini_flash:        data/synthetic/synthetic_risk_labels_gemini.json
   gemini_pro_focus_87: data/synthetic/synthetic_risk_labels_gemini_pro.json
 ```
 
 ### `configs/stage4_config.yaml`
+<!-- Updated 2026-05-13: replaced FLAN-T5 schema with current Qwen-via-llama-server schema. FLAN-T5 was never wired up; explainer.py is dead scaffolding (see Known Issues #7). -->
 ```yaml
-explanation_model: google/flan-t5-base
-risk_thresholds:
-  high: 0.75
-  medium: 0.40
+# Stage 4: Report Generation
+# Executive summary LLM (reuses the same llama-server as Stage 3)
+llm_provider:     openai_compatible              # options: openai_compatible | gemini | anthropic
+agent_model:      qwen3-30b-q4_k_xl
+agent_base_url:   http://localhost:10006/v1
+agent_api_key:    none
+agent_max_tokens: 256                            # executive summary is short
+
 output_format: json
-max_explanation_length: 200
 ```
 
 ## Known Issues & Limitations
+
+<!-- Updated 2026-05-13: added items 4–8 from architecture-sync audit -->
 
 1. **Classification evaluation is misleading in existing code.** The current `evaluate.py` infers `pred_type = true_type if pred_text else "NO_CLAUSE"`. This means any non-empty answer is counted as correctly classifying the clause type (since the type is derived from the question, not the model). This inflates classification accuracy. The proper evaluation should measure whether the model correctly identifies clause presence vs absence per type.
 
 2. **CUAD class imbalance.** ~67.9% of QA pairs have empty answers (clause absent). Models may learn to predict empty spans by default. Training should handle this imbalance (e.g., balanced sampling or adjusted loss). See `docs/dataset_insights.md` for per-clause-type positive rates.
 
 3. **Long contracts exceed 512 tokens.** CUAD contracts average 10K-50K characters. The sliding window approach (`doc_stride=128`) handles this but means one clause may span multiple windows. Post-processing must deduplicate overlapping predictions.
+
+4. **`requirements.txt` is incomplete.** Several runtime imports are not declared: `langchain-openai`, `langchain-google-genai`, `langchain-anthropic` (used by `src/common/utils.py::make_llm`), `fastapi`, `uvicorn`, `pydantic` (used by `app/`). Conversely, `bitsandbytes` is listed but unused — Mistral 4-bit quantization is no longer part of the architecture (Qwen3-30B runs in a separate llama-server process). A consolidated dependency sweep is pending.
+
+5. **`configs/stage1_config.yaml` has a stale dataset key.** Live file contains `dataset: kenlevine/CUAD`, but the canonical dataset is `theatticusproject/cuad-qa` (used by `src/common/` loaders and asserted in CLAUDE.md). The `kenlevine/CUAD` variant is nested SQuAD JSON and is explicitly warned against. Fix the YAML; no code currently reads this key but stale config misleads readers.
+
+6. **Tests are scaffolding only.** Every method under `tests/` raises `NotImplementedError`. The directory exists to satisfy the conventions block, not to provide coverage. Treat as TODO.
+
+7. **`src/stage4_report_gen/explainer.py` is dead code.** All functions `raise NotImplementedError` and the file references FLAN-T5, which was never wired in. Stage 4's executive summary is produced by Qwen via `report_builder.py::_generate_summary`. Per-clause explanations come from the Stage 3 agent and pass through unchanged. The file should be removed in a future cleanup commit.
+
+8. **`src/workflow/` is experimental and not on the live request path.** The FastAPI services and `scripts/run_pipeline.py` both call `assess_clauses()` and `build_report()` directly. The LangGraph DAG in `src/workflow/graph.py` imports `src/stage3_risk_agent/nodes.py`, which does not exist on `main` — so the DAG cannot be instantiated as-is. Either restore the missing node module or retire `src/workflow/`. See "End-to-End Workflow" section below.
 
 ## Conventions
 
