@@ -1,0 +1,66 @@
+Clause Type                                      DeBERTa   Baseline  Winner
+---------------------------------------------------------------------------
+  Document Name                                    0.893      1.000  ← B
+  Parties                                          0.291      0.194  ← D
+  Agreement Date                                   0.894      0.508  ← D
+  Effective Date                                   0.881      0.897  ← B
+  Expiration Date                                  0.525      0.308  ← D
+  Renewal Term                                     0.095      0.815  ← B
+  Notice Period To Terminate Renewal               0.000      0.000  tie
+  Governing Law                                    0.333      0.918  ← B
+  Most Favored Nation                              0.000      1.000  ← B
+  Non-Compete                                      0.421      0.267  ← D
+  Exclusivity                                      0.000      0.000  tie
+  No-Solicit Of Customers                          0.000      0.000  tie
+  No-Solicit Of Employees                          0.000      0.400  ← B
+  Non-Disparagement                                0.000      0.667  ← B
+  Termination For Convenience                      0.385      0.480  ← B
+  ROFR/ROFO/ROFN                                   0.000      0.667  ← B
+  Change Of Control                                0.538      0.500  ← D
+  Anti-Assignment                                  0.357      0.386  ← B
+  Revenue/Profit Sharing                           0.435      0.438  ← B
+  Price Restrictions                               0.000      0.000  tie
+  Minimum Commitment                               0.595      0.250  ← D
+  Volume Restriction                               0.538      0.000  ← D
+  IP Ownership Assignment                          0.519      0.556  ← B
+  Joint IP Ownership                               0.000      0.000  tie
+  License Grant                                    0.449      0.478  ← B
+  Non-Transferable License                         0.250      0.692  ← B
+  Affiliate License-Licensor                       0.353      0.000  ← D
+  Affiliate License-Licensee                       0.429      0.000  ← D
+  Unlimited/All-You-Can-Eat-License                0.000      0.000  tie
+  Irrevocable Or Perpetual License                 0.000      0.000  tie
+  Source Code Escrow                               0.000      0.667  ← B
+  Post-Termination Services                        0.343      0.200  ← D
+  Audit Rights                                     0.483      0.400  ← D
+  Uncapped Liability                               0.167      0.000  ← D
+  Cap On Liability                                 0.552      0.642  ← B
+  Liquidated Damages                               0.400      0.750  ← B
+  Warranty Duration                                0.400      0.400  tie
+  Insurance                                        0.320      0.909  ← B
+  Covenant Not To Sue                              0.000      0.000  tie
+  Third Party Beneficiary                          0.364      0.429  ← B
+  Indemnification                                  0.000      0.000  tie
+
+Summary
+-------
+DeBERTa wins:  14 clause types
+Baseline wins: 18 clause types
+Tie:           9 clause types
+
+DeBERTa strengths (contextual clauses):
+  Agreement Date, Effective Date, Expiration Date, Non-Compete,
+  Minimum Commitment, Volume Restriction, Change Of Control,
+  Affiliate License-Licensor, Affiliate License-Licensee,
+  Post-Termination Services, Audit Rights, Uncapped Liability,
+  Parties, Minimum Commitment
+
+Baseline strengths (keyword-anchored clauses):
+  Governing Law, Renewal Term, Most Favored Nation, Document Name,
+  Non-Disparagement, ROFR/ROFO/ROFN, Source Code Escrow,
+  Non-Transferable License, Insurance, Liquidated Damages,
+  Effective Date, Termination For Convenience
+
+Key metric: Span IoU — DeBERTa 0.3582 vs Baseline 0.0903
+  DeBERTa significantly outperforms on span boundary detection
+  even where classification F1 is comparable.

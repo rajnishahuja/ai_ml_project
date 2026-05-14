@@ -1,0 +1,17 @@
+{
+  "test_set": {
+    "total": 5475,
+    "positives": 1825,
+    "negatives": 3650,
+    "ratio": "1:2"
+  },
+  "extraction": {
+    "exact_match": 83.25114155251143,
+    "f1": 85.79961767749703
+  },
+  "classification": {
+    "accuracy": 0.9285844748858447,
+    "macro_f1": 0.9187827872206339,
+    "per_class_report": "              precision    recall  f1-score   support\n\n      CLAUSE       0.91      0.87      0.89      1825\n   NO_CLAUSE       0.94      0.96      0.95      3650\n\n    accuracy                           0.93      5475\n   macro avg       0.92      0.91      0.92      5475\nweighted avg       0.93      0.93      0.93      5475\n"
+  }
+}
