@@ -55,9 +55,9 @@ def _load_ce_model(model_path: str, device: torch.device):
     return model.to(device).eval()
 
 
-def _load_corn_model(model_path: str, device: torch.device):
+def _load_corn_model(model_path: str, device: torch.device, base_model_id: str = CE_MODEL_ID):
     base = AutoModelForSequenceClassification.from_pretrained(
-        CE_MODEL_ID, num_labels=1, ignore_mismatched_sizes=True,
+        base_model_id, num_labels=1, ignore_mismatched_sizes=True,
     )
     model = CORNWrapper(base)
     from safetensors.torch import load_file
@@ -95,17 +95,23 @@ class RiskClassifier:
         ce_model_path: str = CE_MODEL_ID,
         corn_model_path: str = CORN_MODEL_ID,
         device: str | None = None,
+        ce_only: bool = False,
     ):
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.device = torch.device(device)
+        self.ce_only = ce_only
 
         print(f"Loading CE model from {ce_model_path} ...", flush=True)
         self.tokenizer = AutoTokenizer.from_pretrained(ce_model_path)
         self.ce_model = _load_ce_model(ce_model_path, self.device)
 
-        print(f"Loading CORN model from {corn_model_path} ...", flush=True)
-        self.corn_model = _load_corn_model(corn_model_path, self.device)
+        if not ce_only:
+            print(f"Loading CORN model from {corn_model_path} ...", flush=True)
+            self.corn_model = _load_corn_model(corn_model_path, self.device)
+        else:
+            self.corn_model = None
+            print(f"CE-only mode — skipping CORN model.")
         print("Ready.")
 
     def _tokenize(self, clause_type: str, signing_party: str, clause_text: str):
@@ -159,8 +165,11 @@ class RiskClassifier:
         """
         inputs = self._tokenize(clause_type, signing_party, clause_text)
         ce_p   = self._ce_probs(inputs)
-        corn_p = self._corn_probs(inputs)
-        ens_p  = (ce_p + corn_p) / 2.0
+        if self.ce_only:
+            ens_p = ce_p
+        else:
+            corn_p = self._corn_probs(inputs)
+            ens_p  = (ce_p + corn_p) / 2.0
 
         label_idx  = int(np.argmax(ens_p))
         return {

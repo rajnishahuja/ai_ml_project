@@ -82,6 +82,7 @@ class Stage3Config:
     strict_determinism: bool
     llrd_decay: float = 0.9   # only used when llrd: true; LR_layer = base_lr * decay^(top - layer_idx)
     dropout: float = 0.1      # DeBERTa default; override to test added regularization
+    high_weight_multiplier: float = 1.0  # scale up effective-count weight for HIGH class (e.g. 2.0 = penalise HIGH misses 2x more)
 
     @classmethod
     def from_yaml(cls, path: str) -> "Stage3Config":
@@ -739,7 +740,10 @@ def main():
     logger.info(f"Datasets — train: {len(train_ds)}  val: {len(val_ds)}  test: {len(test_ds)}")
 
     class_weights = compute_class_weights(raw_train_labels, cfg.class_weights_method)
-    logger.info(f"Class weights ({cfg.class_weights_method}): "
+    if cfg.high_weight_multiplier != 1.0:
+        class_weights[2] = class_weights[2] * cfg.high_weight_multiplier
+        class_weights = class_weights / class_weights.sum() * len(class_weights)  # renormalize
+    logger.info(f"Class weights ({cfg.class_weights_method}, HIGH×{cfg.high_weight_multiplier}): "
                 f"LOW={class_weights[0]:.4f}  MED={class_weights[1]:.4f}  HIGH={class_weights[2]:.4f}")
 
     logger.info(f"Loading model in {cfg.precision}: {cfg.model_name}")

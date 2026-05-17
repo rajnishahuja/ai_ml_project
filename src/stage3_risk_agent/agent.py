@@ -298,6 +298,7 @@ def assess_clauses(
     classifier = RiskClassifier(
         ce_model_path=ce_model_path or CE_MODEL_ID,
         corn_model_path=corn_model_path or CORN_MODEL_ID,
+        ce_only=(corn_model_path is None and ce_model_path is not None),
     )
 
     doc_ids = {c.document_id for c in clauses}
