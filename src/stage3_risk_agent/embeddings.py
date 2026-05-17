@@ -24,23 +24,20 @@ from src.common.schema import SimilarClause
 
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
-EMBEDDING_DIM = 384
+DEFAULT_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
-# Lazy-loaded singletons — loaded once on first query_index() call.
-_model: SentenceTransformer | None = None
-_faiss_cache: dict[str, tuple] = {}  # index_path → (faiss.Index, list[dict])
+_model_cache: dict[str, SentenceTransformer] = {}   # model_name → SentenceTransformer
+_faiss_cache: dict[str, tuple] = {}                 # index_path → (faiss.Index, list[dict])
 
 
-def _get_model() -> SentenceTransformer:
-    global _model
-    if _model is None:
-        logger.info("Loading embedding model: %s", MODEL_NAME)
+def _get_model(model_name: str = DEFAULT_MODEL) -> SentenceTransformer:
+    if model_name not in _model_cache:
+        logger.info("Loading embedding model: %s", model_name)
         try:
-            _model = SentenceTransformer(MODEL_NAME, local_files_only=True)
+            _model_cache[model_name] = SentenceTransformer(model_name, local_files_only=True)
         except Exception:
-            _model = SentenceTransformer(MODEL_NAME)
-    return _model
+            _model_cache[model_name] = SentenceTransformer(model_name)
+    return _model_cache[model_name]
 
 
 def _get_index(index_path: str) -> tuple:
@@ -63,10 +60,9 @@ def _meta_path(index_path: str) -> Path:
 # Build (offline, run once)
 # ---------------------------------------------------------------------------
 
-
-def build_index(
-    training_data_path: str, index_path: str, splits_path: str | None = None
-) -> None:
+def build_index(training_data_path: str, index_path: str,
+                splits_path: str | None = None,
+                model_name: str = DEFAULT_MODEL) -> None:
     """Embed labeled clauses from training_dataset.json and write FAISS index.
 
     Only indexes the train split when splits_path is provided — prevents test
@@ -109,19 +105,15 @@ def build_index(
         for r in rows
     ]
 
-    logger.info("Encoding %d clauses with %s ...", len(texts), MODEL_NAME)
-    model = _get_model()
-    vectors = model.encode(
-        texts,
-        batch_size=64,
-        show_progress_bar=True,
-        convert_to_numpy=True,
-        normalize_embeddings=True,
-    )
+    logger.info("Encoding %d clauses with %s ...", len(texts), model_name)
+    model = _get_model(model_name)
+    vectors = model.encode(texts, batch_size=64, show_progress_bar=True,
+                           convert_to_numpy=True, normalize_embeddings=True)
     vectors = vectors.astype(np.float32)
 
-    logger.info("Building FAISS IndexFlatIP (dim=%d) ...", EMBEDDING_DIM)
-    index = faiss.IndexFlatIP(EMBEDDING_DIM)
+    dim = vectors.shape[1]
+    logger.info("Building FAISS IndexFlatIP (dim=%d) ...", dim)
+    index = faiss.IndexFlatIP(dim)
     index.add(vectors)
 
     Path(index_path).parent.mkdir(parents=True, exist_ok=True)
@@ -138,8 +130,8 @@ def build_index(
 # Query (runtime, called per clause)
 # ---------------------------------------------------------------------------
 
-
-def query_index(clause_text: str, index_path: str, k: int = 5) -> list[SimilarClause]:
+def query_index(clause_text: str, index_path: str, k: int = 5,
+                model_name: str = DEFAULT_MODEL) -> list[SimilarClause]:
     """Retrieve the top-k most similar clauses from the FAISS index.
 
     Args:
@@ -150,10 +142,9 @@ def query_index(clause_text: str, index_path: str, k: int = 5) -> list[SimilarCl
     Returns:
         List of SimilarClause ordered by descending similarity.
     """
-    model = _get_model()
-    vector = model.encode(
-        [clause_text], convert_to_numpy=True, normalize_embeddings=True
-    ).astype(np.float32)
+    model = _get_model(model_name)
+    vector = model.encode([clause_text], convert_to_numpy=True,
+                          normalize_embeddings=True).astype(np.float32)
 
     index, metadata = _get_index(index_path)
     k = min(k, index.ntotal)

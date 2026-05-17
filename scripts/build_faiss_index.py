@@ -22,13 +22,18 @@ def main(config_path: str = "configs/stage3_config.yaml") -> None:
     training_data_path = cfg["risk_classifier"]["training_data_path"]
     splits_path        = cfg["risk_classifier"].get("splits_path")
     index_path         = cfg["faiss_index_path"]
+    embedding_model    = cfg.get("embedding_model")
 
     logger.info("Building FAISS index")
     logger.info("  Source : %s", training_data_path)
     logger.info("  Splits : %s", splits_path or "none (all rows indexed)")
     logger.info("  Output : %s", index_path)
+    logger.info("  Model  : %s", embedding_model or "default (all-MiniLM-L6-v2)")
 
-    build_index(training_data_path, index_path, splits_path=splits_path)
+    kwargs = {"splits_path": splits_path}
+    if embedding_model:
+        kwargs["model_name"] = embedding_model
+    build_index(training_data_path, index_path, **kwargs)
     logger.info("Done.")
 
 

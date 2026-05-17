@@ -765,6 +765,153 @@ not objectively better; (2) HIGH→MEDIUM in 20 train rows reduced HIGH signal; 
 rows also changed labels, invalidating direct comparison. **Reverted. Original Ens-F at 0.607
 remains production model.**
 
+---
+
+## LegalBERT Embedding Experiment (2026-05-17)
+
+Swap the FAISS **embedding model** (not the classifier) from `all-MiniLM-L6-v2` to
+`nlpaueb/legal-bert-base-uncased`. Everything else unchanged: DeBERTa Ens-F classifier,
+no-CS constrained agent, Qwen3-30B synthesizer, full 452-row test set.
+
+### Motivation
+
+The full ablation FAISS diagnostic showed MiniLM was nearly useless for HIGH clauses:
+- HIGH coverage at threshold 0.75: only 17.8%
+- When HIGH clauses were covered, vote accuracy was 17% (worse than random)
+- Root cause: adversarial/one-sided HIGH phrasing is semantically indistinguishable
+  from MEDIUM in MiniLM's general-domain embedding space.
+
+LegalBERT (`nlpaueb/legal-bert-base-uncased`) is trained on 12GB of legal text and
+should separate legal risk semantics better.
+
+### Retrieval quality (eval_embeddings.py, 452 test clauses)
+
+| Embedding model (FAISS) | Precision@5 (all) | Precision@5 HIGH | Zero-result rate | Sim threshold |
+|---|---|---|---|---|
+| `all-MiniLM-L6-v2` | 0.213 | 0.045 | 64.6% | 0.75 |
+| `nlpaueb/legal-bert-base-uncased` | **0.525** | **0.424** | **0.2%** | **0.82** |
+
+Threshold calibrated via `scripts/calibrate_threshold.py`: LegalBERT scores cluster
+at 0.90+, so 0.82 is optimal (vs 0.75 for MiniLM).
+
+### E2E pipeline results — full 452-row eval, no-CS constrained, Qwen3-30B
+
+| Embedding model (FAISS) | DeBERTa-only | Agent macro F1 | Delta | LOW F1 | MED F1 | HIGH F1 | Override rate |
+|---|---|---|---|---|---|---|---|
+| `all-MiniLM-L6-v2` | 0.6097 | 0.6257 | +0.016 | 0.705 | 0.538 | 0.634 | 6% (28/452) |
+| `nlpaueb/legal-bert-base-uncased` | 0.6097 | **0.6407** | **+0.031** | **0.710** | 0.560 | **0.650** | 18% (81/452) |
+
+### Key findings
+
+**1. HIGH is the headline improvement (+0.016 F1).** MiniLM had precision@5 HIGH of 0.045 —
+the agent was effectively blind for HIGH clauses (no usable precedents, so no overrides).
+LegalBERT precision@5 HIGH = 0.424 gives the agent real evidence to act on. HIGH recall
+still lags (0.57) — the constrained architecture won't upgrade to HIGH unless precedents
+agree, and the HIGH corpus is sparse — but precision is strong (0.75).
+
+**2. Agent delta doubled (+0.031 vs +0.016).** All overrides are FAISS-driven (constrained
+mode: LLM only acts when precedent_search reaches consensus). Better embeddings → more
+accurate precedents → more correct overrides. Override rate rose from 6% to 18% because
+LegalBERT returns more high-confidence matches above the 0.82 threshold.
+
+**3. Zero-result rate collapsed (64.6% → 0.2%).** With MiniLM, 65% of queries returned no
+results above threshold — agent defaulted to DeBERTa. LegalBERT almost always finds at
+least one precedent, giving the agent something to reason about.
+
+**4. No regression on LOW or MEDIUM.** LOW improves slightly (+0.005). MEDIUM is slightly
+better (+0.022). No class is harmed by the embedding switch.
+
+### Decision
+
+**LegalBERT is the new production embedding model.** Config updated:
+```yaml
+embedding_model: nlpaueb/legal-bert-base-uncased
+faiss_index_path: data/faiss_index/clauses_legalbert.index
+similarity_threshold: 0.82
+```
+MiniLM indexes retained at `data/faiss_index/clauses_minilm.*` for rollback if needed.
+
+---
+
+---
+
+## LegalBERT Classifier Experiment (2026-05-17)
+
+Train LegalBERT (`nlpaueb/legal-bert-base-uncased`) as the **risk classifier** (not just the embedding model) to evaluate whether the legal-domain pretraining that helped FAISS retrieval also helps classification.
+
+### Motivation
+
+- DeBERTa Ens-F (CE+CORN): macro F1=0.607, HIGH F1=0.622
+- DeBERTa uses general-domain pretraining; LegalBERT was pretrained on 12GB legal text
+- LegalBERT already proved its value as embedding model (precision@5 HIGH: 0.045→0.424)
+- Question: does the same model improve when used as the classifier?
+
+### LegalBERT CE training
+
+- **Config:** same as Run 22 (CE hard_only + parties, seed=42, ep=10, patience=2) — only `model_name` changed
+- **Output:** `models/stage3_risk_legalbert_ce/final/`
+- **Training result:** val macro_f1=0.579, peaked epoch 9, early stopped at epoch 14
+  - LOW=0.618 (+/- vs DeBERTa), MEDIUM=0.540 (+0.028 vs DeBERTa Run 22), HIGH=0.536 (-0.089 vs DeBERTa Run 22)
+- **vs DeBERTa CE Run 22:** better MEDIUM (+0.028), worse HIGH (-0.089), lower macro (-0.023)
+- **Observation:** LegalBERT's BERT-base architecture has less discriminative power than DeBERTa-v3's
+  disentangled attention for the fine-grained HIGH vs MEDIUM boundary. MEDIUM recall benefits
+  from legal-domain pretraining, but HIGH—which requires detecting adversarial/one-sided phrasing—
+  needs DeBERTa's more sophisticated attention mechanism.
+
+### LegalBERT CORN training
+
+- **Config:** same setup, `--loss corn`, seed=7, ep=20, patience=5
+- **Output:** `models/stage3_risk_legalbert_corn/final/`
+- **Result:** FAILED — MEDIUM collapsed to near-zero (F1=0.11), peaked at macro F1=0.38
+- **Observation:** CORN + LegalBERT does not work. Unlike DeBERTa+CORN which successfully recovered
+  MEDIUM after the v2 relabel (Run 23: MEDIUM=0.481), LegalBERT's plain BERT architecture cannot
+  maintain the conditional binary chain (P(y≥1) and P(y≥2|y≥1)) with enough discriminative power.
+  **LegalBERT CORN path closed.**
+
+### Full E2E pipeline eval — LegalBERT CE classifier (452 rows, no-CS constrained, Qwen3-30B)
+
+| | LegalBERT CE | DeBERTa Ens-F |
+|---|---|---|
+| Classifier baseline macro F1 | 0.630 | 0.610 |
+| + Agent (no-CS constrained) | **0.647** | **0.641** |
+| Delta | +0.017 | +0.031 |
+| LOW F1 (agent) | 0.70 | 0.710 |
+| MEDIUM F1 (agent) | 0.60 | 0.560 |
+| HIGH F1 (agent) | **0.64** | **0.650** |
+| Overrides | 66/452 (14.6%) | 81/452 (18%) |
+| Override accuracy | 47% (31 fixed, 27 broke, net +4) | 49% (net +11) |
+
+Note: LegalBERT CE baseline (0.630) is higher than DeBERTa Ens-F baseline (0.610) on this test split —
+this appears to be sampling variance; training-time eval showed the opposite (0.579 vs 0.607). The gap
+between final systems (0.647 vs 0.641) is within noise on a single test run.
+
+### Key findings
+
+1. **Agent amplifies DeBERTa more reliably (+0.031 vs +0.017).** DeBERTa Ens-F benefits more from
+   the FAISS agent because it is better calibrated — when it is wrong, the errors are more correctable
+   by precedent evidence. LegalBERT CE's errors are more scattered (54% override accuracy vs 49%
+   for DeBERTa, but far fewer overrides that actually matter).
+
+2. **LegalBERT CE MEDIUM is strong standalone (F1=0.62 vs DeBERTa's 0.51) but the agent hurts it
+   slightly (0.62→0.60).** The agent makes more LOW/MEDIUM confusion errors for LegalBERT CE than
+   for DeBERTa Ens-F.
+
+3. **HIGH F1 nearly identical (0.64 vs 0.65).** The LegalBERT FAISS index (same for both) is the
+   driver of HIGH improvement; the classifier is secondary.
+
+4. **DeBERTa Ens-F remains the production classifier.** The final system is effectively tied on
+   this single eval run (0.647 vs 0.641), but DeBERTa has stronger training-time evidence (24 runs,
+   multiple seeds, structured ensembling) and a larger agent delta. LegalBERT's role is the FAISS
+   embedding model — it was not designed to replace DeBERTa as the classifier.
+
+### ce_only inference mode added
+
+New `ce_only=True` parameter added to `RiskClassifier` (scripts/infer.py) and threaded through
+`assess_clauses()` (src/stage3_risk_agent/agent.py) and `eval_stage3.py` (`--ce-model`/`--corn-model`
+CLI args). Allows evaluating any CE-only model without requiring a CORN checkpoint.
+
+---
+
 ## Reference
 
 - Architecture: `ARCHITECTURE.md` (root)

@@ -39,6 +39,9 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from sklearn.metrics import classification_report, f1_score
 
 from src.common.schema import ClauseObject
@@ -219,6 +222,8 @@ def run_pipeline(
     free_override: bool = False,
     checkpoint_path: Optional[str] = None,
     resume: bool = False,
+    ce_model_path: Optional[str] = None,
+    corn_model_path: Optional[str] = None,
 ) -> list[dict]:
     mode = "full pipeline" if use_contract_search else "pipeline (no contract_search)"
 
@@ -245,8 +250,8 @@ def run_pipeline(
     assessed = assess_clauses(
         clauses=clauses,
         config_path="configs/stage3_config.yaml",
-        ce_model_path=CE_MODEL_PATH,
-        corn_model_path=CORN_MODEL_PATH,
+        ce_model_path=ce_model_path or CE_MODEL_PATH,
+        corn_model_path=corn_model_path if ce_model_path else CORN_MODEL_PATH,
         use_contract_search=use_contract_search,
         free_override=free_override,
         skip_ids=done_ids,
@@ -368,6 +373,8 @@ def main():
     parser.add_argument("--seed",    type=int, default=42)
     parser.add_argument("--resume",  action="store_true",
                         help="Resume an interrupted run using the checkpoint file")
+    parser.add_argument("--ce-model",   default=None, help="Override CE model path")
+    parser.add_argument("--corn-model", default=None, help="Override CORN model path (pass CE path for CE-only eval)")
     args = parser.parse_args()
 
     # Load test rows
@@ -385,10 +392,14 @@ def main():
         eval_rows = stratified_sample(test_rows, n_per_class, args.seed)
 
     # --- DeBERTa-only baseline (always run — no LLM needed) ---
-    logger.info("Loading DeBERTa classifier ...")
+    ce_path   = args.ce_model   or CE_MODEL_PATH
+    corn_path = args.corn_model or CORN_MODEL_PATH
+    ce_only   = (args.corn_model is None)
+    logger.info("Loading classifier (CE=%s, CORN=%s, ce_only=%s) ...", ce_path, corn_path, ce_only)
     classifier = RiskClassifier(
-        ce_model_path=CE_MODEL_PATH,
-        corn_model_path=CORN_MODEL_PATH,
+        ce_model_path=ce_path,
+        corn_model_path=corn_path,
+        ce_only=ce_only,
     )
     deberta_rows = run_deberta_only(eval_rows, classifier)
     deberta_map  = {r["id"]: r for r in deberta_rows}
@@ -417,6 +428,8 @@ def main():
             free_override=free_ov,
             checkpoint_path=checkpoint_path,
             resume=args.resume,
+            ce_model_path=args.ce_model,
+            corn_model_path=args.corn_model,
         )
         # Merge DeBERTa label + override flag into pipeline rows
         for r in pipeline_rows:

@@ -26,7 +26,7 @@ from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.sqlite import SqliteSaver
 from pydantic import BaseModel, Field
 
-from src.common.schema import AgentTraceEntry, ClauseObject, RiskAssessedClause
+from src.common.schema import AgentTraceEntry, ClauseObject, RiskAssessedClause, SimilarClause
 from src.common.utils import load_config, make_llm
 from src.stage3_risk_agent.risk_classifier import (
     RiskClassifier,
@@ -125,8 +125,11 @@ def _agent_path(
     use_contract_search: bool = True,
     free_override: bool = False,
     checkpointer: Optional[SqliteSaver] = None,
+    embedding_model: str | None = None,
+    sim_threshold: float = 0.75,
 ) -> RiskAssessedClause:
-    precedent_search = make_precedent_search_tool(index_path)
+    precedent_search = make_precedent_search_tool(index_path, model_name=embedding_model,
+                                                   default_min_similarity=sim_threshold)
     tools = [precedent_search]
     if use_contract_search:
         tools.append(make_contract_search_tool(all_clauses))
@@ -169,8 +172,8 @@ def _agent_path(
         "Treat its label as the default — confirm it unless tool evidence clearly "
         "points elsewhere.\n\n"
         "Evidence-gathering strategy:\n"
-        "1. Always start with precedent_search (k=5). It only returns clauses with "
-        "similarity >= 0.75, so every result is a strong semantic match.\n"
+        f"1. Always start with precedent_search (k=5). It only returns clauses with "
+        f"similarity >= {sim_threshold:.2f}, so every result is a strong semantic match.\n"
         "2. Check vote distribution:\n"
         "   - 4+ results agreeing with DeBERTa → high confidence, confirm.\n"
         "   - 0 results → no precedent exists; keep DeBERTa's label.\n"
@@ -188,10 +191,7 @@ def _agent_path(
     # NEW: Persistent Agent with Checkpointer
     # ------------------------------------------------------------------
     agent = create_react_agent(
-        llm, tools, prompt=system_prompt, checkpointer=checkpointer
-    )
-
-    # Use clause_id as the thread_id for granular persistence
+        llm, to    # Use clause_id as the thread_id for granular persistence
     thread_id = f"thread_{clause.clause_id}"
     config = {
         "configurable": {"thread_id": thread_id},
@@ -212,8 +212,9 @@ def _agent_path(
 
     # Build agent trace and extract evidence (from search tools)
     trace = []
-    similar_clauses = []
+    similar_clauses: list[SimilarClause] = []
     cross_references = []
+    seen_texts = set()  # Global deduplication to prevent duplicate precedent clauses!
     
     for msg in state["messages"]:
         if isinstance(msg, ToolMessage):
@@ -228,18 +229,29 @@ def _agent_path(
                     content = msg.content
                 
                 count = len(content) if isinstance(content, list) else 0
+                trace.append(AgentTraceEntry(tool=msg.name, result_count=count))
                 
-                # Capture Precedents (from vector search)
+                # Capture Precedents (from vector search) with global deduplication
                 if msg.name == "precedent_search" and isinstance(content, list):
-                    similar_clauses.extend(content)
+                    for item in content:
+                        try:
+                            if item["text"] not in seen_texts:
+                                seen_texts.add(item["text"])
+                                similar_clauses.append(SimilarClause(
+                                    text=item["text"],
+                                    clause_type=item["clause_type"],
+                                    risk_level=item["risk_level"],
+                                    similarity=item["similarity"],
+                                ))
+                        except (KeyError, TypeError):
+                            pass
                 
                 # Capture Contract Lookups (sibling clauses)
                 if msg.name == "contract_search" and isinstance(content, list):
                     cross_references.extend(content)
                     
-            except Exception:
-                count = None
-            trace.append(AgentTraceEntry(tool=msg.name, result_count=count))
+            except Exception as e:
+                logger.error(f"Error parsing ToolMessage content: {e}")
 
     # Extract final reasoning text
     agent_conclusion = ""
@@ -284,20 +296,6 @@ def _agent_path(
             explanation=f"Analysis: {agent_conclusion[:200]}...",
         )
 
-    # OLD REPO RETURN (Commented out):
-    # return RiskAssessedClause(
-    #     clause_id=clause.clause_id,
-    #     document_id=clause.document_id,
-    #     clause_text=clause.clause_text,
-    #     clause_type=clause.clause_type,
-    #     risk_level=result.final_label,
-    #     risk_explanation=result.explanation,
-    #     similar_clauses=[],
-    #     cross_references=[],
-    #     confidence=deberta_result["confidence"],
-    #     agent_trace=trace,
-    # )
-
     return RiskAssessedClause(
         clause_id=clause.clause_id,
         document_id=clause.document_id,
@@ -307,7 +305,9 @@ def _agent_path(
         risk_explanation=result.explanation,
         similar_clauses=similar_clauses,
         cross_references=cross_references,
-        confidence=deberta_result["confidence"],
+        confidence=clause.confidence,              # stage1 extraction confidence — passed through
+        deberta_confidence=deberta_result["confidence"],  # stage3 risk prediction confidence
+        risk_confidence=deberta_result["confidence"],
         extraction_confidence=clause.confidence,
         extractor_confidence=clause.extractor_confidence,
         extraction_confidence_logit=getattr(clause, "confidence_logit", None),
@@ -317,6 +317,7 @@ def _agent_path(
         start_pos=clause.start_pos,
         end_pos=clause.end_pos,
         metadata={"content_label": getattr(clause, "content_label", None)}
+    )"content_label": getattr(clause, "content_label", None)}
     )
 
 
@@ -353,10 +354,12 @@ def assess_clauses(
     """
     cfg = load_config(config_path)
 
-    index_path = cfg["faiss_index_path"]
-    k = cfg["similarity_top_k_low_conf"]
-    max_iter = cfg["agent_max_iterations"]
-    num_workers = cfg.get("agent_num_workers", 1)
+    index_path      = cfg["faiss_index_path"]
+    embedding_model = cfg.get("embedding_model")
+    sim_threshold   = cfg.get("similarity_threshold", 0.75)
+    k               = cfg["similarity_top_k_low_conf"]
+    max_iter     = cfg["agent_max_iterations"]
+    num_workers  = cfg.get("agent_num_workers", 1)
 
     llm = make_llm(cfg)
 
@@ -364,6 +367,7 @@ def assess_clauses(
     classifier = RiskClassifier(
         ce_model_path=ce_model_path or CE_MODEL_ID,
         corn_model_path=corn_model_path or CORN_MODEL_ID,
+        ce_only=(corn_model_path is None and ce_model_path is not None),
     )
 
     doc_ids = {c.document_id for c in clauses}
@@ -439,6 +443,8 @@ def assess_clauses(
             use_contract_search=use_contract_search,
             free_override=free_override,
             checkpointer=checkpointer,
+            embedding_model=embedding_model,
+            sim_threshold=sim_threshold,
         )
         if ckpt_fh:
             entry = (

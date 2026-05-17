@@ -1,0 +1,919 @@
+{
+  "model": "rule_based_baseline",
+  "n_examples": 2091,
+  "extraction": {
+    "exact_match_pct": 62.84,
+    "text_f1_pct": 66.31,
+    "span_iou": 0.0903
+  },
+  "classification": {
+    "accuracy": 0.7757,
+    "macro_f1": 0.4385,
+    "weighted_f1": 0.7359,
+    "per_class_f1": {
+      "Document Name": 1.0,
+      "Parties": 0.194,
+      "Agreement Date": 0.508,
+      "Effective Date": 0.897,
+      "Expiration Date": 0.308,
+      "Renewal Term": 0.815,
+      "Notice Period To Terminate Renewal": 0.0,
+      "Governing Law": 0.918,
+      "Most Favored Nation": 1.0,
+      "Non-Compete": 0.267,
+      "Exclusivity": 0.0,
+      "No-Solicit Of Customers": 0.0,
+      "No-Solicit Of Employees": 0.4,
+      "Non-Disparagement": 0.667,
+      "Termination For Convenience": 0.48,
+      "ROFR/ROFO/ROFN": 0.667,
+      "Change Of Control": 0.5,
+      "Anti-Assignment": 0.386,
+      "Revenue/Profit Sharing": 0.438,
+      "Price Restrictions": 0.0,
+      "Minimum Commitment": 0.25,
+      "Volume Restriction": 0.0,
+      "IP Ownership Assignment": 0.556,
+      "Joint IP Ownership": 0.0,
+      "License Grant": 0.478,
+      "Non-Transferable License": 0.692,
+      "Affiliate License-Licensor": 0.0,
+      "Affiliate License-Licensee": 0.0,
+      "Unlimited/All-You-Can-Eat-License": 0.0,
+      "Irrevocable Or Perpetual License": 0.0,
+      "Source Code Escrow": 0.667,
+      "Post-Termination Services": 0.2,
+      "Audit Rights": 0.4,
+      "Uncapped Liability": 0.0,
+      "Cap On Liability": 0.642,
+      "Liquidated Damages": 0.75,
+      "Warranty Duration": 0.4,
+      "Insurance": 0.909,
+      "Covenant Not To Sue": 0.0,
+      "Third Party Beneficiary": 0.429,
+      "Indemnification": 0.0
+    }
+  },
+  "error_analysis": {
+    "hardest_clause_types": [
+      [
+        "Notice Period To Terminate Renewal",
+        0.0
+      ],
+      [
+        "Exclusivity",
+        0.0
+      ],
+      [
+        "No-Solicit Of Customers",
+        0.0
+      ],
+      [
+        "Price Restrictions",
+        0.0
+      ],
+      [
+        "Volume Restriction",
+        0.0
+      ],
+      [
+        "Joint IP Ownership",
+        0.0
+      ],
+      [
+        "Affiliate License-Licensor",
+        0.0
+      ],
+      [
+        "Affiliate License-Licensee",
+        0.0
+      ],
+      [
+        "Unlimited/All-You-Can-Eat-License",
+        0.0
+      ],
+      [
+        "Irrevocable Or Perpetual License",
+        0.0
+      ]
+    ],
+    "sample_errors_per_type": {
+      "Document Name": [
+        {
+          "id": "WHITESMOKE,INC_11_08_2011-EX-10.26-PROMOTION AND DISTRIBUTION AGREEMENT__Document Name",
+          "true": "Promotion and Distribution Agreement",
+          "pred": "1.1 In this Agreement unless expressly stated otherwise:",
+          "confidence": 0.85,
+          "f1": 0.167
+        },
+        {
+          "id": "KIROMICBIOPHARMA,INC_05_11_2020-EX-10.23-CONSULTING AGREEMENT__Document Name",
+          "true": "CONSULTING AGREEMENT",
+          "pred": "(a) Withholding. All forms of compensation referred to in this letter agreement are subject to reduction to reflect applicable withholding and payroll taxes and other deductions required by law.",
+          "confidence": 0.6,
+          "f1": 0.065
+        },
+        {
+          "id": "IntegrityFunds_20200121_485BPOS_EX-99.E UNDR CONTR_11948727_EX-99.E UNDR CONTR_Service Agreement__Document Name",
+          "true": "DISTRIBUTION AND SERVICES AGREEMENT",
+          "pred": "DISTRIBUTION AND SERVICES AGREEMENT January 18, 2020 This is to confirm that, in consideration of the agreements hereinafter contained, the undersigned, the Integrity Short Term Government Fund, (the ",
+          "confidence": 0.6,
+          "f1": 0.015
+        }
+      ],
+      "Parties": [
+        {
+          "id": "Freecook_20180605_S-1_EX-10.3_11233807_EX-10.3_Hosting Agreement__Parties",
+          "true": "FreeCook",
+          "pred": "This Website Design, Development and Hosting Agreement the (\"Agreement\") is entered into on January 11, 2018 by and between Natalija Tunevic, director of FreeCook (hereinafter referred to as \"Client\")",
+          "confidence": 0.7,
+          "f1": 0.17
+        },
+        {
+          "id": "Freecook_20180605_S-1_EX-10.3_11233807_EX-10.3_Hosting Agreement__Joint Ip Ownership",
+          "true": "",
+          "pred": "This Website Design, Development and Hosting Agreement the (\"Agreement\") is entered into on January 11, 2018 by and between Natalija Tunevic, director of FreeCook (hereinafter referred to as \"Client\")",
+          "confidence": 0.7,
+          "f1": 0.0
+        },
+        {
+          "id": "GLOBALTECHNOLOGIESLTD_06_08_2020-EX-10.16-CONSULTING AGREEMENT__Parties",
+          "true": "Consultant",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Agreement Date": [
+        {
+          "id": "LIMEENERGYCO_09_09_1999-EX-10-DISTRIBUTOR AGREEMENT__Agreement Date",
+          "true": "7th day of September, 1999.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "ADAMSGOLFINC_03_21_2005-EX-10.17-ENDORSEMENT AGREEMENT__Agreement Date",
+          "true": "January 13, 2005",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "VEONEER,INC_02_21_2020-EX-10.11-JOINT VENTURE AGREEMENT__Agreement Date",
+          "true": "October 30, 2019",
+          "pred": "This AMENDMENT AND TERMINATION OF JOINT VENTURE AGREEMENT (this \"Amendment\") is made and entered into effective as of October 30, 2019 (the \"Effective Date\") by and among (1) Veoneer AB, a Swedish cor",
+          "confidence": 0.7,
+          "f1": 0.032
+        }
+      ],
+      "Effective Date": [
+        {
+          "id": "KIROMICBIOPHARMA,INC_05_11_2020-EX-10.23-CONSULTING AGREEMENT__Effective Date",
+          "true": "This letter agreement will be effective as of July 1, 2018.",
+          "pred": "12. Interpretation, Amendment and Enforcement. This letter agreement will be effective as of July 1, 2018. This letter agreement and the Company's standard Proprietary Information and Inventions Agree",
+          "confidence": 0.7,
+          "f1": 0.361
+        },
+        {
+          "id": "MetLife, Inc. - Remarketing Agreement__Effective Date",
+          "true": "",
+          "pred": "(f) To make generally available to securityholders of the Company as soon as practicable, but in any event not later than eighteen months after the effective date of the Registration Statement (as def",
+          "confidence": 0.7,
+          "f1": 0.0
+        },
+        {
+          "id": "ReynoldsConsumerProductsInc_20191115_S-1_EX-10.18_11896469_EX-10.18_Supply Agreement__Effective Date",
+          "true": "November 1, 2019",
+          "pred": "MASTER SUPPLY AGREEMENT (the \"Agreement\") dated November 1, 2019 (the \"Effective Date\") between REYNOLDS CONSUMER PRODUCTS LLC, a Delaware limited liability company with its headquarters at 1900 West ",
+          "confidence": 0.7,
+          "f1": 0.077
+        }
+      ],
+      "Expiration Date": [
+        {
+          "id": "KIROMICBIOPHARMA,INC_05_11_2020-EX-10.23-CONSULTING AGREEMENT__Expiration Date",
+          "true": "This Agreement will commence on the Effective Date and will continue until termination as provided below.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "FTENETWORKS,INC_02_18_2016-EX-99.4-STRATEGIC ALLIANCE AGREEMENT__Expiration Date",
+          "true": "THIS STRATEGIC ALLIANCE AGREEMENT (the \"Agreement\"), made effective this 17t h day of February 2016, through February 16, 2019 (the \"Initial Term\") i",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "ZEBRATECHNOLOGIESCORP_04_16_2014-EX-10.1-INTELLECTUAL PROPERTY AGREEMENT__Expiration Date",
+          "true": "The term of this IP Agreement shall be from the Effective Date until all of the Intellectual Property licensed hereunder is in the public domain (provided, however, that in such event the representations and warranties in Article III shall survive (and terminate) in accordance with the Acquisition Agreement) or this IP Agreement is terminated pursuant to Section 4.3.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Renewal Term": [
+        {
+          "id": "OPERALTD_04_30_2020-EX-4.14-SERVICE AGREEMENT__Renewal Term",
+          "true": "4.7 Data protection. Each Party agrees to comply with all applicable data protection and privacy laws arising from its obligations, if any, under the Agreement and to reasonably co-operate with the other Party in order to allow the other Party to comply with any laws as deemed necessary from time to time. Each Party shall treat all data, information relating to Services, including but not limit to the customer personal data, as confidential. Each party warrants that it shall take appropriate technical and organizational measures against unauthorized or unlaw",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "NANOPHASETECHNOLOGIESCORP_11_01_2005-EX-99.1-DISTRIBUTOR AGREEMENT__Renewal Term",
+          "true": "The initial term of this Agreement shall be for a period of five (5) years from the date first set forth above and shall thereafter automatically renew for additional two (2) year terms unless a party provides the other party with notice of non-renewal no less than 6 months prior to the expiration of the initial term or any renewal term unless earlier terminated as follows:",
+          "pred": "11. Relationship and Conduct of Business.    11.1 ALFA AESAR shall use its reasonable efforts and devote such time as may be reasonably necessary to sell and promote the sale of Products within the Te",
+          "confidence": 0.7,
+          "f1": 0.24
+        },
+        {
+          "id": "RitterPharmaceuticalsInc_20200313_S-4A_EX-10.54_12055220_EX-10.54_Development Agreement__Renewal Term",
+          "true": "The initial term of this Agreement and any renewal term thereof shall be automatically extended at the end of the initial term and any renewal term thereof for an additional one (1) year period unless either Party notifies the other Party not less than six (6) months before the end of the then in effect term of its intent to terminate this Agreement.",
+          "pred": "1.21. Regulatory Authorities shall mean the FDA, each Competent Authority, Health Canada and the Japanese Pharmaceuticals and Medical Devices Agency. 1.22. Revenue Affiliate shall mean any entity of w",
+          "confidence": 0.7,
+          "f1": 0.184
+        }
+      ],
+      "Notice Period To Terminate Renewal": [
+        {
+          "id": "AMERICANPHYSICIANSCAPITALINC_03_31_2003-EX-10.26-AGENCY AGREEMENT__Notice Period To Terminate Renewal",
+          "true": "This Agreement shall terminate, subject to any automatic                   renewal or extension for one year as required by law, upon                   either party giving at least one hundred twenty (120) days                   advance written notice to the other, if not otherwise contrary                   to applicable law or this Agreement.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "SLOVAKWIRELESSFINANCECOBV_03_28_2001-EX-4.(B)(II).3-Maintenance and support contract for SICAP(R) modules__Notice Period To Terminate Renewal",
+          "true": "After the initial period of two years, the maintenance and support       contract shall be automatically renewed for a period of one year on each       renewal date, unless one of the parties terminates the maintenance and       support contract through written notification to the other party in the       form of a registered letter with proof of receipt, at least six (6) weeks       prior to the renewal date.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "ENERGYXXILTD_05_08_2015-EX-10.13-Transportation AGREEMENT__Notice Period To Terminate Renewal",
+          "true": "Subject to the other provisions of this Agreement, the term of this Agreement shall commence on the Effective Date and shall remain in effect until terminated by either Party upon thirty (30) days' prior written notice.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Governing Law": [
+        {
+          "id": "PfHospitalityGroupInc_20150923_10-12G_EX-10.1_9266710_EX-10.1_Franchise Agreement3__Governing Law",
+          "true": "",
+          "pred": "(ii) Divert or attempt to divert any business or customer, or potential business or customer, to any Competitive Business; or (iii) Induce any person to leave his or her employment with Franchisee or ",
+          "confidence": 0.7,
+          "f1": 0.0
+        },
+        {
+          "id": "ON2TECHNOLOGIES,INC_11_17_2006-EX-10.3-SUPPORT AND MAINTENANCE AGREEMENT__Governing Law",
+          "true": "This Agreement shall be governed by and construed in accordance with the laws of the State of New York, without giving effect to any choice of law or conflict of law provision or rule whether such provision or rule is that of the State of New York or any other jurisdiction.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "BORROWMONEYCOM,INC_06_11_2020-EX-10.1-JOINT VENTURE AGREEMENT__Governing Law",
+          "true": "By this Agreement the Members enter into a joint venture (the \"Venture\") in accordance with the laws of the State of Florida.",
+          "pred": "Insurance 48. The Venture will insure all its assets against loss where reasonable and standard practice in the industry. Indemnification 49. Each Member will be indemnified and held harmless by the V",
+          "confidence": 0.7,
+          "f1": 0.11
+        }
+      ],
+      "Most Favored Nation": [
+        {
+          "id": "FOUNDATIONMEDICINE,INC_02_02_2015-EX-10.2-Collaboration Agreement__Most Favored Nation",
+          "true": "FMI agrees that the pricing terms for Products and Services provided by FMI to Roche herein, and services provided under the Molecular Information Platform Program, are, and will be, at least as favorable as the pricing terms granted by FMI to any existing customer or collaborator for such (or substantially similar) products or services.",
+          "pred": "1.50 JOT  13  1.51 JRDC  13  1.52 Know-How  13  1.53 Molecular Information Platform Program  13  1.54 Molecular Information Platform Working Group  14  1.55 Party  14  1.56 Patent Rights  14  1.57 Per",
+          "confidence": 0.6,
+          "f1": 0.065
+        }
+      ],
+      "Non-Compete": [
+        {
+          "id": "HERTZGLOBALHOLDINGS,INC_07_07_2016-EX-10.4-INTELLECTUAL PROPERTY AGREEMENT__Competitive Restriction Exception",
+          "true": "",
+          "pred": "8.4 Effect of Termination. Termination of this Agreement shall not result in the termination of any provisions herein which by their nature are meant to survive termination (including any covenants he",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "WORLDWIDESTRATEGIESINC_11_02_2005-EX-10-RESELLER AGREEMENT__Competitive Restriction Exception",
+          "true": "Nothing contained in           this Agreement is intended to limit Reseller from responding to           unsolicited requests from Customers from outside of the Territory;           PROVIDED, HOWEVER, that Reseller shall (a) immediately notify           TouchStar upon receipt of any such request and (b) not seek customers           of TouchStar Software or Support Services in any other location other           than in the Territory.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "ANIXABIOSCIENCESINC_06_09_2020-EX-10.1-COLLABORATION AGREEMENT__Non-Compete",
+          "true": "During the term of this Agreement, except in the performance of its obligations or exercise of its rights under this Agreement, neither OntoChem nor any of its Affiliates will discover, research, develop, manufacture or commercialize any compound or product directed to any Target, either independently or for or in collaboration with a third party (including the grant of a license to any third party), or have any of the foregoing activities performed on behalf of OntoChem or any of its Affiliates by a third party.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "No-Solicit Of Customers": [
+        {
+          "id": "GLOBALTECHNOLOGIESLTD_06_08_2020-EX-10.16-CONSULTING AGREEMENT__No-Solicit Of Customers",
+          "true": "he Company further agrees that neither it nor its employees, affiliates or assigns, shall enter into, or otherwise arrange (either for it/him/herself, or any other person or entity) any business relationship, contact any person regarding such Opportunity, either directly or indirectly, or any of its affiliates, or accept any compensation or advantage in relation to such Opportunity except as directly though Consultant, without the prior written approval of Consultant.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "CreditcardscomInc_20070810_S-1_EX-10.33_362297_EX-10.33_Affiliate Agreement__No-Solicit Of Customers",
+          "true": "",
+          "pred": "21. Limitation of Damages   Chase shall have no liability for any indirect, incidental, special or consequential damages or any loss of revenue or profits arising under or with respect to this Agreeme",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "KUBIENT,INC_07_02_2020-EX-10.14-MASTER SERVICES AGREEMENT_Part2__No-Solicit Of Customers",
+          "true": "During the Term and any renewal terms of the Agreement, and for a period of one (1) year following the expiration or earlier termination thereof, Customer agrees not to work with, directly or indirectly, any Third-Party that Customer comes to know through disclosure by Kubient as part of the Services, without the express written consent of Kubient and compensation to Kubient under the applicable exhibit and/or schedule.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "No-Solicit Of Employees": [
+        {
+          "id": "FTENETWORKS,INC_02_18_2016-EX-99.4-STRATEGIC ALLIANCE AGREEMENT__No-Solicit Of Employees",
+          "true": "In the event Subcontractor directly employs or contracts with an employee of EDGE without the consent of EDGE, Subcontractor shall pay as liquidated damages two times the then monthly salary of the employee for a three-month period of time.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "AIRTECHINTERNATIONALGROUPINC_05_08_2000-EX-10.4-FRANCHISE AGREEMENT__No-Solicit Of Employees",
+          "true": "B. Employ or seek to employ any person who is at that time employed by AIRSOPURE or by another AIRSOPURE franchisee or induce such person to leave his or her employment.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "DIVERSINETCORP_03_01_2012-EX-4-RESELLER AGREEMENT__No-Solicit Of Employees",
+          "true": "During the Term, the Reseller agrees that it shall not induce any person employed by Diversinet to leave Diversinet's employ to become an  employee of Reseller or its agents or contractors.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Non-Disparagement": [
+        {
+          "id": "PelicanDeliversInc_20200211_S-1_EX-10.3_11975895_EX-10.3_Development Agreement2__Non-Disparagement",
+          "true": "The Client and the Designer both agree to never to disparage or speak ill of the other party to anyone and or post negative or disparaging comments Online regarding any of the Designer's products, services, affiliates, subsidiaries, officers, directors, employees or shareholders, and will take reasonable steps to prevent and will not knowingly permit any of their respective employees or agents to, disparage or speak ill of such persons.",
+          "pred": "10.3 NON DISPARAGEMENT CLAUSE The Client and the Designer both agree to never to disparage or speak ill of the other party to anyone and or post negative or disparaging comments Online regarding any o",
+          "confidence": 0.6,
+          "f1": 0.438
+        },
+        {
+          "id": "XLITECHNOLOGIES,INC_12_11_2015-EX-10.1-Sponsorship Agreement__Non-Disparagement",
+          "true": "In further consideration of this Agreement, XLI shall not in any way disparage the Trademarks, nor any of WCC's parent, subsidiary, or affiliated companies' trademarks or its or their products.",
+          "pred": "EXHIBIT 10.1   Sponsorship Agreement   Parties   This Agreement is effective as of December 1st, 2015 by and between RMF Empire, Inc. DBA West Coast Customs, located at 2101 West Empire Avenue, Burban",
+          "confidence": 0.6,
+          "f1": 0.102
+        },
+        {
+          "id": "DigitalCinemaDestinationsCorp_20111220_S-1_EX-10.10_7346719_EX-10.10_Affiliate Agreement__Non-Disparagement",
+          "true": "NCM shall not engage in any conduct  which may place Network Affiliate or any Network Affiliate Mark in a negative light or context,",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Termination For Convenience": [
+        {
+          "id": "BONTONSTORESINC_04_20_2018-EX-99.3-AGENCY AGREEMENT__Termination For Convenience",
+          "true": "Subject to the Wind-Down Budget and payment of Expenses, Agent shall use the E-Commerce Platform in connection with the GOB Sale to fulfill customer orders made during the GOB Sale Term and otherwise promote the GOB Sale (in Agent's capacity as Agent hereunder), provided that Agent shall have the option, in its sole discretion, to terminate the use of the E-Commerce Platform at any time after four weeks of use.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "TUNIUCORP_03_06_2014-EX-10-COOPERATION AGREEMENT__Termination For Convenience",
+          "true": "Party B shall have the right to terminate this Agreement in advance without the prior written consent from Party A, bysending a written notice to Party A but Party A may not terminate or rescind this Agreement;",
+          "pred": "6. Termination",
+          "confidence": 0.85,
+          "f1": 0.0
+        },
+        {
+          "id": "ASPIRITYHOLDINGSLLC_05_07_2012-EX-10.6-OUTSOURCING AGREEMENT__Termination For Convenience",
+          "true": "The Contractor will have the ability to terminate this Agreement by giving 90 days' prior written notice to the  Company.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "ROFR/ROFO/ROFN": [
+        {
+          "id": "LIMEENERGYCO_09_09_1999-EX-10-DISTRIBUTOR AGREEMENT__Rofr/Rofo/Rofn",
+          "true": "Distributor  shall exercise its option to                   become  exclusive  Distributor of other Products or devices by                   serving  written  notification  on Company of its  election to                   become  exclusive  distributor  within  thirty  (30) days upon                   which  Company  informed  Distributor  in writing of Company's                   intention  to  introduce   other   Products  or  devices.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "GpaqAcquisitionHoldingsInc_20200123_S-4A_EX-10.6_11951677_EX-10.6_License Agreement__Rofr/Rofo/Rofn",
+          "true": "If the Village Media Company does not exercise its right of first refusal, PFHOF shall have the right to grant a license with respect to such third party on the same terms originally provided to the Village Media Company.",
+          "pred": "2.7 PFHOF agrees not to grant licenses to create new PFHOF Works, except with respect to the categories identified on Exhibit A, to any third party during the Term without first offering to the Villag",
+          "confidence": 0.6,
+          "f1": 0.26
+        },
+        {
+          "id": "WESTERN COPPER - NON-COMPETITION AGREEMENT__Rofr/Rofo/Rofn",
+          "true": "Glamis covenants and agrees with Western Copper that if at any time it intends to dispose of a Designated Mineral Property for cash consideration or by abandonment, it will give  Western Copper notice (the ' Disposition Notice\") of the intended disposition.",
+          "pred": "NON COMPETITION AND RIGHT OF FIRST REFUSAL",
+          "confidence": 0.6,
+          "f1": 0.085
+        }
+      ],
+      "Change Of Control": [
+        {
+          "id": "SENMIAOTECHNOLOGYLTD_02_19_2019-EX-10.5-Collaboration Agreement__Change Of Control",
+          "true": "",
+          "pred": "Contract No.: DDCX S DG KC 201812130044 19. Composition, Modification and Supplement of this Agreement 19.1 All Platform Rules are an integral part of this Agreement. In the event of any inconsistence",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "VerizonAbsLlc_20200123_8-K_EX-10.4_11952335_EX-10.4_Service Agreement__Change Of Control",
+          "true": "Within fifteen (15) Business Days after the merger, consolidation, succession or assignment, such Person will (i) execute an agreement to assume the Depositor's obligations under this Agreement and each Transaction Document to which the Depositor is a party (unless the assumption happens by operation of Law), (ii) deliver to the Issuer, the Owner Trustee and the Indenture Trustee an Officer's Certificate and an Opinion of Counsel each stating that the merger, consolidation, succession or assignment and the assumption agreement comply with this Section 5.3, (iii) deliver to the Issuer, the Owner Trustee and the Indenture Trustee an Opinion of Counsel stating that the security interest in favor of the Issuer in the Depositor Transferred Property and the Indenture Trustee in the Collateral is or will be perfected and (iv) notify the Rating Agencies of the merger, consolidation, succession or assignment.",
+          "pred": "\"Acquired Receivable\" means, for a Collection Period, a Receivable (a) acquired by the Servicer under Section 3.3 of the Transfer and Servicing Agreement, (b) acquired by the Marketing Agent under Sec",
+          "confidence": 0.6,
+          "f1": 0.332
+        },
+        {
+          "id": "RareElementResourcesLtd_20171019_SC 13D_EX-99.4_10897534_EX-99.4_Intellectual Property Agreement__Change Of Control",
+          "true": "",
+          "pred": "Rare Element Resources Ltd.  EXECUTION COPY   IP Rights Agreement   16.01 Investor at any time may provide written notice to Company of a material breach of this IP Agreement. If Company fails to cure",
+          "confidence": 0.6,
+          "f1": 0.0
+        }
+      ],
+      "Anti-Assignment": [
+        {
+          "id": "ADAMSGOLFINC_03_21_2005-EX-10.17-ENDORSEMENT AGREEMENT__Anti-Assignment",
+          "true": "Neither ADAMS GOLF nor CONSULTANT shall have the right to grant sublicenses hereunder or to assign, alienate or otherwise transfer any of its rights or obligations hereunder.",
+          "pred": "31. ASSIGNMENT AND CHANGE OF CONTROL",
+          "confidence": 0.85,
+          "f1": 0.061
+        },
+        {
+          "id": "IntegrityFunds_20200121_485BPOS_EX-99.E UNDR CONTR_11948727_EX-99.E UNDR CONTR_Service Agreement__Anti-Assignment",
+          "true": "This Agreement will also terminate automatically in the event of its assignment (as defined in the 1940 Act).",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "HERTZGLOBALHOLDINGS,INC_07_07_2016-EX-10.4-INTELLECTUAL PROPERTY AGREEMENT__Anti-Assignment",
+          "true": "HERC may not assign, transfer, sublicense or delegate any of its rights hereunder or delegate its obligations hereunder without the prior written consent of HSI, and any such purported assignment, transfer, sublicense or delegation, in the absence of such consent, shall be void and without effect.",
+          "pred": "Fax: (866) 888-3765 E-mail: rfrecker@hertz.com   If HSI, to:   8501 Williams Road Estero, Florida 33928 Attn: General Counsel Fax: (866) 888-3765 E-mail: rfrecker@hertz.com   If HERC, to:   27500 Rive",
+          "confidence": 0.6,
+          "f1": 0.254
+        }
+      ],
+      "Revenue/Profit Sharing": [
+        {
+          "id": "ZEBRATECHNOLOGIESCORP_04_16_2014-EX-10.1-INTELLECTUAL PROPERTY AGREEMENT__Revenue/Profit Sharing",
+          "true": "",
+          "pred": "(f) \"Ancillary IP Rights\" means, with respect to any Intellectual Property, any and all of the following in any jurisdiction throughout the world: (i) rights to pursue and collect damages, costs, inju",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "MSCIINC_02_28_2008-EX-10.10-__Revenue/Profit Sharing",
+          "true": "",
+          "pred": "MS hereby grants (subject to any existing third party contractual obligations) to MSCI a non-exclusive, perpetual, irrevocable, world- wide, royalty-free license for MSCI to use, modify, copy, create ",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "GopageCorp_20140221_10-K_EX-10.1_8432966_EX-10.1_Content License Agreement__Revenue/Profit Sharing",
+          "true": "In addition to the License Fee payable in accordance with Section 5.1, Licensee shall pay a royalty (\"Royalty\") to Licensor according to the following schedule (\"Royalty Schedule\"):   Subscribers Royalty Payable as Percentage of Gross Revenue 0 - 5000 6.25% 5001 - 7500 6.75% 7501 - 10,000 7.00% 10,001 - 15,000 8.00% 15,001 - 20,000 8.50% 20,001 - 25,000 9.25% 25,001+ 9.75%",
+          "pred": "(f) If Licensor instructs Licensee to delete or make inaccessible any Content Item because such Content Item may contain errors, is or could be subject to a third-party claim or for any other good fai",
+          "confidence": 0.6,
+          "f1": 0.109
+        }
+      ],
+      "Price Restrictions": [
+        {
+          "id": "BNLFINANCIALCORP_03_30_2007-EX-10.8-OUTSOURCING AGREEMENT__Price Restrictions",
+          "true": "After the initial twelve months of this Agreement, VIP may adjust the rates in Schedule A to VIP's then current standard rates for such services, provided that it provides BNL with notice of any such adjustment not less ~han thirty (30) days prior to any such adjustment and that such rates shall not increase by more than ten ( 10% ) percent per year .",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Minimum Commitment": [
+        {
+          "id": "NICELTD_06_26_2003-EX-4.5-OUTSOURCING AGREEMENT__Minimum Commitment",
+          "true": "",
+          "pred": "(iii) Appendix C - Prices, Purchase and Sub-Assembly Lead Time,           cancellation windows, rescheduling period, minimum order, package           quantity, labor costs, disassembly fees, Product p",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "ACCURAYINC_09_01_2010-EX-10.31-DISTRIBUTOR AGREEMENT__Minimum Commitment",
+          "true": "",
+          "pred": "upgrades will be available at the prices listed in the then current price list as of the date of the Quote (unless prior written approval  by Accuray for application of an earlier price list is obtain",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "InmodeLtd_20190729_F-1A_EX-10.9_11743243_EX-10.9_Manufacturing Agreement__Minimum Commitment",
+          "true": "In order to manage demand fluctuations, Contractor shall maintain an amount of additional units of each Product as FGI, in a minimum level of two (2) weeks of supply and a maximum of four (4) weeks of supply of each Product set forth in the most recent Customer's Forecast.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Volume Restriction": [
+        {
+          "id": "LegacyEducationAllianceInc_20200330_10-K_EX-10.18_12090678_EX-10.18_Development Agreement__Volume Restriction",
+          "true": "LEA shall compensate T&B Personality the sum of [$\u25cf] plus first-class air and hotel accommodations for up to three (3) additional persons for each such appearance.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "VERICELCORP_08_06_2019-EX-10.10-SUPPLY AGREEMENT__Volume Restriction",
+          "true": "The remaining shelf-life for each Product for the Territory shall be at least [***] of the FDA approved shelf-life of such Product, as measured from the time of delivery of such Product to Vericel (the \"Minimum Shelf Life\").",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "MEDIWOUNDLTD_01_15_2014-EX-10.6-SUPPLY AGREEMENT__Volume Restriction",
+          "true": "Purchase orders issued by MediWound to CBC during a certain year for quantities exceeding [***]% of the applicable Annual Forecast shall be binding upon CBC, except that with respect to any amounts exceeding [***]% of the applicable Annual Forecast, CBC's obligation to provide such exceeding quantities shall be based on best efforts and CBC shall have an extended lead time for delivery as shall be agreed upon by the parties on a case by case basi",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "IP Ownership Assignment": [
+        {
+          "id": "HERTZGLOBALHOLDINGS,INC_07_07_2016-EX-10.4-INTELLECTUAL PROPERTY AGREEMENT__Ip Ownership Assignment",
+          "true": "THC will assign all right, title and interest in and to the THC ERB Domains (those domains owned by THC related to the ERB that do not incorporate the mark/name HERTZ) as set forth on Schedule H to HERC and as more fully set forth in the Domain Name Assignment attached hereto as Exhibit D.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "HealthcareIntegratedTechnologiesInc_20190812_8-K_EX-10.1_11776966_EX-10.1_Reseller Agreement__Ip Ownership Assignment",
+          "true": "",
+          "pred": "Diagnostics, Telemetric Data and Analytics. Supplier will retain access to diagnostics, telemetric data and analytics generated by the Product. The data shall be uploaded to Supplier's Firebase server",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "NICELTD_06_26_2003-EX-4.5-OUTSOURCING AGREEMENT__Ip Ownership Assignment",
+          "true": "",
+          "pred": "Nevertheless, in the event NICE designates specific components to be           purchased by Contractor hereunder and the manufacturer/supplier of           such NICE designated components refuses to g",
+          "confidence": 0.6,
+          "f1": 0.0
+        }
+      ],
+      "License Grant": [
+        {
+          "id": "WHITESMOKE,INC_11_08_2011-EX-10.26-PROMOTION AND DISTRIBUTION AGREEMENT__License Grant",
+          "true": "Subject to the terms and conditions of this Agreement, Google grants to Distributor a limited, [ * ] license  during the Term to use the Google Trademarks, in accordance with Google's trademark usage guidelines, solely to market and promote the  Products consistent with this Agreement, provided that all use of the Google Trademarks shall be subject to Google's prior review and  advance written consent.",
+          "pred": "2. LICENSE GRANTS AND RESTRICTIONS",
+          "confidence": 0.85,
+          "f1": 0.091
+        },
+        {
+          "id": "MSCIINC_02_28_2008-EX-10.10-__License Grant",
+          "true": "MSCI hereby grants (subject to any existing third party contractual obligations) to MS a non-exclusive, perpetual, irrevocable, world- wide, royalty-free license for MS to use, modify, copy, create derivative works of and sublicense, for any business purpose, the MSCI Licensed Materials.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "WASTE2ENERGYHOLDINGS,INC_06_03_2010-EX-10.2-STRATEGIC ALLIANCE AGREEMENT__License Grant",
+          "true": "Each Party grants to the other Party a non-exclusive, non-transferable, royalty-free licence to use the other Party's Intellectual Property Rights  as far is strictly necessary to comply with its marketing and promotional obligations under this Agreement.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Non-Transferable License": [
+        {
+          "id": "CerenceInc_20191002_8-K_EX-10.4_11827494_EX-10.4_Intellectual Property Agreement__Non-Transferable License",
+          "true": "The licenses granted in Sections 4.01(a), (b) and (c) to the Nuance Group include the right to grant sublicenses within the scope of such licenses only to members of the Nuance Group and, without any further right to sublicense, to their respective (i) contractors, distributors, manufacturers and resellers, in each case solely for the benefit of the Nuance Business and (ii) end users and customers, in each case solely in connection with the use of products and services of the Nuance Business.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "NICELTD_06_26_2003-EX-4.5-OUTSOURCING AGREEMENT__Non-Transferable License",
+          "true": "",
+          "pred": "12.4. CONFIDENTIALITY BY NICE. NICE shall not: transfer to others, copy or           duplicate, sub-license sell, publish, display or otherwise make           available in any form or disclose, the Co",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "AimmuneTherapeuticsInc_20200205_8-K_EX-10.3_11967170_EX-10.3_Development Agreement__Non-Transferable License",
+          "true": "Subject to the terms and conditions of this Agreement, Xencor hereby grants to Aimmune during the Term an exclusive, worldwide, payment-bearing license under and with respect to Xencor Patents and Xencor's interest in Joint Collaboration Patents, and a non-exclusive, payment bearing license under and with respect to Xencor Know-How, in each case, with the right to sublicense solely in accordance with Section 2.3.2, solely to Develop, Manufacture and Commercialize the Product in and for the Licensed Field; provided that notwithstanding the foregoing, Xencor shall retain the right under and with respect to Xencor Patents and Xencor's interest in Joint Collaboration Patents to the extent necessary to perform its obligations under this Agreement.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Affiliate License-Licensor": [
+        {
+          "id": "UpjohnInc_20200121_10-12G_EX-2.6_11948692_EX-2.6_Manufacturing Agreement_ Supply Agreement__Affiliate License-Licensor",
+          "true": "\"Customer Property\" means all Intellectual Property, together with all materials, data, writings and other property in any form whatsoever, which is (a) owned or controlled by Customer or its Affiliates as of and following the Effective Date and (b) provided to Manufacturer by or on behalf of Customer or its Personnel under this Agreement.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "AimmuneTherapeuticsInc_20200205_8-K_EX-10.3_11967170_EX-10.3_Development Agreement__Affiliate License-Licensor",
+          "true": "Subject to the terms and conditions of this Agreement, Xencor hereby grants to Aimmune during the Term an exclusive, worldwide, payment-bearing license under and with respect to Xencor Patents and Xencor's interest in Joint Collaboration Patents, and a non-exclusive, payment bearing license under and with respect to Xencor Know-How, in each case, with the right to sublicense solely in accordance with Section 2.3.2, solely to Develop, Manufacture and Commercialize the Product in and for the Licensed Field; provided that notwithstanding the foregoing, Xencor shall retain the right under and with respect to Xencor Patents and Xencor's interest in Joint Collaboration Patents to the extent necessary to perform its obligations under this Agreement.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "HarpoonTherapeuticsInc_20200312_10-K_EX-10.18_12051356_EX-10.18_Development Agreement__Affiliate License-Licensor",
+          "true": "patent applications were to issue as patents) for the Exploitation of the Licensed Compound or a Licensed Product, but excluding any Joint Patents.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Affiliate License-Licensee": [
+        {
+          "id": "ZEBRATECHNOLOGIESCORP_04_16_2014-EX-10.1-INTELLECTUAL PROPERTY AGREEMENT__Affiliate License-Licensee",
+          "true": "Each Purchaser Licensee may grant sublicenses of the licenses granted to it pursuant to Section 2.2: (i) to any (for the avoidance of doubt, and without limiting any other provision of this IP Agreement, current or future) direct or indirect Subsidiary of Purchaser (but only for so long as such Person remains such a Subsidiary); (ii) to any other Person in connection with the sale or disposition of substantially all of the assets of a business or product line of any Purchaser Licensee; (iii) other than with respect to Section 2.2(a), for the purpose of any Person's (including resellers, distributors, and OEMs) distribution of products licensed under Section 2.2; (iv) other than with respect to Section 2.2(a), to any Person (including OEMs, JDMs, suppliers, contractors, and subcontractors) solely for the purpose of, and to the extent necessary for, such Person to perform any service (including any service with respect to the design, manufacture, import, export, or supply of any product, service, or system in the Business or any components thereof) for a Purchaser Licensee, and not for the direct benefit of such Person or any other Person, (v) other than with respect to Section 2.2(a), to a customer of a Purchaser Licensee for such customer's use of a product licensed under Section 2.2; or (vi) other than with respect to Section 2.2(a), with respect to Software, to any Person for the purpose of such Person's development of Software that is compatible or interoperates with a product licensed under Section 2.2.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "ChinaRealEstateInformationCorp_20090929_F-1_EX-10.32_4771615_EX-10.32_Content License Agreement__Affiliate License-Licensee",
+          "true": "Notwithstanding anything in this Agreement to the contrary, Licensee has no right to sublicense any rights granted hereunder to any third  party, or otherwise permit any third party to use any Licensed Domain Names or Licensed Content; provided, however, that any rights granted to  Licensee hereunder shall be sublicensable, without the prior written consent of Licensor, to SINA Leju and Licensee's Affiliates that are controlled  by SINA Leju solely for the purpose of operating the Business during the Term.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "AimmuneTherapeuticsInc_20200205_8-K_EX-10.3_11967170_EX-10.3_Development Agreement__Affiliate License-Licensee",
+          "true": "Aimmune shall [***] the right (but not the obligation) to sublicense the rights granted to it under Section 2.1 to its Affiliates or Third Parties (each, a \"Sublicensee\"); provided, however, that Aimmune shall remain responsible for the performance by any of its direct and indirect Sublicensees and shall cause its direct and indirect Sublicensees to comply with the applicable provisions of this Agreement in connection with such performance.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Unlimited/All-You-Can-Eat-License": [
+        {
+          "id": "FOUNDATIONMEDICINE,INC_02_02_2015-EX-10.2-Collaboration Agreement__Unlimited/All-You-Can-Eat-License",
+          "true": "",
+          "pred": "In accordance with the German Statute on Employees' Inventions, each Party agrees to claim the unlimited use of any Invention conceived, reduced to practice, developed, made or created in the performa",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "ENTRUSTINC_07_24_1998-EX-10.5-STRATEGIC ALLIANCE AGREEMENT__Unlimited/All-You-Can-Eat-License",
+          "true": "ETI, on behalf of Entrust, grants to NTL and its              ------------                                                   Affiliates (as defined in the Enterprise License) a non-exclusive, fully paid- up, worldwide, perpetual license to use an unlimited number of copies of the Entrust Products subject to the terms and conditions of an agreement to be concluded between NTL and ETI promptly after the Effective Date in substantially the form of the license set forth in Exhibit B (the \"Enterprise License\") save                                                      ------------------        as amended to comply with the provisions of this Article III.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Source Code Escrow": [
+        {
+          "id": "BONTONSTORESINC_04_20_2018-EX-99.3-AGENCY AGREEMENT__Source Code Escrow",
+          "true": "",
+          "pred": "15.11 Deposit. Pursuant to the Bidding Procedures, Agent has provided a cash deposit in the amount of $32,700,000 (the \"Deposit\"), which is being held in escrow by co-counsel to Merchant, Young Conawa",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "ZEBRATECHNOLOGIESCORP_04_16_2014-EX-10.1-INTELLECTUAL PROPERTY AGREEMENT__Source Code Escrow",
+          "true": "",
+          "pred": "Section 3.7 Software. None of the Seller Entities (i) has delivered, licensed, released, or disclosed to any Person any of the Source Code for any Enterprise Product (other than, in the Ordinary Cours",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "ENERGOUSCORP_03_16_2017-EX-10.24-STRATEGIC ALLIANCE AGREEMENT__Source Code Escrow",
+          "true": "ENERGOUS hereby grants DIALOG a non-exclusive, non-transferable (except as set forth in Section 2) license under the Product IP to use any of the Deposit Materials released from escrow for the purpose of fixing an Epidemic Defect or other Product design or production issue impacting yield or quality during the Term and, if applicable, any Wind Down Period or Continuing Obligation period, including, but not limited to, authorizing any third party subcontractor to manufacture and supply Products, provided, however, that DIALOG continues to make all Royalty payment owed to ENERGOUS (or the then-current owner of the Product IP) as provided in this Agreement.",
+          "pred": "16. ESCROW.   16.1 Escrow. ENERGOUS will at its expense, at DIALOG's written request during the Term and any Wind Down Period, enter into a three- party escrow deposit arrangement, in accordance with ",
+          "confidence": 0.6,
+          "f1": 0.37
+        }
+      ],
+      "Post-Termination Services": [
+        {
+          "id": "KIROMICBIOPHARMA,INC_05_11_2020-EX-10.23-CONSULTING AGREEMENT__Post-Termination Services",
+          "true": "Upon the termination of this Agreement, or upon Company's earlier requests, Consultant will deliver to Company all property relating to, and all tangible embodiments of, Inventions in Consultant's possession or control.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "CORIOINC_07_20_2000-EX-10.5-LICENSE AND HOSTING AGREEMENT__Post-Termination Services",
+          "true": "Subject to Corio's payment of the annual support and         maintenance fee, Commerce One's support and maintenance obligation of         the Software and MarketSite.net Service shall continue after termination         or expiration of this Agreement with respect to all Software Users         granted access to the Software and MarketSite.net Service prior to         termination or expiration of this Agreement.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "ENERGOUSCORP_03_16_2017-EX-10.24-STRATEGIC ALLIANCE AGREEMENT__Post-Termination Services",
+          "true": "If, at the time of notice of any termination of this Agreement, DIALOG or any of its Affiliates has a written supply contract with a customer that extends beyond the end of the Wind Down Period (a \"Continuing Obligation\"), DIALOG and/or its Affiliates may continue to Sell Licensed Products to such customer through the term of the Wind Down Period and for the remainder of the term of such Continuing Obligation, provided that in no event may DIALOG or its Affiliates Sell Licensed Products to such customer pursuant to this Section 15.4(b) for a period longer than [***] after the effective date of termination of this Agreement.",
+          "pred": "3. SOURCING.   3.1 Product Manufacture. Concurrent with or before execution of this Agreement, and substantially in the form attached as Exhibit C, ENERGOUS will provide written authorization to its M",
+          "confidence": 0.6,
+          "f1": 0.311
+        }
+      ],
+      "Audit Rights": [
+        {
+          "id": "OPERALTD_04_30_2020-EX-4.14-SERVICE AGREEMENT__Audit Rights",
+          "true": "Both Parties acknowledge and confirm that the Reserve Bank of India (hereafter \"RBI\") or persons authorized by it has right to access and inspect the PC Financial's documents, records of Service transactions and other necessary information related to the Services or Activity given to, stored or processed by Mobimagic within a reasonable time.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "LegacyEducationAllianceInc_20200330_10-K_EX-10.18_12090678_EX-10.18_Development Agreement__Audit Rights",
+          "true": "LEA shall keep such written records respecting Cash Sales as T&B may reasonably request so that Royalty Payments payable hereunder may be accurately determined and shall permit such records to be examined by T&B or its authorized representative upon reasonable prior written notice at any reasonable time during regular business hours to verify the records, reports and payments herein provided.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "INKTOMICORP_06_08_1998-EX-10.14-SOFTWARE HOSTING AGREEMENT__Audit Rights",
+          "true": "Inktomi will permit Microsoft to have access to, and to make copies of, all such books and records for purposes of auditing and verifying such costs and expenses, provided that Microsoft shall give Inktomi reasonable notice prior to each requested audit and shall perform such audit during normal business hours at Inktomi's office(s) where such records are normally kept.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Uncapped Liability": [
+        {
+          "id": "OPERALTD_04_30_2020-EX-4.14-SERVICE AGREEMENT__Uncapped Liability",
+          "true": "Subject to the foregoing as wen as Mobimagic's obligations under this Agreement, Mobimagic shall not in any manner be held or be responsible or liable for any unforeseen contingency, claims, liabilities, demands. losses, damages or expenses arising due to absence of storage or retention of any PC Financial data which shall be the sole responsibility of PC Financial .",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "BIOCEPTINC_08_19_2013-EX-10-COLLABORATION AGREEMENT__Uncapped Liability",
+          "true": "NEITHER PARTY SHALL BE ENTITLED TO RECOVER FROM THE OTHER PARTY ANY SPECIAL, INCIDENTAL, CONSEQUENTIAL OR PUNITIVE DAMAGES IN CONNECTION WITH THIS AGREEMENT OR ANY LICENSE GRANTED HEREUNDER; provided, however, that this Section shall neither (a) apply to any liability for damages arising from breach of any obligations of confidentiality under Article 10, nor (b) limit the indemnification obligations of the parties arising under Article 12 of this Agreement.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "BELLICUMPHARMACEUTICALS,INC_05_07_2019-EX-10.1-Supply Agreement__Uncapped Liability",
+          "true": "Except for liability for (i) breach of the confidentiality obligations described in Article 14, (ii) misappropriation or infringement by a Party of the other Party's Intellectual Property Rights, or (iii) gross negligence or willful misconduct:\n\n(a) IN NO EVENT SHALL A PARTY BE LIABLE FOR ANY PUNITIVE, EXEMPLARY, INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR EXPENSES, INCLUDING LOSS OF PROFITS, REVENUE, DATA, OR USE, WHETHER IN AN ACTION IN CONTRACT OR TORT (INCLUDING ERRORS OR OMISSIONS OR BREACH OF WARRANTY), EVEN IF SUCH PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES;",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Cap On Liability": [
+        {
+          "id": "DovaPharmaceuticalsInc_20181108_10-Q_EX-10.2_11414857_EX-10.2_Promotion Agreement__Cap On Liability",
+          "true": "Notwithstanding the above, the sole remedy of Dova for breach of this Section 4.1.2 shall be (i) the adjustment to the promotion fee as set forth in Section 6.1.2 and (ii) the termination right set out in Section 12.2.2.",
+          "pred": "11.4 Limitation of Liability. 40",
+          "confidence": 0.85,
+          "f1": 0.054
+        },
+        {
+          "id": "INTRICONCORP_03_10_2009-EX-10.22-Strategic Alliance Agreement__Cap On Liability",
+          "true": "IntriCon is not liable in any way to Dynamic Hearing for any indirect, consequential, third party, special or incidental  harm, liability, expense, cost, loss or damage, loss of profits, loss of data, exemplary damages or any other indirect  commercial or economic loss of any kind whatsoever incurred by Dynamic Hearing whether in negligence, tort, equity,  contract or otherwise, arising in connection with this Agreement;",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "OPERALTD_04_30_2020-EX-4.14-SERVICE AGREEMENT__Cap On Liability",
+          "true": "Neither Party shall be liable to the other Party in contract, tort or otherwise, whatever the cause, for any loss of profit, business or goodwill or any indirect, incidental or consequential costs, damages or expenses of any kind, except for such loss attributable to breach of confidentiality.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Liquidated Damages": [
+        {
+          "id": "TUNIUCORP_03_06_2014-EX-10-COOPERATION AGREEMENT__Liquidated Damages",
+          "true": "Except as otherwise agreed hereunder, if Party A or its subsidiaries fail to pay the Service Fee in full on schedule according to provisions of Article 4.1 and Article 4.2, then Party A or its subsidiaries shall, in addition to the continuance of the payment of Service Fee in full, it shall pay Party B the liquidated damages at a daily interest rate of 0.03% in respect of the outstanding Service Fee.",
+          "pred": "8.2 The demand for liquidated damages and specific performance in respect of any breach during the Term of Cooperation are all remedies that the non-breaching Party shall have under this Agreement. Th",
+          "confidence": 0.6,
+          "f1": 0.368
+        },
+        {
+          "id": "BUFFALOWILDWINGSINC_06_05_1998-EX-10.3-FRANCHISE AGREEMENT__Liquidated Damages",
+          "true": "You specifically acknowledge that our designated representative may take over, control, and operate the Franchised Restaurant, and that you will pay us a service fee of not less than TWO HUNDRED Dollars ($200) per day plus all travel expenses, room and board and other expenses reasonably incurred by such representative so long as it shall be required by the representative to enforce compliance herewith.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "CCAINDUSTRIESINC_04_14_2014-EX-10.1-OUTSOURCING AGREEMENT__Liquidated Damages",
+          "true": "Either party hereto may terminate this Agreement after the Initial Period upon at least six (6) months' prior written notice to the other party thereof. The Company may terminate this Agreement in accordance with the immediately preceding sentence but with less than six (6) months' prior written notice to Contractor; provided, that in such event, the Company shall pay Contractor an amount equal to the Termination Fee.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Warranty Duration": [
+        {
+          "id": "NICELTD_06_26_2003-EX-4.5-OUTSOURCING AGREEMENT__Warranty Duration",
+          "true": "\"WARRANTY PERIOD\" - Thirteen (13) months from the Shipment Date of           the Product subject matter of the warranty, unless agreed otherwise by           the parties in writing.",
+          "pred": "16.6.4. It is clarified that upon termination, for any reason                whatsoever, Contractor shall still be obligated to supply                warranty services according to this Agreement to a",
+          "confidence": 0.7,
+          "f1": 0.289
+        },
+        {
+          "id": "FUSIONPHARMACEUTICALSINC_06_05_2020-EX-10.17-Supply Agreement - FUSION__Warranty Duration",
+          "true": "CPDC hereby provides a limited product warranty, and accordingly does warrant for each Batch, that the Product shipped will (i) conform with the Specifications, (ii) be manufactured, tested, processed, packed and prepared for shipment in accordance with cGMPs, and (iii) be free from defects in material and workmanship for the period from the date of manufacture to the expiry date set out on each Unit of Product packed and prepared for shipment.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "Magenta Therapeutics, Inc. - Master Development and Manufacturing Agreement__Warranty Duration",
+          "true": "In the event that Magenta does not inform Bachem within the [***] period that the Product does not meet the Specifications, Magenta shall be deemed to have accepted the Product.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Insurance": [
+        {
+          "id": "BORROWMONEYCOM,INC_06_11_2020-EX-10.1-JOINT VENTURE AGREEMENT__Insurance",
+          "true": "The Venture may acquire insurance on behalf of any Member, employee, agent or other person engaged in the business interest of the Venture against any liability asserted against them or incurred by them while acting in good faith on behalf of the Venture.",
+          "pred": "Insurance 48. The Venture will insure all its assets against loss where reasonable and standard practice in the industry. Indemnification 49. Each Member will be indemnified and held harmless by the V",
+          "confidence": 0.6,
+          "f1": 0.246
+        },
+        {
+          "id": "HERTZGLOBALHOLDINGS,INC_07_07_2016-EX-10.4-INTELLECTUAL PROPERTY AGREEMENT__Insurance",
+          "true": "HERC shall provide for ten (10) days notice to THC and HSI in the event of any modification, cancellation or termination.",
+          "pred": "to the terms hereof or the Trademark, Trade Name, Domain and Related Rights License Agreement. However, HSI shall have the sole right to decide whether or not proceedings shall be brought against such",
+          "confidence": 0.6,
+          "f1": 0.126
+        },
+        {
+          "id": "Principal Life Insurance Company - Broker Dealer Marketing and Servicing Agreement__Insurance",
+          "true": "In those states where Broker Dealer has not obtained an insurance license, Broker Dealer represents and   warrants that: it has entered into an insurance networking agreement with the undersigned duly licensed   insurance affiliate(s) to act on its behalf in the capacity of a licensed insurance agent or agency   (\"Affiliated Agency\").",
+          "pred": "BROKER DEALER   MARKETING AND SERVICING AGREEMENT   FOR VARIABLE ANNUITY CONTRACTS      This Broker Dealer Marketing and Servicing Agreement for Variable Annuity Contracts (the \"Agreement\") is   effec",
+          "confidence": 0.6,
+          "f1": 0.245
+        }
+      ],
+      "Covenant Not To Sue": [
+        {
+          "id": "DovaPharmaceuticalsInc_20181108_10-Q_EX-10.2_11414857_EX-10.2_Promotion Agreement__Covenant Not To Sue",
+          "true": "Valeant shall not at any time during the Term knowingly do or allow to be done any act or thing which will in any way impair or diminish the rights of Dova in or to the Dova Trademarks and Copyrights.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "PenntexMidstreamPartnersLp_20150416_S-1A_EX-10.4_9042833_EX-10.4_Transportation Agreement__Covenant Not To Sue",
+          "true": "CUSTOMER SHALL RELEASE, DEFEND, INDEMNIFY AND HOLD HARMLESS TRANSPORTER AND TRANSPORTER'S MEMBERS, DIRECTORS, OFFICERS, AGENTS AND EMPLOYEES FROM AND AGAINST ANY AND ALL SUITS, ACTIONS, CAUSES OF ACTION, CLAIMS, DEMANDS, LOSSES, LIABILITIES AND EXPENSES (INCLUDING, WITHOUT LIMITATION, INTEREST, COURT COSTS, REASONABLE ATTORNEYS' FEES AND EXPENSES, AND OTHER COSTS OF DEFENSE) (COLLECTIVELY, \"CLAIMS\") RELATING TO, CAUSED BY OR ARISING OUT OF CUSTOMER'S BREACH OF ANY REPRESENTATION, WARRANTY OR COVENANT MADE BY CUSTOMER HEREUNDER, BUT NOT TO THE PROPORTIONATE EXTENT THAT SUCH CLAIM IS CAUSED BY OR RESULTS FROM OR ARISES OUT OF THE GROSS NEGLIGENCE OR WILLFUL MISCONDUCT OF TRANSPORTER.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "PrecheckHealthServicesInc_20200320_8-K_EX-99.2_12070169_EX-99.2_Distributor Agreement__Covenant Not To Sue",
+          "true": "In the event of termination, neither party, their heirs nor successors shall issue any challenge whatsoever to contest the termination.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        }
+      ],
+      "Third Party Beneficiary": [
+        {
+          "id": "ChinaRealEstateInformationCorp_20090929_F-1_EX-10.32_4771615_EX-10.32_Content License Agreement__Third Party Beneficiary",
+          "true": "",
+          "pred": "10.10. No Third Party Beneficiaries. Except for the provisions of Article VII relating to indemnified parties, this Agreement shall be binding upon  and inure solely to the benefit of the Parties and ",
+          "confidence": 0.6,
+          "f1": 0.0
+        },
+        {
+          "id": "ASPIRITYHOLDINGSLLC_05_07_2012-EX-10.6-OUTSOURCING AGREEMENT__Third Party Beneficiary",
+          "true": "Any  successor of any party or of any such controlling person, or any legal representative of such controlling person, as the case may be, shall be  entitled to the benefit of the respective indemnity and contribution agreements.",
+          "pred": "",
+          "confidence": 0.0,
+          "f1": 0.0
+        },
+        {
+          "id": "GopageCorp_20140221_10-K_EX-10.1_8432966_EX-10.1_Content License Agreement__Third Party Beneficiary",
+          "true": "",
+          "pred": "11.8 No Third-Party Beneficiaries. This Agreement is for the sole benefit of the parties hereto and their respective successors and permitted assigns and nothing herein, express or implied, is intende",
+          "confidence": 0.6,
+          "f1": 0.0
+        }
+      ]
+    }
+  }
+}

@@ -6,7 +6,7 @@
 ML pipeline that analyzes legal contracts and flags risky clauses using the CUAD dataset.
 4-stage pipeline: Extract clauses (DeBERTa) → Classify clause type → Assess risk (DeBERTa Ens-F + LangGraph ReAct agent with RAG) → Generate report (Qwen3-30B executive summary + lookup-table recommendations).
 
-## Current State (as of 2026-05-13)
+## Current State (as of 2026-05-17)
 
 ### Branch: `main`
 
@@ -21,12 +21,39 @@ ML pipeline that analyzes legal contracts and flags risky clauses using the CUAD
   - HuggingFace Hub: `rajnishahuja/cuad-risk-deberta-ce-parties` + `cuad-risk-deberta-corn-parties`
   - Inference API: `scripts/infer.py` — `RiskClassifier` class (Ens-F predict/predict_batch)
 - **Stage 3 Agent/RAG** (complete, smoke-tested 2026-05-01):
-  - `src/stage3_risk_agent/embeddings.py` — FAISS index builder + query (sentence-transformers/all-MiniLM-L6-v2)
+  - `src/stage3_risk_agent/embeddings.py` — FAISS index builder + query; **model-agnostic** (`model_name` param); supports MiniLM and LegalBERT
   - `src/stage3_risk_agent/risk_classifier.py` — wraps `RiskClassifier` + `extract_signing_party()`
-  - `src/stage3_risk_agent/tools.py` — `make_precedent_search_tool()`, `make_contract_search_tool()`
-  - `src/stage3_risk_agent/agent.py` — `assess_clauses()` entry point; **every clause** runs through the LangGraph ReAct agent. DeBERTa's label + confidence is injected into the system prompt as the default signal; agent overrides only on convergent tool consensus. No confidence gating. (Locked 2026-05-04, see ARCHITECTURE.md "Stage 3 Architecture".)
-  - `scripts/build_faiss_index.py` — builds `data/faiss_index/clauses.index` from train split (3,398 vectors)
+  - `src/stage3_risk_agent/tools.py` — `make_precedent_search_tool(index_path, model_name, default_min_similarity)`, `make_contract_search_tool()`
+  - `src/stage3_risk_agent/agent.py` — `assess_clauses()` entry point; reads `embedding_model` + `similarity_threshold` from config; every clause runs through LangGraph ReAct agent; DeBERTa default signal; override only on tool consensus. (Locked 2026-05-04)
+  - `src/stage3_risk_agent/train.py` — **model-agnostic** (DeBERTa, LegalBERT, RoBERTa); `_get_backbone_attr()` helper; CORN + LLRD both work for any encoder
+  - `scripts/build_faiss_index.py` — reads `embedding_model` + `faiss_index_path` from config
+  - `scripts/eval_embeddings.py` — retrieval quality eval (precision@k, zero-result rate, per-class); side-by-side model comparison
+  - `scripts/calibrate_threshold.py` — sweeps similarity thresholds, recommends optimal for a given embedding model
+  - `scripts/monitor_qwen_latency.py` — polls port 10006 metrics every 30s, alerts on throughput drop
   - `scripts/smoke_test_stage3_agent.py` — end-to-end test; all 5 clauses assessed, Parties excluded, agent override verified
+- **LegalBERT embedding experiment** (2026-05-17):
+  - MiniLM precision@5 HIGH = 0.045, zero-result rate = 64.6%
+  - **LegalBERT precision@5 HIGH = 0.424, zero-result rate = 0.2%** — major improvement
+  - Calibrated threshold: 0.82 for LegalBERT (vs 0.75 for MiniLM)
+  - FAISS indexes: `data/faiss_index/clauses_minilm.index` + `data/faiss_index/clauses_legalbert.index`
+  - Config set to LegalBERT. MiniLM indexes retained at `data/faiss_index/clauses_minilm.*` for rollback.
+  - **E2E eval COMPLETE (2026-05-17, Qwen3-30B, full 452 rows, no-CS constrained):**
+    | Embedding model (FAISS) | DeBERTa-only | Agent macro F1 | Delta | HIGH F1 |
+    |---|---|---|---|---|
+    | `all-MiniLM-L6-v2` | 0.6097 | 0.6257 | +0.016 | 0.634 |
+    | `nlpaueb/legal-bert-base-uncased` | 0.6097 | **0.6407** | **+0.031** | **0.650** |
+  - Agent delta doubled; HIGH F1 is the headline win (MiniLM precision@5 HIGH was 0.045 → LegalBERT 0.424).
+- **LegalBERT classifier experiment** (2026-05-17):
+  - CE training: val macro_f1=0.579 (peaked ep9, early stopped ep14); stronger MEDIUM (+0.028 vs DeBERTa CE) but weaker HIGH (-0.089)
+  - CORN training: FAILED — MEDIUM collapsed (F1=0.11), peaked macro 0.38. LegalBERT + CORN closed.
+  - **Full E2E eval COMPLETE (2026-05-17, full 452 rows, no-CS constrained):**
+    | Classifier | Baseline | Agent | Delta | HIGH F1 |
+    |---|---|---|---|---|
+    | DeBERTa Ens-F (CE+CORN) | 0.610 | **0.641** | **+0.031** | **0.650** |
+    | LegalBERT CE only | 0.630 | 0.647 | +0.017 | 0.640 |
+  - **Decision: DeBERTa Ens-F remains production classifier.** Final systems nearly tied (0.647 vs 0.641) but DeBERTa has stronger training evidence and larger agent delta.
+  - LegalBERT's role: **FAISS embedding model only** (precision@5 HIGH: 0.045 → 0.424).
+  - `scripts/infer.py`: added `ce_only=True` mode; `eval_stage3.py`: added `--ce-model`/`--corn-model` CLI args; `train.py`: added `high_weight_multiplier` config param.
 
 ### LLM Setup (Stage 3)
 - **Model**: Qwen3-30B Q4_K_XL, llama.cpp server on port 10006
@@ -43,9 +70,11 @@ ML pipeline that analyzes legal contracts and flags risky clauses using the CUAD
 - `app/main.py` + `app/routers/` + `app/services/` — full pipeline behind HTTP endpoints (`/api/v1/stage1/analyze`, `/api/v1/stage3/assess`, `/api/v1/stage4/report`). See ARCHITECTURE.md "API Layer (FastAPI)".
 
 ### Immediate Next Steps
-1. **`eval_stage3.py`** — agent-vs-classifier ablation on current architecture (see REVIEW_REQUEST.md Q4)
-2. **Optional enhancements** — see `docs/OPTIONAL_ENHANCEMENTS.md`
-3. **Code hygiene** — see `docs/CODE_REVIEW_NOTES_2026-05-13.md` (stage1 dataset regression, dead explainer.py, scaffolding tests, missing requirements.txt deps)
+1. ~~**LegalBERT E2E eval**~~ — DONE. LegalBERT is production embedding model. Results in `docs/STAGE3_EXPERIMENTS.md`.
+2. ~~**LegalBERT classifier training**~~ — DONE. CE: val macro=0.579; CORN: failed. DeBERTa Ens-F remains production. Results in `docs/STAGE3_EXPERIMENTS.md`.
+3. **LegalBERT CE retrain with `high_weight_multiplier: 2.0`** — optional; change config and run `python3 -m src.stage3_risk_agent.train --loss ce`. Likely improves HIGH recall at cost of some MEDIUM. Architecture gap vs DeBERTa means ceiling is limited.
+4. **Optional enhancements** — see `docs/OPTIONAL_ENHANCEMENTS.md`
+5. **Code hygiene** — see `docs/CODE_REVIEW_NOTES_2026-05-13.md` (stage1 dataset regression, dead explainer.py, scaffolding tests, missing requirements.txt deps)
 
 ### Stage 1 — still pending (GPU needed)
 1. **Tokenize full training set** — run `preprocess_for_qa()` on all 22,450 examples

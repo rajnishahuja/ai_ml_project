@@ -1,0 +1,90 @@
+======================================================================
+STAGE 1+2 EVALUATION REPORT — DeBERTa vs Rule-Based Baseline
+======================================================================
+
+DIMENSION 1: EXTRACTION QUALITY
+----------------------------------------
+Metric                              DeBERTa     Baseline      Delta
+Exact Match (%)                       63.70        62.84      +0.86
+Text F1 (%)                           65.50        66.31      -0.81
+Span IoU                             0.3582       0.0903    +0.2679
+
+DIMENSION 2: CLASSIFICATION QUALITY
+----------------------------------------
+Metric                              DeBERTa     Baseline      Delta
+Accuracy                             0.7226       0.7757    -0.0531
+Macro F1                             0.3425       0.4385    -0.0960
+Weighted F1                          0.7004       0.7359    -0.0355
+
+PER-CLASS F1 COMPARISON
+----------------------------------------
+Clause Type                                      DeBERTa   Baseline
+-----------------------------------------------------------------
+  Document Name                                    0.893      1.000
+  Parties                                          0.291      0.194
+  Agreement Date                                   0.894      0.508
+  Effective Date                                   0.881      0.897
+  Expiration Date                                  0.525      0.308
+  Renewal Term                                     0.095      0.815
+  Notice Period To Terminate Renewal               0.000      0.000
+  Governing Law                                    0.333      0.918
+  Most Favored Nation                              0.000      1.000
+  Non-Compete                                      0.421      0.267
+  Exclusivity                                      0.000      0.000
+  No-Solicit Of Customers                          0.000      0.000
+  No-Solicit Of Employees                          0.000      0.400
+  Non-Disparagement                                0.000      0.667
+  Termination For Convenience                      0.385      0.480
+  ROFR/ROFO/ROFN                                   0.000      0.667
+  Change Of Control                                0.538      0.500
+  Anti-Assignment                                  0.357      0.386
+  Revenue/Profit Sharing                           0.435      0.438
+  Price Restrictions                               0.000      0.000
+  Minimum Commitment                               0.595      0.250
+  Volume Restriction                               0.538      0.000
+  IP Ownership Assignment                          0.519      0.556
+  Joint IP Ownership                               0.000      0.000
+  License Grant                                    0.449      0.478
+  Non-Transferable License                         0.250      0.692
+  Affiliate License-Licensor                       0.353      0.000
+  Affiliate License-Licensee                       0.429      0.000
+  Unlimited/All-You-Can-Eat-License                0.000      0.000
+  Irrevocable Or Perpetual License                 0.000      0.000
+  Source Code Escrow                               0.000      0.667
+  Post-Termination Services                        0.343      0.200
+  Audit Rights                                     0.483      0.400
+  Uncapped Liability                               0.167      0.000
+  Cap On Liability                                 0.552      0.642
+  Liquidated Damages                               0.400      0.750
+  Warranty Duration                                0.400      0.400
+  Insurance                                        0.320      0.909
+  Covenant Not To Sue                              0.000      0.000
+  Third Party Beneficiary                          0.364      0.429
+  Indemnification                                  0.000      0.000
+
+ERROR ANALYSIS — Hardest Clause Types (DeBERTa)
+----------------------------------------
+  Notice Period To Terminate Renewal            F1: 0.000
+  Most Favored Nation                           F1: 0.000
+  Exclusivity                                   F1: 0.000
+  No-Solicit Of Customers                       F1: 0.000
+  No-Solicit Of Employees                       F1: 0.000
+  Non-Disparagement                             F1: 0.000
+  ROFR/ROFO/ROFN                                F1: 0.000
+  Price Restrictions                            F1: 0.000
+  Joint IP Ownership                            F1: 0.000
+  Unlimited/All-You-Can-Eat-License             F1: 0.000
+
+ERROR ANALYSIS — Hardest Clause Types (Baseline)
+----------------------------------------
+  Notice Period To Terminate Renewal            F1: 0.000
+  Exclusivity                                   F1: 0.000
+  No-Solicit Of Customers                       F1: 0.000
+  Price Restrictions                            F1: 0.000
+  Volume Restriction                            F1: 0.000
+  Joint IP Ownership                            F1: 0.000
+  Affiliate License-Licensor                    F1: 0.000
+  Affiliate License-Licensee                    F1: 0.000
+  Unlimited/All-You-Can-Eat-License             F1: 0.000
+  Irrevocable Or Perpetual License              F1: 0.000
+======================================================================

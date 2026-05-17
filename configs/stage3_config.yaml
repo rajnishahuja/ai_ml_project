@@ -5,7 +5,7 @@
 
 risk_classifier:
   # Model (Section B)
-  model_name: microsoft/deberta-v3-base          # see STAGE3_TRAINING_NOTES.md §2
+  model_name: microsoft/deberta-v3-base          # production classifier (see STAGE3_TRAINING_NOTES.md §2)
   output_dir: models/stage3_risk_deberta_v3      # versioned — don't overwrite across experiments
 
   # Data (Section A)
@@ -52,13 +52,28 @@ risk_classifier:
   # Run E: dropout override (DeBERTa default = 0.1)
   dropout: 0.1                                   # back to default for run F
 
-# Stage 3 inference — agent + tools
-embedding_model: sentence-transformers/all-MiniLM-L6-v2
-faiss_index_path: data/faiss_index/clauses.index
+  # HIGH-class penalty boost (Option A: scale effective-count weight for HIGH).
+  # 1.0 = no change (default). 2.0 = penalise HIGH misses 2x more.
+  # LegalBERT CE run: HIGH F1=0.33 standalone — try 2.0 to push recall up.
+  high_weight_multiplier: 1.0                    # change to 2.0 for next LegalBERT CE run
 
-# Agent LLM — Qwen 30B (Q4_K_XL quantized), served via local llama-server (OpenAI-compatible API).
-# Running on GPU. Swap agent_base_url + agent_model for any OpenAI-compatible endpoint
-# (e.g. Mistral-7B-Instruct or a hosted Azure model) when deploying outside this server.
+# Stage 3 inference — agent + tools
+embedding_model: nlpaueb/legal-bert-base-uncased
+faiss_index_path: data/faiss_index/clauses_legalbert.index
+
+# Agent LLM — swap provider + model without touching code.
+# Production: Qwen3-30B via local llama-server (openai_compatible, port 10006)
+# Eval / low-impact: Anthropic Haiku via API (no GPU load on shared server)
+#
+# To use Qwen (production):
+#   llm_provider: openai_compatible
+#   agent_model: Qwen3-30B-Q4_K_XL
+#   agent_base_url: http://localhost:10006/v1
+#   agent_api_key: none
+#
+# To use Haiku (eval, uses ANTHROPIC_API_KEY from .env):
+#   llm_provider: anthropic
+#   agent_model: claude-haiku-4-5-20251001
 llm_provider: openai_compatible                  # options: openai_compatible | gemini | anthropic
 agent_model: qwen/qwen3-30b-a3b-instruct-2507
 agent_base_url: https://openrouter.ai/api/v1
@@ -73,6 +88,7 @@ agent_max_tokens: 512                            # cap per LLM call; explanation
 agent_max_iterations: 2                          # cap at 2: precedent_search + optional contract_search; ablation shows >2 never used
 agent_num_workers: 12                             # parallel clause workers; set equal to llama.cpp -np slot count (default 1 = sequential)
 similarity_top_k_low_conf: 10                    # k=10: +10% MEDIUM vote accuracy vs k=5 (58% vs 48% at sim>=0.75)
+similarity_threshold: 0.82                       # min cosine similarity for precedent_search results; 0.75 for MiniLM, 0.82 for LegalBERT
 
 # Raw label passes — preserved for audit; training uses the merged master_label_review.csv
 raw_label_passes:

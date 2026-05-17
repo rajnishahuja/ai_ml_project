@@ -96,8 +96,9 @@ class RiskAssessedClause:
     risk_explanation: str
     similar_clauses: list[SimilarClause] = field(default_factory=list)
     cross_references: list[Any] = field(default_factory=list)
-    confidence: float = 0.0  # Stage 3 risk classifier confidence (primary)
-    risk_confidence: float = 0.0  # Alias used in stage3_output.json serialisation
+    confidence: float = 0.0  # Double-sided fallback field
+    risk_confidence: float = 0.0  # Stage 3 risk classifier confidence (alias)
+    deberta_confidence: float = 0.0  # Stage 3 risk classifier confidence (primary)
     recommendation: str = ""  # Optional recommendation from agent or lookup table
     extraction_confidence: float = 0.0  # Stage 1 extraction confidence
     extractor_confidence: float = 0.0  # Stage 1 extraction confidence alias
@@ -110,15 +111,28 @@ class RiskAssessedClause:
     metadata: Optional[dict] = None
 
     def __post_init__(self):
-        if self.risk_confidence == 0.0 and self.confidence != 0.0:
-            self.risk_confidence = self.confidence
-        elif self.confidence == 0.0 and self.risk_confidence != 0.0:
-            self.confidence = self.risk_confidence
-            
+        # 1. Synchronize Stage 3 Risk Prediction confidence
+        if self.deberta_confidence == 0.0 and self.risk_confidence != 0.0:
+            self.deberta_confidence = self.risk_confidence
+        elif self.risk_confidence == 0.0 and self.deberta_confidence != 0.0:
+            self.risk_confidence = self.deberta_confidence
+
+        # 2. Synchronize Stage 1 Extraction confidence
         if self.extractor_confidence == 0.0 and self.extraction_confidence != 0.0:
             self.extractor_confidence = self.extraction_confidence
         elif self.extraction_confidence == 0.0 and self.extractor_confidence != 0.0:
             self.extraction_confidence = self.extractor_confidence
+
+        # 3. Synchronize 'confidence' fallback property
+        if self.confidence == 0.0:
+            if self.extractor_confidence != 0.0:
+                self.confidence = self.extractor_confidence
+            elif self.deberta_confidence != 0.0:
+                self.confidence = self.deberta_confidence
+        else:
+            if self.extractor_confidence == 0.0:
+                self.extractor_confidence = self.confidence
+                self.extraction_confidence = self.confidence
 
     def to_dict(self) -> dict:
         return asdict(self)

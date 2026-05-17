@@ -1,5 +1,5 @@
 """
-train.py — Stage 3 DeBERTa-v3-base risk classifier.
+train.py — Stage 3 risk classifier (DeBERTa-v3-base or LegalBERT).
 
 Trains the Stage 3 risk classifier per configs/stage3_config.yaml using HuggingFace
 Trainer + bf16 + soft-target CE with class weights. Evaluates on held-out test set
@@ -82,6 +82,7 @@ class Stage3Config:
     strict_determinism: bool
     llrd_decay: float = 0.9   # only used when llrd: true; LR_layer = base_lr * decay^(top - layer_idx)
     dropout: float = 0.1      # DeBERTa default; override to test added regularization
+    high_weight_multiplier: float = 1.0  # scale up effective-count weight for HIGH class (e.g. 2.0 = penalise HIGH misses 2x more)
 
     @classmethod
     def from_yaml(cls, path: str) -> "Stage3Config":
@@ -182,10 +183,27 @@ def corn_loss(logit1: torch.Tensor, logit2: torch.Tensor,
     return loss_0 + loss_1
 
 
+def _get_backbone_attr(model) -> str:
+    """Return the backbone attribute name for any HuggingFace encoder model.
+
+    Works for DeBERTa ('deberta'), BERT/LegalBERT ('bert'), RoBERTa ('roberta'), etc.
+    Falls back to iterating named children if none of the known names match.
+    """
+    for name in ("deberta", "bert", "roberta", "electra", "albert", "distilbert"):
+        if hasattr(model, name):
+            return name
+    # Generic fallback: first nn.Module child that isn't a head
+    for name, _ in model.named_children():
+        if name not in ("classifier", "pooler", "dropout", "cls"):
+            return name
+    raise ValueError(f"Cannot detect backbone attribute for {type(model).__name__}")
+
+
 class CORNWrapper(nn.Module):
     """CORN: Conditional Ordinal Regression for Neural Networks (Shi et al., 2021).
 
-    Replaces DeBERTa's 3-class head with two independent binary classifiers:
+    Replaces the model's 3-class head with two independent binary classifiers.
+    Works with any HuggingFace encoder: DeBERTa-v3, BERT/LegalBERT, RoBERTa, etc.
       classifier1: P(y >= 1) = P(MEDIUM or HIGH)          — evaluated on ALL rows
       classifier2: P(y >= 2 | y >= 1) = P(HIGH | not LOW) — conditioned on subset
 
@@ -205,13 +223,15 @@ class CORNWrapper(nn.Module):
     def __init__(self, base_model):
         super().__init__()
         self.config = base_model.config
-        self.deberta = base_model.deberta
-        self.pooler = base_model.pooler
+        self._backbone_attr = _get_backbone_attr(base_model)
+        self.backbone = getattr(base_model, self._backbone_attr)
+        # DeBERTa exposes pooler at top level; BERT/RoBERTa keep it inside the backbone.
+        self.pooler = getattr(base_model, "pooler", None)
         drop_p = getattr(base_model.config, "hidden_dropout_prob", 0.1)
         self.dropout = nn.Dropout(drop_p)
         out_dim = getattr(base_model.config, "pooler_hidden_size", base_model.config.hidden_size)
         # Cast new heads to match backbone dtype (backbone may be bf16/fp16)
-        backbone_dtype = next(self.deberta.parameters()).dtype
+        backbone_dtype = next(self.backbone.parameters()).dtype
         self.classifier1 = nn.Linear(out_dim, 1).to(backbone_dtype)  # P(y >= 1)
         self.classifier2 = nn.Linear(out_dim, 1).to(backbone_dtype)  # P(y >= 2 | y >= 1)
 
@@ -223,12 +243,17 @@ class CORNWrapper(nn.Module):
                 labels=None, **kwargs):
         # labels accepted in signature so HuggingFace find_labels() wires eval label extraction;
         # actual loss is computed externally in SoftTargetCETrainer.compute_loss
-        seq = self.deberta(
+        backbone_out = self.backbone(
             input_ids=input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
-        )[0]                                         # [B, L, H]
-        pooled = self.dropout(self.pooler(seq))      # [B, out_dim]
+        )
+        if self.pooler is not None:
+            # DeBERTa: top-level ContextPooler takes the full sequence output
+            pooled = self.dropout(self.pooler(backbone_out[0]))   # [B, out_dim]
+        else:
+            # BERT/RoBERTa: pooler_output is already the pooled CLS representation
+            pooled = self.dropout(backbone_out.pooler_output)     # [B, H]
 
         logit1 = self.classifier1(pooled).squeeze(-1)    # [B]
         logit2 = self.classifier2(pooled).squeeze(-1)    # [B]
@@ -383,21 +408,24 @@ def build_datasets(cfg: Stage3Config, tokenizer, label_mode: str = "soft", sord_
 # -------- LLRD optimizer (Section D.0 / ablation) -----------------------------
 
 def build_llrd_param_groups(model, base_lr: float, weight_decay: float, decay: float,
-                            head_prefixes=("classifier.", "pooler.")):
-    """Layer-wise LR decay parameter groups for DeBERTa-v3.
+                            head_prefixes=("classifier.", "pooler."),
+                            backbone_attr: str | None = None):
+    """Layer-wise LR decay parameter groups — works for DeBERTa-v3, BERT, LegalBERT, RoBERTa.
 
     Top encoder layer (layer_{n-1}) gets base_lr; each lower layer multiplies by `decay`.
-    Embeddings + rel_embeddings + encoder-level LayerNorm get the lowest LR (base_lr * decay^n).
-    Classifier head + pooler stay at base_lr (newly initialized, need full speed).
+    Embeddings and all remaining backbone params get the lowest LR (base_lr * decay^n).
+    Classifier head stays at base_lr (newly initialized, needs full speed).
     Bias / LayerNorm weights get weight_decay=0 (HF Trainer convention).
 
     head_prefixes: parameter name prefixes treated as the freshly-initialized head.
-      Standard: ("classifier.", "pooler.")
-      CORN:     ("classifier1.", "classifier2.", "pooler.")
+      Standard CE:  ("classifier.", "pooler.")
+      CORN:         ("classifier1.", "classifier2.", "pooler.", "backbone.")
+    backbone_attr:  backbone attribute name (e.g. "deberta", "bert"). Auto-detected if None.
     """
     no_decay_keys = ("bias", "LayerNorm.weight", "LayerNorm.bias")
     n_layers = model.config.num_hidden_layers
     embedding_lr = base_lr * (decay ** n_layers)
+    bb = backbone_attr or _get_backbone_attr(model)
 
     groups = []
     seen = set()
@@ -406,7 +434,7 @@ def build_llrd_param_groups(model, base_lr: float, weight_decay: float, decay: f
         if params:
             groups.append({"params": params, "lr": lr_val, "weight_decay": wd_val})
 
-    # 1. Classifier + pooler — full LR (newly initialized layers)
+    # 1. Head (classifier + any top-level pooler) — full LR
     head_d, head_nd = [], []
     for n, p in model.named_parameters():
         if n.startswith(head_prefixes):
@@ -419,7 +447,7 @@ def build_llrd_param_groups(model, base_lr: float, weight_decay: float, decay: f
     for layer_i in range(n_layers):
         layer_lr = base_lr * (decay ** (n_layers - 1 - layer_i))
         l_d, l_nd = [], []
-        prefix = f"deberta.encoder.layer.{layer_i}."
+        prefix = f"{bb}.encoder.layer.{layer_i}."
         for n, p in model.named_parameters():
             if n.startswith(prefix):
                 seen.add(n)
@@ -427,23 +455,15 @@ def build_llrd_param_groups(model, base_lr: float, weight_decay: float, decay: f
         add(l_d, layer_lr, weight_decay)
         add(l_nd, layer_lr, 0.0)
 
-    # 3. Embeddings + rel_embeddings + encoder.LayerNorm — lowest LR
+    # 3. Everything else (embeddings, pooler inside backbone, rel_embeddings, etc.) — lowest LR.
+    #    Catch-all: any param not yet assigned. Works for DeBERTa, BERT, RoBERTa, etc.
     emb_d, emb_nd = [], []
     for n, p in model.named_parameters():
-        if n in seen:
-            continue
-        if n.startswith(("deberta.embeddings.",
-                          "deberta.encoder.rel_embeddings",
-                          "deberta.encoder.LayerNorm")):
+        if n not in seen:
             seen.add(n)
             (emb_nd if any(k in n for k in no_decay_keys) else emb_d).append(p)
     add(emb_d, embedding_lr, weight_decay)
     add(emb_nd, embedding_lr, 0.0)
-
-    # Sanity check
-    missing = {n for n, _ in model.named_parameters()} - seen
-    if missing:
-        raise RuntimeError(f"LLRD param groups missing: {missing}")
 
     return groups
 
@@ -469,13 +489,21 @@ class SoftTargetCETrainer(Trainer):
     def create_optimizer(self):
         if self.optimizer is None and self._llrd_decay is not None:
             is_corn = getattr(self.model, "is_corn", False)
-            head_pfx = ("classifier1.", "classifier2.", "pooler.") if is_corn else ("classifier.", "pooler.")
+            if is_corn:
+                # CORN: no top-level pooler (it's inside self.backbone); backbone heads only
+                head_pfx = ("classifier1.", "classifier2.")
+                bb = getattr(self.model, "_backbone_attr", None)
+            else:
+                # Standard CE: top-level pooler exists for DeBERTa; catch-all handles BERT
+                head_pfx = ("classifier.", "pooler.")
+                bb = _get_backbone_attr(self.model)
             param_groups = build_llrd_param_groups(
                 self.model,
                 self.args.learning_rate,
                 self.args.weight_decay,
                 self._llrd_decay,
                 head_prefixes=head_pfx,
+                backbone_attr=bb,
             )
             self.optimizer = torch.optim.AdamW(param_groups)
             return self.optimizer
@@ -712,7 +740,10 @@ def main():
     logger.info(f"Datasets — train: {len(train_ds)}  val: {len(val_ds)}  test: {len(test_ds)}")
 
     class_weights = compute_class_weights(raw_train_labels, cfg.class_weights_method)
-    logger.info(f"Class weights ({cfg.class_weights_method}): "
+    if cfg.high_weight_multiplier != 1.0:
+        class_weights[2] = class_weights[2] * cfg.high_weight_multiplier
+        class_weights = class_weights / class_weights.sum() * len(class_weights)  # renormalize
+    logger.info(f"Class weights ({cfg.class_weights_method}, HIGH×{cfg.high_weight_multiplier}): "
                 f"LOW={class_weights[0]:.4f}  MED={class_weights[1]:.4f}  HIGH={class_weights[2]:.4f}")
 
     logger.info(f"Loading model in {cfg.precision}: {cfg.model_name}")
