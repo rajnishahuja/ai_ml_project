@@ -43,6 +43,17 @@ ML pipeline that analyzes legal contracts and flags risky clauses using the CUAD
     | `all-MiniLM-L6-v2` | 0.6097 | 0.6257 | +0.016 | 0.634 |
     | `nlpaueb/legal-bert-base-uncased` | 0.6097 | **0.6407** | **+0.031** | **0.650** |
   - Agent delta doubled; HIGH F1 is the headline win (MiniLM precision@5 HIGH was 0.045 → LegalBERT 0.424).
+- **LegalBERT classifier experiment** (2026-05-17):
+  - CE training: val macro_f1=0.579 (peaked ep9, early stopped ep14); stronger MEDIUM (+0.028 vs DeBERTa CE) but weaker HIGH (-0.089)
+  - CORN training: FAILED — MEDIUM collapsed (F1=0.11), peaked macro 0.38. LegalBERT + CORN closed.
+  - **Full E2E eval COMPLETE (2026-05-17, full 452 rows, no-CS constrained):**
+    | Classifier | Baseline | Agent | Delta | HIGH F1 |
+    |---|---|---|---|---|
+    | DeBERTa Ens-F (CE+CORN) | 0.610 | **0.641** | **+0.031** | **0.650** |
+    | LegalBERT CE only | 0.630 | 0.647 | +0.017 | 0.640 |
+  - **Decision: DeBERTa Ens-F remains production classifier.** Final systems nearly tied (0.647 vs 0.641) but DeBERTa has stronger training evidence and larger agent delta.
+  - LegalBERT's role: **FAISS embedding model only** (precision@5 HIGH: 0.045 → 0.424).
+  - `scripts/infer.py`: added `ce_only=True` mode; `eval_stage3.py`: added `--ce-model`/`--corn-model` CLI args; `train.py`: added `high_weight_multiplier` config param.
 
 ### LLM Setup (Stage 3)
 - **Model**: Qwen3-30B Q4_K_XL, llama.cpp server on port 10006
@@ -60,9 +71,10 @@ ML pipeline that analyzes legal contracts and flags risky clauses using the CUAD
 
 ### Immediate Next Steps
 1. ~~**LegalBERT E2E eval**~~ — DONE. LegalBERT is production embedding model. Results in `docs/STAGE3_EXPERIMENTS.md`.
-2. **LegalBERT classifier training** — change `model_name` + `output_dir` in `configs/stage3_config.yaml` risk_classifier section; run `python3 -m src.stage3_risk_agent.train --loss ce`. ~30-35 min.
-3. **Optional enhancements** — see `docs/OPTIONAL_ENHANCEMENTS.md`
-4. **Code hygiene** — see `docs/CODE_REVIEW_NOTES_2026-05-13.md` (stage1 dataset regression, dead explainer.py, scaffolding tests, missing requirements.txt deps)
+2. ~~**LegalBERT classifier training**~~ — DONE. CE: val macro=0.579; CORN: failed. DeBERTa Ens-F remains production. Results in `docs/STAGE3_EXPERIMENTS.md`.
+3. **LegalBERT CE retrain with `high_weight_multiplier: 2.0`** — optional; change config and run `python3 -m src.stage3_risk_agent.train --loss ce`. Likely improves HIGH recall at cost of some MEDIUM. Architecture gap vs DeBERTa means ceiling is limited.
+4. **Optional enhancements** — see `docs/OPTIONAL_ENHANCEMENTS.md`
+5. **Code hygiene** — see `docs/CODE_REVIEW_NOTES_2026-05-13.md` (stage1 dataset regression, dead explainer.py, scaffolding tests, missing requirements.txt deps)
 
 ### Stage 1 — still pending (GPU needed)
 1. **Tokenize full training set** — run `preprocess_for_qa()` on all 22,450 examples
