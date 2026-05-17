@@ -23,7 +23,7 @@ Contract PDF/Text
 │  Stage 3: Risk Detection    │  DeBERTa → LangGraph ReAct Agent
 │  DeBERTa default signal     │  DeBERTa-v3-base (risk classifier)
 │  Agent verifies with tools  │  Qwen3-30B Q4_K_XL (agent + explanation)
-│  Tools: precedent_search,   │  all-MiniLM-L6-v2 (embeddings)
+│  Tools: precedent_search,   │  legal-bert-base-uncased (embeddings)
 │         contract_search     │  FAISS vector store
 │  Output: risk-assessed      │
 │          clause objects     │
@@ -107,8 +107,8 @@ Clause  (from Stage 1+2)
 
 - **`precedent_search`** (vector RAG) — FAISS similarity lookup over the labeled training
   corpus (4,276 vectors, train split only — test clauses excluded to prevent leakage).
-  Embeddings: `all-MiniLM-L6-v2`. Only returns clauses with similarity ≥ 0.75 — every
-  result is a strong semantic match. Returns `{clause_text, clause_type, risk_level,
+  Embeddings: `nlpaueb/legal-bert-base-uncased` (768-dim). Only returns clauses with
+  similarity ≥ 0.82 — every result is a strong semantic match. Returns `{clause_text, clause_type, risk_level,
   similarity}`. Fast (IndexFlatIP, exact cosine, microseconds per query).
 
 - **`contract_search`** (structured lookup) — given `current_clause_id`, returns all other
@@ -179,7 +179,7 @@ train split only (`splits_path` filter in `build_index()`). Entry point:
 | DeBERTa as default signal | Label + conf in system prompt | 3,400 CUAD examples baked in; agent inherits vs. reasoning from scratch |
 | Override policy | Tools must show clear consensus | LLM-alone overrides were 47–58% accurate vs DeBERTa's 59.3% |
 | No `deberta_classify` tool | DeBERTa already ran | Redundant to expose it again; result already in system prompt |
-| Precedent retrieval | FAISS (all-MiniLM-L6-v2), min_sim=0.75 | Only strong matches influence the agent |
+| Precedent retrieval | FAISS (legal-bert-base-uncased), min_sim=0.82 | LegalBERT chosen over MiniLM: precision@5 HIGH 0.045→0.424; HIGH F1 0.634→0.650 |
 | Contract context | `contract_search` structured lookup | Data already typed post-Stage 1+2; resolves party-role ambiguity |
 | Signing party | Passed to DeBERTa + agent | #1 driver of label ambiguity (81% of human-review flips) |
 
@@ -738,7 +738,7 @@ Either (a) restore the missing `nodes.py` files and add a smoke test, or (b) ret
 | DeBERTa-base | 1+2 | HF Hub default: `rajnishahuja/cuad-stage1-deberta` (fine-tuned from `microsoft/deberta-base`) | QA extraction + classification | ~2 GB (train ~8 GB) |
 | DeBERTa-v3-base | 3 | `microsoft/deberta-v3-base` fine-tuned. **Ens-F** = two-model ensemble: `rajnishahuja/cuad-risk-deberta-ce-parties` (CE loss, seed 42) + `rajnishahuja/cuad-risk-deberta-corn-parties` (CORN loss, seed 7), both with signing-party text in segment A. Inference API: `scripts/infer.py::RiskClassifier`. Chose v3 over base: ELECTRA-style pretraining → stronger downstream performance, same VRAM; SentencePiece 128k vocab is more efficient on legal text (p99 292 tokens vs 358 with base). | ~2 GB (train ~8 GB) |
 | Qwen3-30B (Q4_K_XL) | 3 | Local llama-server (OpenAI-compatible, `http://localhost:10006/v1`). Swap `agent_base_url` + `agent_model` in `stage3_config.yaml` for any OpenAI-compatible endpoint (vLLM, Ollama, Azure-hosted, OpenAI, etc.) when deploying outside this server. Provider can also be switched via `llm_provider: gemini \| anthropic` (`src/common/utils.py::make_llm`). | LangGraph ReAct agent — runs on every clause; produces final label + explanation. | ~20 GB (4-bit, GPU) |
-| all-MiniLM-L6-v2 | 3 | `sentence-transformers/all-MiniLM-L6-v2` | Clause embeddings for FAISS | ~0.5 GB |
+| legal-bert-base-uncased | 3 | `nlpaueb/legal-bert-base-uncased` (768-dim). Replaced `all-MiniLM-L6-v2` (2026-05-17) — precision@5 HIGH: 0.045→0.424; agent delta: +0.016→+0.031; HIGH F1: 0.634→0.650 on full 452-row eval. MiniLM index retained at `data/faiss_index/clauses_minilm.*` for rollback. | Clause embeddings for FAISS (precedent_search) | ~0.5 GB |
 | Qwen3-30B (Q4_K_XL) | 4 | Local llama-server port 10006 (shared with Stage 3) | Executive summary generation | ~20 GB (shared, no extra VRAM) |
 | Qwen-30B (non-reasoning) | 3 (data prep, done) | `mavenir-generic1-30b-q4_k_xl` (local llama-server on A100, temp=0) | Primary labeler — 4,410 risk-relevant spans | ~20 GB (4-bit) |
 | Gemini 2.5 Flash | 3 (data prep, done) | `gemini-2.5-flash` (Google API, JSON mode, temp=0) | Primary labeler — 4,410 risk-relevant spans (independent of Qwen) | API |

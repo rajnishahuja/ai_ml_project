@@ -116,8 +116,11 @@ def _agent_path(
     k: int,
     use_contract_search: bool = True,
     free_override: bool = False,
+    embedding_model: str | None = None,
+    sim_threshold: float = 0.75,
 ) -> RiskAssessedClause:
-    precedent_search = make_precedent_search_tool(index_path)
+    precedent_search = make_precedent_search_tool(index_path, model_name=embedding_model,
+                                                   default_min_similarity=sim_threshold)
     tools = [precedent_search]
     if use_contract_search:
         tools.append(make_contract_search_tool(all_clauses))
@@ -159,8 +162,8 @@ def _agent_path(
         "Treat its label as the default — confirm it unless tool evidence clearly "
         "points elsewhere.\n\n"
         "Evidence-gathering strategy:\n"
-        "1. Always start with precedent_search (k=5). It only returns clauses with "
-        "similarity >= 0.75, so every result is a strong semantic match.\n"
+        f"1. Always start with precedent_search (k=5). It only returns clauses with "
+        f"similarity >= {sim_threshold:.2f}, so every result is a strong semantic match.\n"
         "2. Check vote distribution:\n"
         "   - 4+ results agreeing with DeBERTa → high confidence, confirm.\n"
         "   - 0 results → no precedent exists; keep DeBERTa's label.\n"
@@ -282,8 +285,10 @@ def assess_clauses(
     """
     cfg = load_config(config_path)
 
-    index_path   = cfg["faiss_index_path"]
-    k            = cfg["similarity_top_k_low_conf"]
+    index_path      = cfg["faiss_index_path"]
+    embedding_model = cfg.get("embedding_model")
+    sim_threshold   = cfg.get("similarity_threshold", 0.75)
+    k               = cfg["similarity_top_k_low_conf"]
     max_iter     = cfg["agent_max_iterations"]
     num_workers  = cfg.get("agent_num_workers", 1)
 
@@ -354,6 +359,8 @@ def assess_clauses(
             k=k,
             use_contract_search=use_contract_search,
             free_override=free_override,
+            embedding_model=embedding_model,
+            sim_threshold=sim_threshold,
         )
         if ckpt_fh:
             entry = json.dumps({

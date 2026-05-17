@@ -765,6 +765,74 @@ not objectively better; (2) HIGH→MEDIUM in 20 train rows reduced HIGH signal; 
 rows also changed labels, invalidating direct comparison. **Reverted. Original Ens-F at 0.607
 remains production model.**
 
+---
+
+## LegalBERT Embedding Experiment (2026-05-17)
+
+Swap the FAISS **embedding model** (not the classifier) from `all-MiniLM-L6-v2` to
+`nlpaueb/legal-bert-base-uncased`. Everything else unchanged: DeBERTa Ens-F classifier,
+no-CS constrained agent, Qwen3-30B synthesizer, full 452-row test set.
+
+### Motivation
+
+The full ablation FAISS diagnostic showed MiniLM was nearly useless for HIGH clauses:
+- HIGH coverage at threshold 0.75: only 17.8%
+- When HIGH clauses were covered, vote accuracy was 17% (worse than random)
+- Root cause: adversarial/one-sided HIGH phrasing is semantically indistinguishable
+  from MEDIUM in MiniLM's general-domain embedding space.
+
+LegalBERT (`nlpaueb/legal-bert-base-uncased`) is trained on 12GB of legal text and
+should separate legal risk semantics better.
+
+### Retrieval quality (eval_embeddings.py, 452 test clauses)
+
+| Embedding model (FAISS) | Precision@5 (all) | Precision@5 HIGH | Zero-result rate | Sim threshold |
+|---|---|---|---|---|
+| `all-MiniLM-L6-v2` | 0.213 | 0.045 | 64.6% | 0.75 |
+| `nlpaueb/legal-bert-base-uncased` | **0.525** | **0.424** | **0.2%** | **0.82** |
+
+Threshold calibrated via `scripts/calibrate_threshold.py`: LegalBERT scores cluster
+at 0.90+, so 0.82 is optimal (vs 0.75 for MiniLM).
+
+### E2E pipeline results — full 452-row eval, no-CS constrained, Qwen3-30B
+
+| Embedding model (FAISS) | DeBERTa-only | Agent macro F1 | Delta | LOW F1 | MED F1 | HIGH F1 | Override rate |
+|---|---|---|---|---|---|---|---|
+| `all-MiniLM-L6-v2` | 0.6118 | 0.6257 | +0.016 | 0.705 | 0.538 | 0.634 | 6% (28/452) |
+| `nlpaueb/legal-bert-base-uncased` | 0.6097 | **0.6407** | **+0.031** | **0.710** | 0.560 | **0.650** | 18% (81/452) |
+
+### Key findings
+
+**1. HIGH is the headline improvement (+0.016 F1).** MiniLM had precision@5 HIGH of 0.045 —
+the agent was effectively blind for HIGH clauses (no usable precedents, so no overrides).
+LegalBERT precision@5 HIGH = 0.424 gives the agent real evidence to act on. HIGH recall
+still lags (0.57) — the constrained architecture won't upgrade to HIGH unless precedents
+agree, and the HIGH corpus is sparse — but precision is strong (0.75).
+
+**2. Agent delta doubled (+0.031 vs +0.016).** All overrides are FAISS-driven (constrained
+mode: LLM only acts when precedent_search reaches consensus). Better embeddings → more
+accurate precedents → more correct overrides. Override rate rose from 6% to 18% because
+LegalBERT returns more high-confidence matches above the 0.82 threshold.
+
+**3. Zero-result rate collapsed (64.6% → 0.2%).** With MiniLM, 65% of queries returned no
+results above threshold — agent defaulted to DeBERTa. LegalBERT almost always finds at
+least one precedent, giving the agent something to reason about.
+
+**4. No regression on LOW or MEDIUM.** LOW improves slightly (+0.005). MEDIUM is slightly
+better (+0.022). No class is harmed by the embedding switch.
+
+### Decision
+
+**LegalBERT is the new production embedding model.** Config updated:
+```yaml
+embedding_model: nlpaueb/legal-bert-base-uncased
+faiss_index_path: data/faiss_index/clauses_legalbert.index
+similarity_threshold: 0.82
+```
+MiniLM indexes retained at `data/faiss_index/clauses_minilm.*` for rollback if needed.
+
+---
+
 ## Reference
 
 - Architecture: `ARCHITECTURE.md` (root)

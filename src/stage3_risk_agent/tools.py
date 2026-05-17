@@ -24,19 +24,28 @@ from src.stage3_risk_agent.risk_classifier import RiskClassifier
 logger = logging.getLogger(__name__)
 
 
-def make_precedent_search_tool(index_path: str):
+def make_precedent_search_tool(index_path: str, model_name: str | None = None,
+                               default_min_similarity: float = 0.75):
     """Return a @tool that searches the labeled clause corpus by similarity.
 
     Args:
-        index_path: Path to the FAISS index file (data/faiss_index/clauses.index).
+        index_path: Path to the FAISS index file.
+        model_name: Sentence-transformers model used to embed queries. Must match
+                    the model used when building the index.
+        default_min_similarity: Default threshold exposed to the agent. Set to
+                    match the embedding model's score distribution (0.75 for
+                    MiniLM, 0.82 for LegalBERT).
     """
+    from src.stage3_risk_agent.embeddings import DEFAULT_MODEL
+    _model_name = model_name or DEFAULT_MODEL
+    _default_sim = default_min_similarity
 
     @tool
     def precedent_search(clause_text: str, k: int = 5,
-                         min_similarity: float = 0.75) -> list[dict]:
+                         min_similarity: float = _default_sim) -> list[dict]:
         """Search the labeled clause corpus for clauses similar to the one you are assessing.
 
-        Returns only clauses with cosine similarity >= min_similarity (default 0.75),
+        Returns only clauses with cosine similarity >= min_similarity,
         so results are genuinely relevant — not just the closest available matches.
         If fewer than k results meet the threshold, only those are returned.
         Receiving 0 results means no strong precedents exist in the corpus for this
@@ -45,16 +54,15 @@ def make_precedent_search_tool(index_path: str):
         Args:
             clause_text: Full text of the clause to search for.
             k: Maximum number of results to return (default 5).
-            min_similarity: Minimum cosine similarity to include a result (default 0.75).
-                            Lower to 0.6 only if 0.75 returns 0 results and you need
-                            any available signal.
+            min_similarity: Minimum cosine similarity to include a result.
+                            Only adjust if you receive 0 results and need any signal.
 
         Returns:
             List of similar clauses ordered by descending similarity, each with
             clause_type, risk_level, similarity score, and clause text.
             Empty list if no clauses meet the similarity threshold.
         """
-        results = query_index(clause_text, index_path, k)
+        results = query_index(clause_text, index_path, k, model_name=_model_name)
         filtered = [r for r in results if r.similarity >= min_similarity]
         return [asdict(r) for r in filtered]
 

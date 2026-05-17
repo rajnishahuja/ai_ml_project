@@ -39,6 +39,9 @@ from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from sklearn.metrics import classification_report, f1_score
 
 from src.common.schema import ClauseObject

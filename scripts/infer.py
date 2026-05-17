@@ -69,7 +69,16 @@ def _load_corn_model(model_path: str, device: torch.device):
         from huggingface_hub import hf_hub_download
         weights_path = hf_hub_download(repo_id=model_path, filename="model.safetensors")
         state = load_file(weights_path, device="cpu")
-    model.load_state_dict(state)
+    # Remap legacy keys: saved checkpoints used 'deberta.*' / 'bert.*' etc.
+    # After train.py model-agnostic refactor the wrapper uses 'backbone.*'.
+    remapped = {}
+    for k, v in state.items():
+        for old_prefix in ("deberta.", "bert.", "roberta.", "electra.", "albert.", "distilbert."):
+            if k.startswith(old_prefix):
+                k = "backbone." + k[len(old_prefix):]
+                break
+        remapped[k] = v
+    model.load_state_dict(remapped)
     return model.to(device).eval()
 
 
