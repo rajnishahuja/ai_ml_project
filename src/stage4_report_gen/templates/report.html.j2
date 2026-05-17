@@ -71,7 +71,9 @@
                 <div class="card-header">
                     <div class="clause-title">{{ clause.clause_type }}</div>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        {% if clause.risk_confidence %}
+                        {% if clause.is_override %}
+                        <span class="pill" style="background: rgba(0,0,0,0.05); color: var(--text-main); text-transform: none;">Confidence: {{ "%.0f"|format(clause.agent_confidence * 100) }}%</span>
+                        {% elif clause.risk_confidence %}
                         <span class="pill" style="background: rgba(0,0,0,0.05); color: var(--text-main); text-transform: none;">Confidence: {{ "%.0f"|format(clause.risk_confidence * 100) }}%</span>
                         {% endif %}
                         <span class="pill risk-high">High Risk</span>
@@ -148,7 +150,9 @@
                 <div class="card-header">
                     <div class="clause-title">{{ clause.clause_type }}</div>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        {% if clause.risk_confidence %}
+                        {% if clause.is_override %}
+                        <span class="pill" style="background: rgba(0,0,0,0.05); color: var(--text-main); text-transform: none;">Confidence: {{ "%.0f"|format(clause.agent_confidence * 100) }}%</span>
+                        {% elif clause.risk_confidence %}
                         <span class="pill" style="background: rgba(0,0,0,0.05); color: var(--text-main); text-transform: none;">Confidence: {{ "%.0f"|format(clause.risk_confidence * 100) }}%</span>
                         {% endif %}
                         <span class="pill risk-medium">Medium Risk</span>
@@ -228,7 +232,9 @@
                 <div class="card-header">
                     <div class="clause-title">{{ clause.clause_type }}</div>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        {% if clause.risk_confidence %}
+                        {% if clause.is_override %}
+                        <span class="pill" style="background: rgba(0,0,0,0.05); color: var(--text-main); text-transform: none;">Confidence: {{ "%.0f"|format(clause.agent_confidence * 100) }}%</span>
+                        {% elif clause.risk_confidence %}
                         <span class="pill" style="background: rgba(0,0,0,0.05); color: var(--text-main); text-transform: none;">Confidence: {{ "%.0f"|format(clause.risk_confidence * 100) }}%</span>
                         {% endif %}
                         <span class="pill risk-low">Low Risk</span>

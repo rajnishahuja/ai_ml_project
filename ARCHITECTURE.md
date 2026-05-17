@@ -443,8 +443,7 @@ AIML_project/
 ├── ARCHITECTURE.md          ← THIS FILE (AI context reference)
 ├── CLAUDE.md                ← Cross-session pointer file; downstream of ARCHITECTURE.md
 ├── README.md
-├── CODE_README.md           ← Engineering-side readme (alt entry point)
-├── CODE_ARCHITECTURE.md     ← Engineering-side architecture sketch
+├── CODE_ARCHITECTURE.md     ← Engineering-side technical specification & run guide
 ├── requirements.txt         ← Python dependencies (see Known Issues #4)
 ├── pyproject.toml
 ├── uv.lock

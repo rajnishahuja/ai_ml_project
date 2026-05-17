@@ -89,6 +89,12 @@ data/processed/*
 data/synthetic/*
 !data/synthetic/.gitkeep
 
+data/output/*
+!data/output/.gitkeep
+
+data/checkpoints/*
+!data/checkpoints/.gitkeep
+
 # ============================================================
 # Build / Distribution
 # ============================================================

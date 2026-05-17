@@ -20,13 +20,19 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 import os
 import sqlite3
+from tqdm import tqdm
 
 from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.sqlite import SqliteSaver
 from pydantic import BaseModel, Field
 
-from src.common.schema import AgentTraceEntry, ClauseObject, RiskAssessedClause, SimilarClause
+from src.common.schema import (
+    AgentTraceEntry,
+    ClauseObject,
+    RiskAssessedClause,
+    SimilarClause,
+)
 from src.common.utils import load_config, make_llm
 from src.stage3_risk_agent.risk_classifier import (
     RiskClassifier,
@@ -106,6 +112,16 @@ class RiskAssessment(BaseModel):
             "Leave empty when confirming DeBERTa."
         ),
     )
+    agent_confidence: float = Field(
+        default=0.0,
+        description=(
+            "Your confidence score in the final risk assessment as a decimal fraction strictly between 0.0 and 1.0 (e.g. 0.95). "
+            "Do NOT write it as a percentage out of 100 (e.g. do NOT write 95.0 or 95). "
+            "If you override DeBERTa based on strong precedent search matches or sibling clauses, "
+            "provide a high score (0.8 - 1.0) explaining the strong consensus. "
+            "If evidence is split or inconclusive, provide a lower score (0.5 - 0.7)."
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -128,8 +144,9 @@ def _agent_path(
     embedding_model: str | None = None,
     sim_threshold: float = 0.75,
 ) -> RiskAssessedClause:
-    precedent_search = make_precedent_search_tool(index_path, model_name=embedding_model,
-                                                   default_min_similarity=sim_threshold)
+    precedent_search = make_precedent_search_tool(
+        index_path, model_name=embedding_model, default_min_similarity=sim_threshold
+    )
     tools = [precedent_search]
     if use_contract_search:
         tools.append(make_contract_search_tool(all_clauses))
@@ -187,11 +204,11 @@ def _agent_path(
         f"  Text:       {clause.clause_text}\n"
     )
 
-    # ------------------------------------------------------------------
-    # NEW: Persistent Agent with Checkpointer
-    # ------------------------------------------------------------------
     agent = create_react_agent(
-        llm, to    # Use clause_id as the thread_id for granular persistence
+        llm, tools, prompt=system_prompt, checkpointer=checkpointer
+    )
+
+    # Use clause_id as the thread_id for granular persistence
     thread_id = f"thread_{clause.clause_id}"
     config = {
         "configurable": {"thread_id": thread_id},
@@ -215,49 +232,58 @@ def _agent_path(
     similar_clauses: list[SimilarClause] = []
     cross_references = []
     seen_texts = set()  # Global deduplication to prevent duplicate precedent clauses!
-    
+
     for msg in state["messages"]:
         if isinstance(msg, ToolMessage):
             try:
                 if isinstance(msg.content, str):
                     import ast
+
                     try:
                         content = ast.literal_eval(msg.content)
                     except Exception:
                         content = json.loads(msg.content)
                 else:
                     content = msg.content
-                
+
                 count = len(content) if isinstance(content, list) else 0
                 trace.append(AgentTraceEntry(tool=msg.name, result_count=count))
-                
+
                 # Capture Precedents (from vector search) with global deduplication
                 if msg.name == "precedent_search" and isinstance(content, list):
                     for item in content:
                         try:
                             if item["text"] not in seen_texts:
                                 seen_texts.add(item["text"])
-                                similar_clauses.append(SimilarClause(
-                                    text=item["text"],
-                                    clause_type=item["clause_type"],
-                                    risk_level=item["risk_level"],
-                                    similarity=item["similarity"],
-                                ))
+                                similar_clauses.append(
+                                    SimilarClause(
+                                        text=item["text"],
+                                        clause_type=item["clause_type"],
+                                        risk_level=item["risk_level"],
+                                        similarity=item["similarity"],
+                                    )
+                                )
                         except (KeyError, TypeError):
                             pass
-                
+
                 # Capture Contract Lookups (sibling clauses)
                 if msg.name == "contract_search" and isinstance(content, list):
                     cross_references.extend(content)
-                    
+
             except Exception as e:
                 logger.error(f"Error parsing ToolMessage content: {e}")
 
     # Extract final reasoning text
     agent_conclusion = ""
     for msg in reversed(state["messages"]):
-        if isinstance(msg, AIMessage) and msg.content and not getattr(msg, "tool_calls", []):
-            agent_conclusion = msg.content if isinstance(msg.content, str) else str(msg.content)
+        if (
+            isinstance(msg, AIMessage)
+            and msg.content
+            and not getattr(msg, "tool_calls", [])
+        ):
+            agent_conclusion = (
+                msg.content if isinstance(msg.content, str) else str(msg.content)
+            )
             break
 
     synthesis_instruction = (
@@ -272,7 +298,8 @@ def _agent_path(
     )
 
     synthesis_prompt = (
-        _CUAD_CONVENTION + f"You are a Senior Legal Analyst. Assess the following clause for the signing party ({signing_party or 'unknown'}):\n\n"
+        _CUAD_CONVENTION
+        + f"You are a Senior Legal Analyst. Assess the following clause for the signing party ({signing_party or 'unknown'}):\n\n"
         f"Clause type: {clause.clause_type}\n"
         f"Full Text: {clause.clause_text}\n\n"
         f"Internal findings (Do not cite these directly):\n"
@@ -281,12 +308,19 @@ def _agent_path(
     )
 
     try:
-        result: RiskAssessment = llm.with_structured_output(RiskAssessment).invoke(synthesis_prompt)
+        result: RiskAssessment = llm.with_structured_output(RiskAssessment).invoke(
+            synthesis_prompt
+        )
     except Exception:
         # Attempt fallback if primary fails
         try:
-            fallback_prompt = synthesis_prompt + "\n\nCRITICAL: Respond ONLY with a valid JSON object matching the schema."
-            result = llm.with_structured_output(RiskAssessment, method="json_mode").invoke(fallback_prompt)
+            fallback_prompt = (
+                synthesis_prompt
+                + "\n\nCRITICAL: Respond ONLY with a valid JSON object matching the schema."
+            )
+            result = llm.with_structured_output(
+                RiskAssessment, method="json_mode"
+            ).invoke(fallback_prompt)
         except Exception:
             result = None
 
@@ -295,6 +329,8 @@ def _agent_path(
             final_label=deberta_result["label"],
             explanation=f"Analysis: {agent_conclusion[:200]}...",
         )
+
+    is_override = (result.final_label.upper() != deberta_result["label"].upper())
 
     return RiskAssessedClause(
         clause_id=clause.clause_id,
@@ -305,19 +341,17 @@ def _agent_path(
         risk_explanation=result.explanation,
         similar_clauses=similar_clauses,
         cross_references=cross_references,
-        confidence=clause.confidence,              # stage1 extraction confidence — passed through
-        deberta_confidence=deberta_result["confidence"],  # stage3 risk prediction confidence
-        risk_confidence=deberta_result["confidence"],
         extraction_confidence=clause.confidence,
-        extractor_confidence=clause.extractor_confidence,
+        classifier_confidence=deberta_result["confidence"],
+        agent_confidence=result.agent_confidence / 100.0 if result.agent_confidence > 1.0 else result.agent_confidence,
+        is_override=is_override,
         extraction_confidence_logit=getattr(clause, "confidence_logit", None),
         content_label=getattr(clause, "content_label", None),
         agent_trace=trace,
         page_no=clause.page_no,
         start_pos=clause.start_pos,
         end_pos=clause.end_pos,
-        metadata={"content_label": getattr(clause, "content_label", None)}
-    )"content_label": getattr(clause, "content_label", None)}
+        metadata={"content_label": getattr(clause, "content_label", None)},
     )
 
 
@@ -354,12 +388,12 @@ def assess_clauses(
     """
     cfg = load_config(config_path)
 
-    index_path      = cfg["faiss_index_path"]
+    index_path = cfg["faiss_index_path"]
     embedding_model = cfg.get("embedding_model")
-    sim_threshold   = cfg.get("similarity_threshold", 0.75)
-    k               = cfg["similarity_top_k_low_conf"]
-    max_iter     = cfg["agent_max_iterations"]
-    num_workers  = cfg.get("agent_num_workers", 1)
+    sim_threshold = cfg.get("similarity_threshold", 0.75)
+    k = cfg["similarity_top_k_low_conf"]
+    max_iter = cfg["agent_max_iterations"]
+    num_workers = cfg.get("agent_num_workers", 1)
 
     llm = make_llm(cfg)
 
@@ -477,7 +511,7 @@ def assess_clauses(
     results: list[RiskAssessedClause | None] = [None] * len(pending)
 
     if num_workers == 1:
-        for idx, clause in enumerate(pending):
+        for idx, clause in tqdm(list(enumerate(pending)), desc="Assessing Clauses", leave=True):
             _, assessed = _assess_one(idx, clause)
             results[idx] = assessed
     else:
@@ -489,7 +523,7 @@ def assess_clauses(
                 pool.submit(_assess_one, idx, clause): idx
                 for idx, clause in enumerate(pending)
             }
-            for future in as_completed(futures):
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Assessing Clauses", leave=True):
                 idx, assessed = future.result()
                 results[idx] = assessed
 
@@ -497,5 +531,15 @@ def assess_clauses(
         ckpt_fh.close()
 
     conn.close()
+
+    # Proactively free Stage 3 DeBERTa classifier model from RAM/VRAM
+    del classifier
+    import gc
+    import torch
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    elif hasattr(torch, "mps") and torch.mps.is_available():
+        torch.mps.empty_cache()
 
     return [r for r in results if r is not None]

@@ -6,12 +6,14 @@ Responsible for loading the local HuggingFace weights and running the extraction
 import json
 import logging
 import re
+import threading
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Optional
 
 import torch
 import numpy as np
+from tqdm import tqdm
 
 from transformers import AutoModelForQuestionAnswering, AutoTokenizer
 from ..common.constants import (
@@ -61,18 +63,19 @@ class ClauseExtractorClassifier:
         logger.info(f"Loading Stage 1+2 model from: {model_path}")
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.model = AutoModelForQuestionAnswering.from_pretrained(model_path)
+        self._lock = threading.Lock()
 
         # Architecture-agnostic device detection
-        # Note: We force CPU on macOS because DeBERTa-v3 has a known PyTorch MPS hang bug
-        # during attention/layer-norm forward passes on Apple Silicon.
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
+        elif torch.backends.mps.is_available():
+            self.device = torch.device("mps")
         else:
             self.device = torch.device("cpu")
             
         self.model.to(self.device)
         self.model.eval()
-        logger.info(f"Model loaded on {self.device} (MPS bypassed for stability)")
+        logger.info(f"Model loaded on {self.device}")
 
         self.clause_types = CUAD_CLAUSE_TYPES
         self.question_templates = CUAD_QUESTION_TEMPLATES
@@ -216,14 +219,15 @@ class ClauseExtractorClassifier:
         end_logits_list = []
 
         with torch.no_grad():
-            for i in range(0, total_chunks, batch_size):
-                batch_inputs = {
-                    k: v[i : i + batch_size].to(self.device) for k, v in inputs.items()
-                }
-                outputs = self.model(**batch_inputs)
+            with self._lock:
+                for i in tqdm(range(0, total_chunks, batch_size), desc="Extracting Clauses", leave=False):
+                    batch_inputs = {
+                        k: v[i : i + batch_size].to(self.device) for k, v in inputs.items()
+                    }
+                    outputs = self.model(**batch_inputs)
 
-                start_logits_list.append(outputs.start_logits.cpu().numpy())
-                end_logits_list.append(outputs.end_logits.cpu().numpy())
+                    start_logits_list.append(outputs.start_logits.cpu().numpy())
+                    end_logits_list.append(outputs.end_logits.cpu().numpy())
 
         start_logits = np.concatenate(start_logits_list, axis=0)
         end_logits = np.concatenate(end_logits_list, axis=0)

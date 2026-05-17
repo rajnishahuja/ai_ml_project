@@ -935,7 +935,16 @@ else:
 
             for idx, clause in enumerate(clause_list, 1):
                 badge_class = f"badge-{risk_type.lower()}"
-                confidence = clause.get("risk_confidence", 0.0)
+                is_override = clause.get("is_override", False)
+                if is_override:
+                    confidence = clause.get("agent_confidence", 0.0)
+                else:
+                    confidence = clause.get("risk_confidence", 0.0)
+
+                # Normalize confidence to [0, 1] range if it was output as a percentage
+                if confidence > 1.0:
+                    confidence = confidence / 100.0
+
                 conf_badge = (
                     f"<span class='badge' style='background-color: #F1F5F9; color: #475569; margin-right: 8px;'>Confidence: {int(confidence*100)}%</span>"
                     if confidence > 0
@@ -1012,41 +1021,39 @@ else:
                                 unsafe_allow_html=True,
                             )
                             if similar:
-                                for s in similar[:3]:  # Show top 3 for optimal space
-                                    prec_risk = s.get(
-                                        "risk_level", s.get("risk", "LOW")
-                                    ).upper()
-                                    prec_similarity = int(
-                                        s.get("similarity", 0.0) * 100
-                                    )
-                                    prec_text = s.get("text", "")
+                                valid_similar = [s for s in similar if "error" not in s]
+                                if valid_similar:
+                                    for s in valid_similar[:5]:  # Show up to 5 directly in one clean list!
+                                        prec_risk = s.get("risk_level", s.get("risk", "LOW")).upper()
+                                        prec_similarity = int(s.get("similarity", 0.0) * 100)
+                                        prec_text = s.get("text", "")
 
-                                    if prec_risk == "HIGH":
-                                        prec_badge_class = "badge-high"
-                                    elif (
-                                        prec_risk == "MEDIUM" or prec_risk == "MODERATE"
-                                    ):
-                                        prec_badge_class = "badge-medium"
-                                    else:
-                                        prec_badge_class = "badge-low"
+                                        if prec_risk == "HIGH":
+                                            prec_badge_class = "badge-high"
+                                        elif prec_risk == "MEDIUM" or prec_risk == "MODERATE":
+                                            prec_badge_class = "badge-medium"
+                                        else:
+                                            prec_badge_class = "badge-low"
 
-                                    st.markdown(
-                                        f"""
-                                    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; margin-bottom: 8px; font-size: 0.88rem;">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                            <strong style="color: #1E3C72; font-size: 0.85rem;">📋 {s.get('clause_type', 'Precedent')}</strong>
-                                            <div>
-                                                <span class="badge {prec_badge_class}" style="font-size: 0.7rem; padding: 2px 6px;">{prec_risk}</span>
-                                                <span style="font-size: 0.7rem; font-weight: 700; color: #475569; background-color: #E2E8F0; padding: 2px 6px; border-radius: 9999px; margin-left: 4px;">{prec_similarity}% Sim</span>
+                                        st.markdown(
+                                            f"""
+                                        <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px; margin-bottom: 8px; font-size: 0.88rem;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                                <strong style="color: #1E3C72; font-size: 0.85rem;">📋 {s.get('clause_type', 'Precedent')}</strong>
+                                                <div>
+                                                    <span class="badge {prec_badge_class}" style="font-size: 0.7rem; padding: 2px 6px;">{prec_risk}</span>
+                                                    <span style="font-size: 0.7rem; font-weight: 700; color: #475569; background-color: #E2E8F0; padding: 2px 6px; border-radius: 9999px; margin-left: 4px;">{prec_similarity}% Sim</span>
+                                                </div>
+                                            </div>
+                                            <div style="color: #475569; font-style: italic; line-height: 1.45;">
+                                                "{prec_text}"
                                             </div>
                                         </div>
-                                        <div style="color: #475569; font-style: italic; line-height: 1.45;">
-                                            "{prec_text}"
-                                        </div>
-                                    </div>
-                                    """,
-                                        unsafe_allow_html=True,
-                                    )
+                                        """,
+                                            unsafe_allow_html=True,
+                                        )
+                                else:
+                                    st.info("No comparative market precedents identified.")
                             else:
                                 st.info("No comparative market precedents identified.")
 
@@ -1056,9 +1063,7 @@ else:
                                 unsafe_allow_html=True,
                             )
                             if cross_refs:
-                                for ref in cross_refs[
-                                    :3
-                                ]:  # Show top 3 for optimal space
+                                for ref in cross_refs[:5]:  # Show up to 5 directly in one clean list!
                                     if isinstance(ref, dict):
                                         ref_type = ref.get("clause_type", "Reference")
                                         ref_text = ref.get("clause_text", "")
@@ -1080,9 +1085,7 @@ else:
                                         unsafe_allow_html=True,
                                     )
                             else:
-                                st.info(
-                                    "No internal cross-references parsed in surrounding context."
-                                )
+                                st.info("No internal cross-references parsed in surrounding context.")
 
                 trace = clause.get("agent_trace", [])
                 if trace:
@@ -1136,15 +1139,15 @@ else:
                 )
             with tcol2:
                 st.markdown(
-                    "<div style='font-size: 1.05rem; margin-bottom: 12px;'><strong>Document Structural Parser:</strong> &nbsp;&nbsp;<span class='telemetry-badge-blue'>Extracting AI</span></div>",
+                    "<div style='font-size: 1.05rem; margin-bottom: 12px;'><strong>Document Structural Parser:</strong> &nbsp;&nbsp;<span class='telemetry-badge-blue'>AI Extractor</span></div>",
                     unsafe_allow_html=True,
                 )
                 st.markdown(
-                    "<div style='font-size: 1.05rem; margin-bottom: 12px;'><strong>Risk Inference Classifier:</strong> &nbsp;&nbsp;<span class='telemetry-badge'>Classifying AI</span></div>",
+                    "<div style='font-size: 1.05rem; margin-bottom: 12px;'><strong>Risk Inference Classifier:</strong> &nbsp;&nbsp;<span class='telemetry-badge'>AI Classifier</span></div>",
                     unsafe_allow_html=True,
                 )
                 st.markdown(
-                    "<div style='font-size: 1.05rem; margin-bottom: 12px;'><strong>Executive Synthesis Reasoner:</strong> &nbsp;&nbsp;<span class='telemetry-badge-purple'>Analyzing AI</span></div>",
+                    "<div style='font-size: 1.05rem; margin-bottom: 12px;'><strong>Executive Synthesis Reasoner:</strong> &nbsp;&nbsp;<span class='telemetry-badge-purple'>AI Analyzer</span></div>",
                     unsafe_allow_html=True,
                 )
 

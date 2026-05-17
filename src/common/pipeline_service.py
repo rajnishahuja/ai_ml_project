@@ -101,6 +101,16 @@ def run_end_to_end_pipeline(
             )
         logger.info("Saved Stage 2 intermediate output to %s", stage2_path)
         stage2_duration = time.perf_counter() - stage2_start
+
+        # Proactively free Stage 2 DeBERTa model from RAM/VRAM
+        del extractor
+        import gc
+        import torch
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        elif hasattr(torch, "mps") and torch.mps.is_available():
+            torch.mps.empty_cache()
     
     # Stage 3: Risk Assessment
     stage3_path = os.path.join(final_dir, "stage3_output.json")
@@ -124,8 +134,33 @@ def run_end_to_end_pipeline(
                 for t in c["agent_trace"]:
                     trace.append(AgentTraceEntry(**t))
             c["agent_trace"] = trace
-            
-            assessed.append(RiskAssessedClause(**c))
+
+            # Symmetrically extract confidence with fallbacks to legacy keys
+            extraction_conf = c.get("extraction_confidence", c.get("confidence", 0.0))
+            classifier_conf = c.get("classifier_confidence", c.get("deberta_confidence", c.get("risk_confidence", 0.0)))
+
+            assessed.append(RiskAssessedClause(
+                clause_id=c.get("clause_id", ""),
+                document_id=c.get("document_id", ""),
+                clause_text=c.get("clause_text", ""),
+                clause_type=c.get("clause_type", ""),
+                risk_level=c.get("risk_level", ""),
+                risk_explanation=c.get("risk_explanation", ""),
+                similar_clauses=sims,
+                cross_references=c.get("cross_references", []),
+                extraction_confidence=extraction_conf,
+                classifier_confidence=classifier_conf,
+                agent_confidence=c.get("agent_confidence", 0.0),
+                is_override=c.get("is_override", False),
+                recommendation=c.get("recommendation", ""),
+                extraction_confidence_logit=c.get("extraction_confidence_logit"),
+                content_label=c.get("content_label"),
+                agent_trace=trace,
+                page_no=c.get("page_no"),
+                start_pos=c.get("start_pos"),
+                end_pos=c.get("end_pos"),
+                metadata=c.get("metadata")
+            ))
         stage3_duration = time.perf_counter() - stage3_start
     else:
         logger.info("Pipeline: Stage 3 — Assessing risk for %d clauses", len(schema_clauses))

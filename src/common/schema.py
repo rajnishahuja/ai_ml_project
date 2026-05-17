@@ -96,12 +96,11 @@ class RiskAssessedClause:
     risk_explanation: str
     similar_clauses: list[SimilarClause] = field(default_factory=list)
     cross_references: list[Any] = field(default_factory=list)
-    confidence: float = 0.0  # Double-sided fallback field
-    risk_confidence: float = 0.0  # Stage 3 risk classifier confidence (alias)
-    deberta_confidence: float = 0.0  # Stage 3 risk classifier confidence (primary)
+    extraction_confidence: float = 0.0  # Stage 1 extraction confidence (primary)
+    classifier_confidence: float = 0.0  # Stage 3 risk classifier confidence (primary)
+    agent_confidence: float = 0.0       # Agent's RAG/Tool override confidence score
+    is_override: bool = False           # True if the LangGraph agent overrode DeBERTa's preliminary label
     recommendation: str = ""  # Optional recommendation from agent or lookup table
-    extraction_confidence: float = 0.0  # Stage 1 extraction confidence
-    extractor_confidence: float = 0.0  # Stage 1 extraction confidence alias
     extraction_confidence_logit: Optional[float] = None  # Stage 1 logit
     content_label: Optional[str] = None  # Stage 1 content label
     agent_trace: list[AgentTraceEntry] = field(default_factory=list)
@@ -110,29 +109,50 @@ class RiskAssessedClause:
     end_pos: Optional[int] = None
     metadata: Optional[dict] = None
 
+    @property
+    def confidence(self) -> float:
+        """Fallback field mapping to extraction confidence."""
+        return self.extraction_confidence
+
+    @confidence.setter
+    def confidence(self, val: float) -> None:
+        self.extraction_confidence = val
+
+    @property
+    def deberta_confidence(self) -> float:
+        """Alias mapping to the classifier confidence."""
+        return self.classifier_confidence
+
+    @deberta_confidence.setter
+    def deberta_confidence(self, val: float) -> None:
+        self.classifier_confidence = val
+
+    @property
+    def risk_confidence(self) -> float:
+        """
+        Intelligently resolves which confidence score to display in the UI:
+        - If the agent overrode DeBERTa (is_override is True), return agent's confidence.
+        - Otherwise, return DeBERTa's classifier confidence.
+        """
+        if self.is_override and self.agent_confidence != 0.0:
+            return self.agent_confidence
+        return self.classifier_confidence
+
+    @risk_confidence.setter
+    def risk_confidence(self, val: float) -> None:
+        self.classifier_confidence = val
+
+    @property
+    def extractor_confidence(self) -> float:
+        """Alias mapping to extraction confidence."""
+        return self.extraction_confidence
+
+    @extractor_confidence.setter
+    def extractor_confidence(self, val: float) -> None:
+        self.extraction_confidence = val
+
     def __post_init__(self):
-        # 1. Synchronize Stage 3 Risk Prediction confidence
-        if self.deberta_confidence == 0.0 and self.risk_confidence != 0.0:
-            self.deberta_confidence = self.risk_confidence
-        elif self.risk_confidence == 0.0 and self.deberta_confidence != 0.0:
-            self.risk_confidence = self.deberta_confidence
-
-        # 2. Synchronize Stage 1 Extraction confidence
-        if self.extractor_confidence == 0.0 and self.extraction_confidence != 0.0:
-            self.extractor_confidence = self.extraction_confidence
-        elif self.extraction_confidence == 0.0 and self.extractor_confidence != 0.0:
-            self.extraction_confidence = self.extractor_confidence
-
-        # 3. Synchronize 'confidence' fallback property
-        if self.confidence == 0.0:
-            if self.extractor_confidence != 0.0:
-                self.confidence = self.extractor_confidence
-            elif self.deberta_confidence != 0.0:
-                self.confidence = self.deberta_confidence
-        else:
-            if self.extractor_confidence == 0.0:
-                self.extractor_confidence = self.confidence
-                self.extraction_confidence = self.confidence
+        pass
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -174,6 +194,8 @@ class ReportClause:
     agent_trace: list[AgentTraceEntry] = field(default_factory=list)
     risk_confidence: float = 0.0  # Stage 3 risk classifier confidence
     extraction_confidence: float = 0.0  # Stage 1 extraction confidence
+    is_override: bool = False
+    agent_confidence: float = 0.0
     extraction_confidence_logit: Optional[float] = None  # Stage 1 logit
     content_label: Optional[str] = None  # Stage 1 content label
     clause_text: Optional[str] = None  # Original clause text

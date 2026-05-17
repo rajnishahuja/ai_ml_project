@@ -163,7 +163,14 @@ def main():
 
     cfg_raw = yaml.safe_load(Path(args.config).read_text())
     cfg = cfg_raw.get("risk_classifier", cfg_raw)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+
+    print(f"Running ensembling using device: {device}")
 
     # Use first model's tokenizer (same base across all runs)
     first_dir = Path(args.model_dirs[0])

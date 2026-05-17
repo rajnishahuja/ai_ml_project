@@ -86,7 +86,7 @@ agent_api_key: YOUR_OPENROUTER_API_KEY
 
 agent_max_tokens: 512                            # cap per LLM call; explanations avg ~75 tokens, 512 is safe headroom
 agent_max_iterations: 2                          # cap at 2: precedent_search + optional contract_search; ablation shows >2 never used
-agent_num_workers: 12                             # parallel clause workers; set equal to llama.cpp -np slot count (default 1 = sequential)
+agent_num_workers: 4                              # parallel clause workers; 4 is optimal for local MPS thread safety & OpenRouter API rate limits
 similarity_top_k_low_conf: 10                    # k=10: +10% MEDIUM vote accuracy vs k=5 (58% vs 48% at sim>=0.75)
 similarity_threshold: 0.82                       # min cosine similarity for precedent_search results; 0.75 for MiniLM, 0.82 for LegalBERT
 

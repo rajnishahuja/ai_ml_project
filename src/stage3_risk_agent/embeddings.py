@@ -15,6 +15,7 @@ Position i in the JSON corresponds to vector i in the FAISS index.
 import json
 import logging
 from pathlib import Path
+import threading
 
 import faiss
 import numpy as np
@@ -28,15 +29,29 @@ DEFAULT_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 _model_cache: dict[str, SentenceTransformer] = {}   # model_name → SentenceTransformer
 _faiss_cache: dict[str, tuple] = {}                 # index_path → (faiss.Index, list[dict])
+_query_lock = threading.Lock()
 
 
 def _get_model(model_name: str = DEFAULT_MODEL) -> SentenceTransformer:
     if model_name not in _model_cache:
-        logger.info("Loading embedding model: %s", model_name)
+        logger.info("Loading embedding model on CPU: %s", model_name)
         try:
-            _model_cache[model_name] = SentenceTransformer(model_name, local_files_only=True)
-        except Exception:
-            _model_cache[model_name] = SentenceTransformer(model_name)
+            try:
+                _model_cache[model_name] = SentenceTransformer(model_name, local_files_only=True, device="cpu")
+            except Exception:
+                _model_cache[model_name] = SentenceTransformer(model_name, device="cpu")
+        except Exception as e:
+            logger.info("Model %s is a raw Transformer model (%s). Wrapping with Mean Pooling fallback.", model_name, e)
+            from sentence_transformers import models
+            try:
+                word_embedding_model = models.Transformer(model_name, model_args={"local_files_only": True})
+            except Exception:
+                word_embedding_model = models.Transformer(model_name)
+            pooling_model = models.Pooling(
+                word_embedding_model.get_word_embedding_dimension(),
+                pooling_mode="mean"
+            )
+            _model_cache[model_name] = SentenceTransformer(modules=[word_embedding_model, pooling_model], device="cpu")
     return _model_cache[model_name]
 
 
@@ -142,25 +157,38 @@ def query_index(clause_text: str, index_path: str, k: int = 5,
     Returns:
         List of SimilarClause ordered by descending similarity.
     """
-    model = _get_model(model_name)
-    vector = model.encode([clause_text], convert_to_numpy=True,
-                          normalize_embeddings=True).astype(np.float32)
+    with _query_lock:
+        model = _get_model(model_name)
+        vector = model.encode([clause_text], convert_to_numpy=True,
+                              normalize_embeddings=True).astype(np.float32)
 
-    index, metadata = _get_index(index_path)
-    k = min(k, index.ntotal)
-    scores, indices = index.search(vector, k)
+        index, metadata = _get_index(index_path)
+        # Query extra candidates to account for duplicate boilerplate being skipped
+        search_k = min(k * 2, index.ntotal)
+        scores, indices = index.search(vector, search_k)
 
-    results = []
-    for score, idx in zip(scores[0], indices[0]):
-        if idx < 0:
-            continue
-        m = metadata[idx]
-        results.append(
-            SimilarClause(
-                text=m["clause_text"],
-                clause_type=m["clause_type"],
-                risk_level=m["risk_level"],
-                similarity=float(score),
+        seen_texts = set()
+        results = []
+        for score, idx in zip(scores[0], indices[0]):
+            if idx < 0:
+                continue
+            m = metadata[idx]
+            
+            # Normalize whitespace/case to prevent identical or near-exact duplicates
+            txt_norm = " ".join(m["clause_text"].strip().split()).lower()
+            if txt_norm in seen_texts:
+                continue
+            seen_texts.add(txt_norm)
+
+            results.append(
+                SimilarClause(
+                    text=m["clause_text"],
+                    clause_type=m["clause_type"],
+                    risk_level=m["risk_level"],
+                    similarity=float(score),
+                )
             )
-        )
-    return results
+            # Stop once we have gathered the requested number of unique precedents
+            if len(results) >= k:
+                break
+        return results

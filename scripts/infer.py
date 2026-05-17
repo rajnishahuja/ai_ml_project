@@ -30,6 +30,7 @@ Usage — as a CLI:
 import argparse
 import json
 import sys
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -106,18 +107,19 @@ class RiskClassifier:
                 device = "cpu"
         self.device = torch.device(device)
         self.ce_only = ce_only
+        self._lock = threading.Lock()
 
-        print(f"Loading CE model from {ce_model_path} ...", flush=True)
+        print(f"Loading CE model from {ce_model_path} on {self.device} ...", flush=True)
         self.tokenizer = AutoTokenizer.from_pretrained(ce_model_path)
         self.ce_model = _load_ce_model(ce_model_path, self.device)
 
         if not ce_only:
-            print(f"Loading CORN model from {corn_model_path} ...", flush=True)
+            print(f"Loading CORN model from {corn_model_path} on {self.device} ...", flush=True)
             self.corn_model = _load_corn_model(corn_model_path, self.device)
         else:
             self.corn_model = None
             print(f"CE-only mode — skipping CORN model.")
-        print("Ready.")
+        print(f"Ready on device: {self.device}")
 
     def _tokenize(self, clause_type: str, signing_party: str, clause_text: str):
         return self.tokenizer(
@@ -168,13 +170,14 @@ class RiskClassifier:
                 "signing_party": str   (echoed back for traceability),
             }
         """
-        inputs = self._tokenize(clause_type, signing_party, clause_text)
-        ce_p   = self._ce_probs(inputs)
-        if self.ce_only:
-            ens_p = ce_p
-        else:
-            corn_p = self._corn_probs(inputs)
-            ens_p  = (ce_p + corn_p) / 2.0
+        with self._lock:
+            inputs = self._tokenize(clause_type, signing_party, clause_text)
+            ce_p   = self._ce_probs(inputs)
+            if self.ce_only:
+                ens_p = ce_p
+            else:
+                corn_p = self._corn_probs(inputs)
+                ens_p  = (ce_p + corn_p) / 2.0
 
         label_idx  = int(np.argmax(ens_p))
         return {
