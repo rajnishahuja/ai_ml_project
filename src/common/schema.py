@@ -78,7 +78,8 @@ class RiskAssessedClause:
     risk_explanation: str
     similar_clauses: list[SimilarClause] = field(default_factory=list)
     cross_references: list[str] = field(default_factory=list)
-    confidence: float = 0.0
+    confidence: float = 0.0          # stage1 extraction confidence (passed through unchanged)
+    deberta_confidence: float = 0.0  # stage3 DeBERTa risk prediction confidence
     agent_trace: list[AgentTraceEntry] = field(default_factory=list)
 
     def to_dict(self) -> dict:

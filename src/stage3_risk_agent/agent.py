@@ -23,7 +23,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel, Field
 
-from src.common.schema import AgentTraceEntry, ClauseObject, RiskAssessedClause
+from src.common.schema import AgentTraceEntry, ClauseObject, RiskAssessedClause, SimilarClause
 from src.common.utils import load_config, make_llm
 from src.stage3_risk_agent.risk_classifier import (
     RiskClassifier,
@@ -187,16 +187,29 @@ def _agent_path(
         config={"recursion_limit": max_iterations * 2 + 4},
     )
 
-    # Build agent trace from ToolMessage entries
+    # Build agent trace from ToolMessage entries; capture similar_clauses from precedent_search
     trace = []
+    similar_clauses: list[SimilarClause] = []
     for msg in state["messages"]:
         if isinstance(msg, ToolMessage):
             try:
                 content = json.loads(msg.content) if isinstance(msg.content, str) else msg.content
                 count = len(content) if isinstance(content, list) else None
             except (json.JSONDecodeError, TypeError):
+                content = None
                 count = None
             trace.append(AgentTraceEntry(tool=msg.name, result_count=count))
+            if msg.name == "precedent_search" and isinstance(content, list):
+                for item in content:
+                    try:
+                        similar_clauses.append(SimilarClause(
+                            text=item["text"],
+                            clause_type=item["clause_type"],
+                            risk_level=item["risk_level"],
+                            similarity=item["similarity"],
+                        ))
+                    except (KeyError, TypeError):
+                        pass
 
     # Extract final reasoning text (last AI message with no tool calls).
     # A clean single-turn synthesis prompt reliably triggers function_calling fill;
@@ -248,9 +261,10 @@ def _agent_path(
         clause_type=clause.clause_type,
         risk_level=result.final_label,
         risk_explanation=result.explanation,
-        similar_clauses=[],
+        similar_clauses=similar_clauses,
         cross_references=[],
-        confidence=deberta_result["confidence"],
+        confidence=clause.confidence,              # stage1 extraction confidence — passed through
+        deberta_confidence=deberta_result["confidence"],  # stage3 risk prediction confidence
         agent_trace=trace,
     )
 
