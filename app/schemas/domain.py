@@ -65,6 +65,12 @@ class RiskReportRecommendation(BaseModel):
     content_label: Optional[str] = None
     explanation: str
     recommendation: str
+    clause_text: Optional[str] = None
+    risk_confidence: float = 0.0
+    extraction_confidence: float = 0.0
+    similar_clauses: List[SimilarClause] = Field(default_factory=list)
+    cross_references: List[str] = Field(default_factory=list)
+    agent_trace: List[dict] = Field(default_factory=list)
 
 
 class FinalRiskReport(BaseModel):
@@ -73,10 +79,13 @@ class FinalRiskReport(BaseModel):
     The Final API Payload returned to the client.
     """
 
+    document_id: str
     summary: str
     high_risk: List[RiskReportRecommendation] = Field(default_factory=list)
     medium_risk: List[RiskReportRecommendation] = Field(default_factory=list)
+    low_risk: List[RiskReportRecommendation] = Field(default_factory=list)
     low_risk_summary: str
     missing_protections: List[str] = Field(default_factory=list)
     overall_risk_score: float
     total_clauses: int
+    metadata: Optional[dict] = None

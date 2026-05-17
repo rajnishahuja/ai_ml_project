@@ -7,16 +7,18 @@ See ARCHITECTURE.md for the full JSON schema documentation.
 """
 
 from dataclasses import dataclass, field, asdict
-from typing import Optional
+from typing import Optional, Any
 
 
 # ---------------------------------------------------------------------------
 # Stage 1+2 Output → Stage 3 Input
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ClauseObject:
     """A single extracted and classified clause from a contract."""
+
     clause_id: str
     document_id: str
     clause_text: str
@@ -24,6 +26,16 @@ class ClauseObject:
     start_pos: int
     end_pos: int
     confidence: float
+    extractor_confidence: float = 0.0  # Alias for extraction/QA model confidence
+    confidence_logit: Optional[float] = None
+    page_no: Optional[str] = None
+    content_label: Optional[str] = None
+
+    def __post_init__(self):
+        if self.extractor_confidence == 0.0 and self.confidence != 0.0:
+            self.extractor_confidence = self.confidence
+        elif self.confidence == 0.0 and self.extractor_confidence != 0.0:
+            self.confidence = self.extractor_confidence
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -32,6 +44,7 @@ class ClauseObject:
 @dataclass
 class ExtractionResult:
     """Full extraction result for one contract document."""
+
     document_id: str
     clauses: list[ClauseObject] = field(default_factory=list)
 
@@ -46,9 +59,11 @@ class ExtractionResult:
 # Stage 3: FAISS retrieval result
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SimilarClause:
     """A clause retrieved from FAISS as similar to the query clause."""
+
     text: str
     clause_type: str
     risk_level: str
@@ -59,9 +74,11 @@ class SimilarClause:
 # Stage 3 Output → Stage 4 Input
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class AgentTraceEntry:
     """One tool invocation in the LangGraph agent's reasoning trace."""
+
     tool: str
     result_count: Optional[int] = None
     related_clauses: Optional[int] = None
@@ -70,6 +87,7 @@ class AgentTraceEntry:
 @dataclass
 class RiskAssessedClause:
     """A clause with risk assessment from the Stage 3 agent."""
+
     clause_id: str
     document_id: str
     clause_text: str
@@ -77,9 +95,30 @@ class RiskAssessedClause:
     risk_level: str  # "LOW", "MEDIUM", "HIGH"
     risk_explanation: str
     similar_clauses: list[SimilarClause] = field(default_factory=list)
-    cross_references: list[str] = field(default_factory=list)
-    confidence: float = 0.0
+    cross_references: list[Any] = field(default_factory=list)
+    confidence: float = 0.0  # Stage 3 risk classifier confidence (primary)
+    risk_confidence: float = 0.0  # Alias used in stage3_output.json serialisation
+    recommendation: str = ""  # Optional recommendation from agent or lookup table
+    extraction_confidence: float = 0.0  # Stage 1 extraction confidence
+    extractor_confidence: float = 0.0  # Stage 1 extraction confidence alias
+    extraction_confidence_logit: Optional[float] = None  # Stage 1 logit
+    content_label: Optional[str] = None  # Stage 1 content label
     agent_trace: list[AgentTraceEntry] = field(default_factory=list)
+    page_no: Optional[str] = None
+    start_pos: Optional[int] = None
+    end_pos: Optional[int] = None
+    metadata: Optional[dict] = None
+
+    def __post_init__(self):
+        if self.risk_confidence == 0.0 and self.confidence != 0.0:
+            self.risk_confidence = self.confidence
+        elif self.confidence == 0.0 and self.risk_confidence != 0.0:
+            self.confidence = self.risk_confidence
+            
+        if self.extractor_confidence == 0.0 and self.extraction_confidence != 0.0:
+            self.extractor_confidence = self.extraction_confidence
+        elif self.extraction_confidence == 0.0 and self.extractor_confidence != 0.0:
+            self.extraction_confidence = self.extractor_confidence
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -89,9 +128,11 @@ class RiskAssessedClause:
 # Synthetic risk labels (training data for Stage 3)
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class SyntheticRiskLabel:
     """An LLM-generated risk label for a CUAD clause."""
+
     clause_text: str
     clause_type: str
     risk_level: str  # "LOW", "MEDIUM", "HIGH"
@@ -103,19 +144,31 @@ class SyntheticRiskLabel:
 # Stage 4 Output (Final Report)
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ReportClause:
     """A single clause entry in the final risk report."""
+
     clause_id: str
     clause_type: str
     risk_level: str
     explanation: str
     recommendation: str
+    similar_clauses: list[SimilarClause] = field(default_factory=list)
+    cross_references: list[Any] = field(default_factory=list)
+    page_no: Optional[str] = None
+    agent_trace: list[AgentTraceEntry] = field(default_factory=list)
+    risk_confidence: float = 0.0  # Stage 3 risk classifier confidence
+    extraction_confidence: float = 0.0  # Stage 1 extraction confidence
+    extraction_confidence_logit: Optional[float] = None  # Stage 1 logit
+    content_label: Optional[str] = None  # Stage 1 content label
+    clause_text: Optional[str] = None  # Original clause text
 
 
 @dataclass
 class ReportMetadata:
     """Metadata about the report generation run."""
+
     generated_at: str
     models_used: dict[str, str] = field(default_factory=dict)
 
@@ -123,10 +176,12 @@ class ReportMetadata:
 @dataclass
 class RiskReport:
     """The final structured risk report for a contract."""
+
     document_id: str
     summary: str
     high_risk: list[ReportClause] = field(default_factory=list)
     medium_risk: list[ReportClause] = field(default_factory=list)
+    low_risk: list[ReportClause] = field(default_factory=list)
     low_risk_summary: str = ""
     missing_protections: list[str] = field(default_factory=list)
     overall_risk_score: float = 0.0

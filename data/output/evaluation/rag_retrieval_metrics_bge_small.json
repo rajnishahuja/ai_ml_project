@@ -1,0 +1,24 @@
+{
+  "validation_split": {
+    "count": 100,
+    "mrr": 0.7205,
+    "precision_at_1": 0.65,
+    "precision_at_3": 0.6,
+    "precision_at_5": 0.594,
+    "precision_at_10": 0.591,
+    "label_agreement_rate": 0.4781,
+    "evaluation_time_seconds": 2.08,
+    "average_latency_ms": 20.77
+  },
+  "test_split": {
+    "count": 100,
+    "mrr": 0.711,
+    "precision_at_1": 0.6,
+    "precision_at_3": 0.5733,
+    "precision_at_5": 0.558,
+    "precision_at_10": 0.519,
+    "label_agreement_rate": 0.5122,
+    "evaluation_time_seconds": 1.29,
+    "average_latency_ms": 12.93
+  }
+}

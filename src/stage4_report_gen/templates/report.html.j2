@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Legal Risk Report: {{ report.document_id }}</title>
+    <style>
+        {{ css_styles }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="report-header">
+            <div class="report-title-row">
+                <div>
+                    <h1>Legal Risk Report</h1>
+                    <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 1.1rem; font-weight: 500;">
+                        {{ report.document_id }}
+                    </p>
+                </div>
+                <div class="score-badge">
+                    <div class="score-num">{{ "%.2f"|format(report.overall_risk_score) }}</div>
+                    <div class="score-label">Overall Risk</div>
+                </div>
+            </div>
+            
+            <div class="metadata-grid">
+                <div class="metadata-item">
+                    <strong>Generated At:</strong> <span>{{ report.metadata.generated_at }}</span>
+                </div>
+                <div class="metadata-item">
+                    <strong>Total Clauses:</strong> <span>{{ report.total_clauses }}</span>
+                </div>
+                <div class="metadata-item">
+                    <strong>Classification Engine:</strong> <span>{{ report.metadata.models_used.risk_classification }}</span>
+                </div>
+                <div class="metadata-item">
+                    <strong>Analyst Engine:</strong> <span>{{ report.metadata.models_used.explanation }}</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Executive Summary -->
+        <section class="summary-section">
+            <h2>📝 Executive Summary</h2>
+            <p>{{ report.summary }}</p>
+        </section>
+
+        <!-- Missing Protections (CUAD) -->
+        {% if report.missing_protections %}
+        <section class="missing-box">
+            <div class="missing-title">
+                <span>⚠️</span> ESSENTIAL MISSING PROTECTIONS (CUAD)
+            </div>
+            <ul class="missing-list">
+                {% for protection in report.missing_protections %}
+                <li>{{ protection }}</li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endif %}
+
+        <!-- Detailed Clauses -->
+        
+        <!-- HIGH Risk -->
+        {% if report.high_risk %}
+        <section>
+            <div class="section-title">🔴 HIGH RISK CLAUSES</div>
+            {% for clause in report.high_risk %}
+            <div class="clause-card risk-high">
+                <div class="card-header">
+                    <div class="clause-title">{{ clause.clause_type }}</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        {% if clause.risk_confidence %}
+                        <span class="pill" style="background: rgba(0,0,0,0.05); color: var(--text-main); text-transform: none;">Confidence: {{ "%.0f"|format(clause.risk_confidence * 100) }}%</span>
+                        {% endif %}
+                        <span class="pill risk-high">High Risk</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if clause.page_no %}
+                    <p style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">Located: Page {{ clause.page_no }}</p>
+                    {% endif %}
+                    
+                    {% if clause.clause_text %}
+                    <div class="quote-box">
+                        <strong>Original Clause Text:</strong>
+                        <blockquote class="clause-quote">"{{ clause.clause_text }}"</blockquote>
+                    </div>
+                    {% endif %}
+                    
+                    <p><strong>Explanation:</strong> {{ clause.explanation }}</p>
+                    <div class="recommendation-box">
+                        <strong>💡 Recommendation:</strong> {{ clause.recommendation }}
+                    </div>
+                    
+                    {% if clause.agent_trace %}
+                    <div class="trace-block">
+                        <strong>Reasoning Trace:</strong> 
+                        {% for step in clause.agent_trace %}
+                        <span>`{{ step.tool }}` ({{ step.result_count }} hits){% if not loop.last %} → {% endif %}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if clause.similar_clauses or clause.cross_references %}
+                    <div class="supporting-references">
+                        <div class="ref-title">📚 Supporting References</div>
+                        {% if clause.similar_clauses %}
+                        <div style="font-size: 0.8rem; font-weight: 700; margin-top: 6px; color: var(--text-main);">Market Precedents:</div>
+                        <ul class="ref-list" style="margin-bottom: 8px;">
+                            {% for s in clause.similar_clauses[:3] %}
+                            <li>
+                                <em>[{{ s.clause_type }}]</em> (Similarity: {{ "%.2f"|format(s.similarity) }}): "{{ s.text[:150] }}..."
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                        
+                        {% if clause.cross_references %}
+                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-main);">Internal References:</div>
+                        <ul class="ref-list">
+                            {% for ref in clause.cross_references[:5] %}
+                            <li>
+                                {% if ref.clause_type is defined %}
+                                {{ ref.clause_type }}
+                                {% else %}
+                                {{ ref }}
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- MEDIUM Risk -->
+        {% if report.medium_risk %}
+        <section>
+            <div class="section-title">🟡 MEDIUM RISK CLAUSES</div>
+            {% for clause in report.medium_risk %}
+            <div class="clause-card risk-medium">
+                <div class="card-header">
+                    <div class="clause-title">{{ clause.clause_type }}</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        {% if clause.risk_confidence %}
+                        <span class="pill" style="background: rgba(0,0,0,0.05); color: var(--text-main); text-transform: none;">Confidence: {{ "%.0f"|format(clause.risk_confidence * 100) }}%</span>
+                        {% endif %}
+                        <span class="pill risk-medium">Medium Risk</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if clause.page_no %}
+                    <p style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">Located: Page {{ clause.page_no }}</p>
+                    {% endif %}
+                    
+                    {% if clause.clause_text %}
+                    <div class="quote-box">
+                        <strong>Original Clause Text:</strong>
+                        <blockquote class="clause-quote">"{{ clause.clause_text }}"</blockquote>
+                    </div>
+                    {% endif %}
+                    
+                    <p><strong>Explanation:</strong> {{ clause.explanation }}</p>
+                    <div class="recommendation-box">
+                        <strong>💡 Recommendation:</strong> {{ clause.recommendation }}
+                    </div>
+                    
+                    {% if clause.agent_trace %}
+                    <div class="trace-block">
+                        <strong>Reasoning Trace:</strong> 
+                        {% for step in clause.agent_trace %}
+                        <span>`{{ step.tool }}` ({{ step.result_count }} hits){% if not loop.last %} → {% endif %}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if clause.similar_clauses or clause.cross_references %}
+                    <div class="supporting-references">
+                        <div class="ref-title">📚 Supporting References</div>
+                        {% if clause.similar_clauses %}
+                        <div style="font-size: 0.8rem; font-weight: 700; margin-top: 6px; color: var(--text-main);">Market Precedents:</div>
+                        <ul class="ref-list" style="margin-bottom: 8px;">
+                            {% for s in clause.similar_clauses[:3] %}
+                            <li>
+                                <em>[{{ s.clause_type }}]</em> (Similarity: {{ "%.2f"|format(s.similarity) }}): "{{ s.text[:150] }}..."
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                        
+                        {% if clause.cross_references %}
+                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-main);">Internal References:</div>
+                        <ul class="ref-list">
+                            {% for ref in clause.cross_references[:5] %}
+                            <li>
+                                {% if ref.clause_type is defined %}
+                                {{ ref.clause_type }}
+                                {% else %}
+                                {{ ref }}
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- LOW Risk -->
+        {% if report.low_risk %}
+        <section>
+            <div class="section-title">🟢 LOW RISK CLAUSES</div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+                {{ report.low_risk_summary }}
+            </p>
+            {% for clause in report.low_risk %}
+            <div class="clause-card risk-low">
+                <div class="card-header">
+                    <div class="clause-title">{{ clause.clause_type }}</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        {% if clause.risk_confidence %}
+                        <span class="pill" style="background: rgba(0,0,0,0.05); color: var(--text-main); text-transform: none;">Confidence: {{ "%.0f"|format(clause.risk_confidence * 100) }}%</span>
+                        {% endif %}
+                        <span class="pill risk-low">Low Risk</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if clause.page_no %}
+                    <p style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">Located: Page {{ clause.page_no }}</p>
+                    {% endif %}
+                    
+                    {% if clause.clause_text %}
+                    <div class="quote-box">
+                        <strong>Original Clause Text:</strong>
+                        <blockquote class="clause-quote">"{{ clause.clause_text }}"</blockquote>
+                    </div>
+                    {% endif %}
+                    
+                    <p><strong>Explanation:</strong> {{ clause.explanation }}</p>
+                    <div class="recommendation-box">
+                        <strong>💡 Recommendation:</strong> {{ clause.recommendation }}
+                    </div>
+                    
+                    {% if clause.agent_trace %}
+                    <div class="trace-block">
+                        <strong>Reasoning Trace:</strong> 
+                        {% for step in clause.agent_trace %}
+                        <span>`{{ step.tool }}` ({{ step.result_count }} hits){% if not loop.last %} → {% endif %}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if clause.similar_clauses or clause.cross_references %}
+                    <div class="supporting-references">
+                        <div class="ref-title">📚 Supporting References</div>
+                        {% if clause.similar_clauses %}
+                        <div style="font-size: 0.8rem; font-weight: 700; margin-top: 6px; color: var(--text-main);">Market Precedents:</div>
+                        <ul class="ref-list" style="margin-bottom: 8px;">
+                            {% for s in clause.similar_clauses[:3] %}
+                            <li>
+                                <em>[{{ s.clause_type }}]</em> (Similarity: {{ "%.2f"|format(s.similarity) }}): "{{ s.text[:150] }}..."
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                        
+                        {% if clause.cross_references %}
+                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-main);">Internal References:</div>
+                        <ul class="ref-list">
+                            {% for ref in clause.cross_references[:5] %}
+                            <li>
+                                {% if ref.clause_type is defined %}
+                                {{ ref.clause_type }}
+                                {% else %}
+                                {{ ref }}
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- Footer -->
+        <footer class="report-footer">
+            <p>Report generated by Antigravity Risk Analyzer. Powered by DeepMind AI Technology.</p>
+        </footer>
+    </div>
+</body>
+</html>

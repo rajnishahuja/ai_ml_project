@@ -29,14 +29,17 @@ EMBEDDING_DIM = 384
 
 # Lazy-loaded singletons — loaded once on first query_index() call.
 _model: SentenceTransformer | None = None
-_faiss_cache: dict[str, tuple] = {}   # index_path → (faiss.Index, list[dict])
+_faiss_cache: dict[str, tuple] = {}  # index_path → (faiss.Index, list[dict])
 
 
 def _get_model() -> SentenceTransformer:
     global _model
     if _model is None:
         logger.info("Loading embedding model: %s", MODEL_NAME)
-        _model = SentenceTransformer(MODEL_NAME)
+        try:
+            _model = SentenceTransformer(MODEL_NAME, local_files_only=True)
+        except Exception:
+            _model = SentenceTransformer(MODEL_NAME)
     return _model
 
 
@@ -60,8 +63,10 @@ def _meta_path(index_path: str) -> Path:
 # Build (offline, run once)
 # ---------------------------------------------------------------------------
 
-def build_index(training_data_path: str, index_path: str,
-                splits_path: str | None = None) -> None:
+
+def build_index(
+    training_data_path: str, index_path: str, splits_path: str | None = None
+) -> None:
     """Embed labeled clauses from training_dataset.json and write FAISS index.
 
     Only indexes the train split when splits_path is provided — prevents test
@@ -99,15 +104,20 @@ def build_index(training_data_path: str, index_path: str,
         {
             "clause_text": r["clause_text"],
             "clause_type": r["clause_type"],
-            "risk_level":  r["label"],
+            "risk_level": r["label"],
         }
         for r in rows
     ]
 
     logger.info("Encoding %d clauses with %s ...", len(texts), MODEL_NAME)
     model = _get_model()
-    vectors = model.encode(texts, batch_size=64, show_progress_bar=True,
-                           convert_to_numpy=True, normalize_embeddings=True)
+    vectors = model.encode(
+        texts,
+        batch_size=64,
+        show_progress_bar=True,
+        convert_to_numpy=True,
+        normalize_embeddings=True,
+    )
     vectors = vectors.astype(np.float32)
 
     logger.info("Building FAISS IndexFlatIP (dim=%d) ...", EMBEDDING_DIM)
@@ -128,6 +138,7 @@ def build_index(training_data_path: str, index_path: str,
 # Query (runtime, called per clause)
 # ---------------------------------------------------------------------------
 
+
 def query_index(clause_text: str, index_path: str, k: int = 5) -> list[SimilarClause]:
     """Retrieve the top-k most similar clauses from the FAISS index.
 
@@ -140,8 +151,9 @@ def query_index(clause_text: str, index_path: str, k: int = 5) -> list[SimilarCl
         List of SimilarClause ordered by descending similarity.
     """
     model = _get_model()
-    vector = model.encode([clause_text], convert_to_numpy=True,
-                          normalize_embeddings=True).astype(np.float32)
+    vector = model.encode(
+        [clause_text], convert_to_numpy=True, normalize_embeddings=True
+    ).astype(np.float32)
 
     index, metadata = _get_index(index_path)
     k = min(k, index.ntotal)
@@ -152,10 +164,12 @@ def query_index(clause_text: str, index_path: str, k: int = 5) -> list[SimilarCl
         if idx < 0:
             continue
         m = metadata[idx]
-        results.append(SimilarClause(
-            text=m["clause_text"],
-            clause_type=m["clause_type"],
-            risk_level=m["risk_level"],
-            similarity=float(score),
-        ))
+        results.append(
+            SimilarClause(
+                text=m["clause_text"],
+                clause_type=m["clause_type"],
+                risk_level=m["risk_level"],
+                similarity=float(score),
+            )
+        )
     return results

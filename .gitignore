@@ -19,6 +19,7 @@ pytest.xml
 # Virtual Environments & Package Managers
 # ============================================================
 .venv/
+.env/
 env/
 venv/
 ENV/

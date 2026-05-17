@@ -63,16 +63,16 @@ class ClauseExtractorClassifier:
         self.model = AutoModelForQuestionAnswering.from_pretrained(model_path)
 
         # Architecture-agnostic device detection
+        # Note: We force CPU on macOS because DeBERTa-v3 has a known PyTorch MPS hang bug
+        # during attention/layer-norm forward passes on Apple Silicon.
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
-        elif torch.backends.mps.is_available():
-            self.device = torch.device("mps")
         else:
             self.device = torch.device("cpu")
-
+            
         self.model.to(self.device)
         self.model.eval()
-        logger.info(f"Model loaded on {self.device}")
+        logger.info(f"Model loaded on {self.device} (MPS bypassed for stability)")
 
         self.clause_types = CUAD_CLAUSE_TYPES
         self.question_templates = CUAD_QUESTION_TEMPLATES
@@ -126,7 +126,7 @@ class ClauseExtractorClassifier:
         """
         base_dir = Path(__file__).resolve().parent.parent.parent
         json_path = (
-            base_dir / "data" / "processed" / "docling_outputs" / f"{doc_id}.json"
+            base_dir / "data" / "output" / "final" / doc_id / "stage1_output.json"
         )
 
         default_meta = {"page_no": None, "content_label": None}

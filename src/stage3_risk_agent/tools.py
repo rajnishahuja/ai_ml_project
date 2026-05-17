@@ -32,8 +32,9 @@ def make_precedent_search_tool(index_path: str):
     """
 
     @tool
-    def precedent_search(clause_text: str, k: int = 5,
-                         min_similarity: float = 0.75) -> list[dict]:
+    def precedent_search(
+        clause_text: str, k: int = 5, min_similarity: float = 0.75
+    ) -> list[dict]:
         """Search the labeled clause corpus for clauses similar to the one you are assessing.
 
         Returns only clauses with cosine similarity >= min_similarity (default 0.75),
@@ -54,9 +55,23 @@ def make_precedent_search_tool(index_path: str):
             clause_type, risk_level, similarity score, and clause text.
             Empty list if no clauses meet the similarity threshold.
         """
-        results = query_index(clause_text, index_path, k)
-        filtered = [r for r in results if r.similarity >= min_similarity]
-        return [asdict(r) for r in filtered]
+        import os
+
+        if not os.path.exists(index_path):
+            logger.warning(f"precedent_search: Index not found at {index_path}")
+            return [
+                {
+                    "error": "Precedent search index is currently unavailable. Please perform analysis based on the clause text alone."
+                }
+            ]
+
+        try:
+            results = query_index(clause_text, index_path, k)
+            filtered = [r for r in results if r.similarity >= min_similarity]
+            return [asdict(r) for r in filtered]
+        except Exception as e:
+            logger.error(f"precedent_search error: {e}")
+            return [{"error": f"Search failed: {e}. Proceed with reasoning alone."}]
 
     return precedent_search
 
@@ -137,8 +152,11 @@ def make_contract_search_tool(clauses: list[ClauseObject]):
             for c in clauses
             if c.clause_id != current_clause_id and c.document_id == current.document_id
         ]
-        logger.debug("contract_search: returning %d sibling clauses for doc %s",
-                     len(siblings), current.document_id)
+        logger.debug(
+            "contract_search: returning %d sibling clauses for doc %s",
+            len(siblings),
+            current.document_id,
+        )
         return siblings
 
     return contract_search

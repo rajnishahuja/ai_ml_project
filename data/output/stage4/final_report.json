@@ -1,0 +1,62 @@
+{
+  "document_id": "EmbarkComInc_19991008_S-1A_EX-10.10_6487661_EX-10.10_Co-Branding%20Agreement",
+  "summary": "Here is a concise executive summary:\n\nThis Co-Branding Agreement with EmbarkCom Inc. presents a low overall risk profile, with a score of 0.10 out of 1.00. The two medium-risk clauses, Revenue/Profit Sharing and Minimum Commitment, warrant close attention, as they may expose the signing party to potential financial obligations and contractual penalties. Overall, the agreement's low-risk profile suggests a manageable level of exposure, but careful review of the medium-risk clauses is recommended.",
+  "high_risk": [],
+  "medium_risk": [
+    {
+      "clause_id": "EmbarkComInc_1999100_e94ebe_Revenue/Profit_Shari_0018",
+      "clause_type": "Revenue/Profit Sharing",
+      "risk_level": "MEDIUM",
+      "explanation": "The Revenue/Profit Sharing clause presents a moderate level of risk for Snap Technologies, Inc. (the signing party). Upon execution of the Agreement, Sponsor is obligated to pay Snap the Up-Front Fee as set forth on Exhibit A. This payment is consideration for Snap's development and integration of travel-related content for use on the Co-Branded Pages and/or the Sponsor Web Site. While the clause does not appear to impose any onerous obligations on Snap, it does create a risk that the Up-Front Fee may not be sufficient to compensate Snap for its development efforts. Furthermore, the clause does not provide any mechanism for Snap to recover additional costs or losses incurred in the development process. However, the risk is bounded by the fact that the Up-Front Fee is a fixed amount, and Snap is not exposed to unlimited or uncapped liability. Additionally, the clause does not appear to impose any severe penalties or restrictions on Snap's rights. Overall, the risk level for this clause is MEDIUM, as it creates a meaningful but bounded risk for Snap.",
+      "recommendation": "Ensure calculation methodology is clearly defined and audit rights are included.",
+      "similar_clauses": [],
+      "cross_references": [],
+      "page_no": "3",
+      "agent_trace": [
+        {
+          "tool": "precedent_search",
+          "result_count": 0,
+          "related_clauses": null
+        },
+        {
+          "tool": "precedent_search",
+          "result_count": 0,
+          "related_clauses": null
+        }
+      ]
+    },
+    {
+      "clause_id": "EmbarkComInc_1999100_e94ebe_Minimum_Commitment_0020",
+      "clause_type": "Minimum Commitment",
+      "risk_level": "MEDIUM",
+      "explanation": "The Minimum Commitment clause presents a meaningful but bounded risk for the signing party, Snap Technologies, Inc. The clause requires the Sponsor to ensure that users who connect from the Snap site are at least one click away from any page that mentions a specific topic. This restriction creates a risk for Snap, as it may limit its ability to promote or discuss the topic freely. However, the risk is bounded in that it is a specific and measurable requirement, and Snap can take steps to comply with it. The clause does not appear to create one-sided or unlimited liability, nor does it severely penalize Snap for non-compliance. Therefore, the risk level is classified as MEDIUM.",
+      "recommendation": "Confirm minimum commitment is achievable under conservative demand scenarios. Add a catch-up or roll-forward mechanism.",
+      "similar_clauses": [],
+      "cross_references": [],
+      "page_no": "8",
+      "agent_trace": [
+        {
+          "tool": "precedent_search",
+          "result_count": 0,
+          "related_clauses": null
+        }
+      ]
+    }
+  ],
+  "low_risk_summary": "11 clauses were assessed as low risk and are detailed below.",
+  "missing_protections": [
+    "Audit Rights",
+    "Insurance"
+  ],
+  "overall_risk_score": 0.0962,
+  "total_clauses": 13,
+  "metadata": {
+    "generated_at": "2026-05-16T20:07:52.855467+00:00",
+    "models_used": {
+      "extraction": "Docling + DeBERTa-v3-base",
+      "risk_classification": "Ens-F (DeBERTa-v3-base CE+CORN)",
+      "explanation": "meta-llama/llama-3.1-8b-instruct",
+      "report_summary": "meta-llama/llama-3.1-8b-instruct"
+    }
+  }
+}

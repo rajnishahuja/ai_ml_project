@@ -308,7 +308,7 @@ If you are working on ML inference, `src/stage1_extract_classify/model.py` has b
 - **Persistent:** Deleting `data/faiss_index/` will safely wipe the database; it reconstructs dynamically.
 
 ### Docling Layout-Aware Metadata Propagation
-Because DeBERTa runs on flat string text, spatial context (page, layout) is inherently lost during extraction. `src/stage1_extract_classify/model.py` implements a **heuristic forward-match reverse-lookup** against the raw Docling JSON saved to `data/processed/docling_outputs/{uuid}.json`:
+Because DeBERTa runs on flat string text, spatial context (page, layout) is inherently lost during extraction. `src/stage1_extract_classify/model.py` implements a **heuristic forward-match reverse-lookup** against the raw Docling JSON saved to `data/output/final/{uuid}/docling_output.json`:
 - **`page_no`**: Exact PDF page number (or range like `"4-5"` for multi-page clauses). Uses 1-based page numbering matching Docling's native format.
 - **`content_label`**: Layout element type — `text`, `list_item`, `table`, or `section_header`.
 - **Match Algorithm:** Normalizes both the clause fragment and Docling block text to alphanumeric-only lowercase, then uses forward-only substring matching with an 8-character minimum guard to prevent false positives from short tokens.

@@ -1,0 +1,8 @@
+{
+  "document_id": "CORIOINC_07_20_2000-EX-10.5-LICENSE AND HOSTING AGREEMENT",
+  "stage1_layout_parsing_seconds": 0.0036,
+  "stage2_span_extraction_seconds": 238.3802,
+  "stage3_risk_assessment_seconds": 65.6724,
+  "stage4_report_generation_seconds": 4.165,
+  "total_pipeline_execution_seconds": 308.2214
+}

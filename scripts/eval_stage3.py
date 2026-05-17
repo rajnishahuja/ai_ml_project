@@ -53,8 +53,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-CE_MODEL_PATH   = "models/stage3_risk_deberta_v3_run22_parties/final"
-CORN_MODEL_PATH = "models/stage3_risk_deberta_v3_run23_corn_parties/final"
+CE_MODEL_PATH   = "rajnishahuja/cuad-risk-deberta-ce-parties"
+CORN_MODEL_PATH = "rajnishahuja/cuad-risk-deberta-corn-parties"
 LABELS          = ["LOW", "MEDIUM", "HIGH"]
 
 

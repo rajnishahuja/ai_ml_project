@@ -6,12 +6,15 @@ All stages use these instead of duplicating utility code.
 
 import json
 import logging
+import os
 import string
 from pathlib import Path
 from typing import Any
 
 import yaml
+from dotenv import load_dotenv
 
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -162,10 +165,16 @@ def make_llm(cfg: dict):
 
     # Default: OpenAI-compatible endpoint (llama.cpp, Ollama, OpenAI, Azure …)
     from langchain_openai import ChatOpenAI
+    
+    api_key = cfg.get("agent_api_key", "none")
+    # Fallback to .env if config is a placeholder
+    if api_key in ["none", "ollama", "YOUR_OPENROUTER_API_KEY"] or not api_key:
+        api_key = os.getenv("OPENROUTER_API_KEY", api_key)
+
     return ChatOpenAI(
         model=model,
         base_url=cfg.get("agent_base_url"),
-        api_key=cfg.get("agent_api_key", "none"),
+        api_key=api_key,
         temperature=temperature,
         max_tokens=max_tokens,
     )

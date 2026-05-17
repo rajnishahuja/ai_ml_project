@@ -18,9 +18,12 @@ import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
+import os
+import sqlite3
 
 from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.sqlite import SqliteSaver
 from pydantic import BaseModel, Field
 
 from src.common.schema import AgentTraceEntry, ClauseObject, RiskAssessedClause
@@ -38,12 +41,15 @@ logger = logging.getLogger(__name__)
 
 # Clause types that carry contract metadata — not risk-assessed.
 METADATA_CLAUSE_TYPES = {
-    "Document Name", "Parties", "Agreement Date",
-    "Effective Date", "Expiration Date",
+    "Document Name",
+    "Parties",
+    "Agreement Date",
+    "Effective Date",
+    "Expiration Date",
 }
 
 # Default HF Hub model IDs.
-CE_MODEL_ID   = "rajnishahuja/cuad-risk-deberta-ce-parties"
+CE_MODEL_ID = "rajnishahuja/cuad-risk-deberta-ce-parties"
 CORN_MODEL_ID = "rajnishahuja/cuad-risk-deberta-corn-parties"
 
 # CUAD labeling convention + worked examples — injected into the synthesis prompt
@@ -81,6 +87,7 @@ the State of California without giving effect to conflict of laws principles."
 # Structured output schema
 # ---------------------------------------------------------------------------
 
+
 class RiskAssessment(BaseModel):
     final_label: str = Field(
         description="Risk level for the signing party: LOW, MEDIUM, or HIGH."
@@ -105,6 +112,7 @@ class RiskAssessment(BaseModel):
 # Agent path — runs for every clause
 # ---------------------------------------------------------------------------
 
+
 def _agent_path(
     clause: ClauseObject,
     deberta_result: dict,
@@ -116,6 +124,7 @@ def _agent_path(
     k: int,
     use_contract_search: bool = True,
     free_override: bool = False,
+    checkpointer: Optional[SqliteSaver] = None,
 ) -> RiskAssessedClause:
     precedent_search = make_precedent_search_tool(index_path)
     tools = [precedent_search]
@@ -127,7 +136,8 @@ def _agent_path(
         "roles or cross-clause context could change the assessment — especially for "
         "IP Ownership, License Grant, Affiliate License, and Assignment clause types "
         "where who signed determines the risk direction.\n"
-        if use_contract_search else ""
+        if use_contract_search
+        else ""
     )
 
     if free_override:
@@ -174,30 +184,64 @@ def _agent_path(
         f"  Text:       {clause.clause_text}\n"
     )
 
-    # Don't use response_format= here: langchain-openai ≥ 1.2.0 defaults to
-    # method="json_schema" which llama.cpp rejects with HTTP 400. One explicit
-    # function_calling structured call is made after the ReAct loop instead.
-    agent = create_react_agent(llm, tools, prompt=system_prompt)
-
-    state = agent.invoke(
-        {"messages": [{"role": "user", "content": "Assess the risk level for the clause described above."}]},
-        config={"recursion_limit": max_iterations * 2 + 4},
+    # ------------------------------------------------------------------
+    # NEW: Persistent Agent with Checkpointer
+    # ------------------------------------------------------------------
+    agent = create_react_agent(
+        llm, tools, prompt=system_prompt, checkpointer=checkpointer
     )
 
-    # Build agent trace from ToolMessage entries
+    # Use clause_id as the thread_id for granular persistence
+    thread_id = f"thread_{clause.clause_id}"
+    config = {
+        "configurable": {"thread_id": thread_id},
+        "recursion_limit": max_iterations * 2 + 4,
+    }
+
+    state = agent.invoke(
+        {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Assess the risk level for the clause described above.",
+                }
+            ]
+        },
+        config=config,
+    )
+
+    # Build agent trace and extract evidence (from search tools)
     trace = []
+    similar_clauses = []
+    cross_references = []
+    
     for msg in state["messages"]:
         if isinstance(msg, ToolMessage):
             try:
-                content = json.loads(msg.content) if isinstance(msg.content, str) else msg.content
-                count = len(content) if isinstance(content, list) else None
-            except (json.JSONDecodeError, TypeError):
+                if isinstance(msg.content, str):
+                    import ast
+                    try:
+                        content = ast.literal_eval(msg.content)
+                    except Exception:
+                        content = json.loads(msg.content)
+                else:
+                    content = msg.content
+                
+                count = len(content) if isinstance(content, list) else 0
+                
+                # Capture Precedents (from vector search)
+                if msg.name == "precedent_search" and isinstance(content, list):
+                    similar_clauses.extend(content)
+                
+                # Capture Contract Lookups (sibling clauses)
+                if msg.name == "contract_search" and isinstance(content, list):
+                    cross_references.extend(content)
+                    
+            except Exception:
                 count = None
             trace.append(AgentTraceEntry(tool=msg.name, result_count=count))
 
-    # Extract final reasoning text (last AI message with no tool calls).
-    # A clean single-turn synthesis prompt reliably triggers function_calling fill;
-    # passing the full ReAct history breaks structured output on llama.cpp.
+    # Extract final reasoning text
     agent_conclusion = ""
     for msg in reversed(state["messages"]):
         if isinstance(msg, AIMessage) and msg.content and not getattr(msg, "tool_calls", []):
@@ -207,36 +251,52 @@ def _agent_path(
     synthesis_instruction = (
         "Make the best risk assessment using all available evidence: "
         "DeBERTa's classification, tool evidence gathered, and your own legal reasoning."
-        if free_override else
-        "Produce the final structured risk assessment. "
+        if free_override
+        else "Produce the final structured risk assessment. "
         "If the agent analysis does not provide strong tool-based evidence to "
         "contradict DeBERTa, use DeBERTa's label. "
-        "Important: HIGH-risk clauses are under-represented in the precedent corpus — "
-        "precedent_search returning MEDIUM votes does not constitute strong counter-evidence "
-        "when DeBERTa predicts HIGH. Absence of HIGH precedents is expected, not a signal to downgrade."
+        "Important: HIGH-risk clauses are under-represented in the precedent corpus, "
+        "so if DeBERTa predicts HIGH and tools are split or inconclusive, ALWAYS confirm HIGH."
     )
 
     synthesis_prompt = (
-        _CUAD_CONVENTION
-        + f"Now assess the following clause:\n\n"
+        _CUAD_CONVENTION + f"You are a Senior Legal Analyst. Assess the following clause for the signing party ({signing_party or 'unknown'}):\n\n"
         f"Clause type: {clause.clause_type}\n"
-        f"Parties: {signing_party or 'unknown'}\n"
-        f"Text: {clause.clause_text}\n\n"
-        f"DeBERTa pre-classification: {deberta_result['label']} "
-        f"({deberta_result['confidence']:.0%} confidence)\n\n"
-        f"Agent analysis:\n{agent_conclusion}\n\n"
-        f"{synthesis_instruction}"
+        f"Full Text: {clause.clause_text}\n\n"
+        f"Internal findings (Do not cite these directly):\n"
+        f"- Research results: {agent_conclusion}\n\n"
+        f"INSTRUCTION: {synthesis_instruction}"
     )
-    result: RiskAssessment = llm.with_structured_output(
-        RiskAssessment, method="function_calling"
-    ).invoke(synthesis_prompt)
+
+    try:
+        result: RiskAssessment = llm.with_structured_output(RiskAssessment).invoke(synthesis_prompt)
+    except Exception:
+        # Attempt fallback if primary fails
+        try:
+            fallback_prompt = synthesis_prompt + "\n\nCRITICAL: Respond ONLY with a valid JSON object matching the schema."
+            result = llm.with_structured_output(RiskAssessment, method="json_mode").invoke(fallback_prompt)
+        except Exception:
+            result = None
 
     if result is None:
-        logger.warning("agent_path: structured output returned None, falling back to DeBERTa label")
         result = RiskAssessment(
             final_label=deberta_result["label"],
-            explanation="(LLM structured output failed — DeBERTa label used as fallback)",
+            explanation=f"Analysis: {agent_conclusion[:200]}...",
         )
+
+    # OLD REPO RETURN (Commented out):
+    # return RiskAssessedClause(
+    #     clause_id=clause.clause_id,
+    #     document_id=clause.document_id,
+    #     clause_text=clause.clause_text,
+    #     clause_type=clause.clause_type,
+    #     risk_level=result.final_label,
+    #     risk_explanation=result.explanation,
+    #     similar_clauses=[],
+    #     cross_references=[],
+    #     confidence=deberta_result["confidence"],
+    #     agent_trace=trace,
+    # )
 
     return RiskAssessedClause(
         clause_id=clause.clause_id,
@@ -245,16 +305,25 @@ def _agent_path(
         clause_type=clause.clause_type,
         risk_level=result.final_label,
         risk_explanation=result.explanation,
-        similar_clauses=[],
-        cross_references=[],
+        similar_clauses=similar_clauses,
+        cross_references=cross_references,
         confidence=deberta_result["confidence"],
+        extraction_confidence=clause.confidence,
+        extractor_confidence=clause.extractor_confidence,
+        extraction_confidence_logit=getattr(clause, "confidence_logit", None),
+        content_label=getattr(clause, "content_label", None),
         agent_trace=trace,
+        page_no=clause.page_no,
+        start_pos=clause.start_pos,
+        end_pos=clause.end_pos,
+        metadata={"content_label": getattr(clause, "content_label", None)}
     )
 
 
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
+
 
 def assess_clauses(
     clauses: list[ClauseObject],
@@ -265,6 +334,7 @@ def assess_clauses(
     skip_ids: Optional[set] = None,
     checkpoint_file: Optional[str] = None,
     free_override: bool = False,
+    persist_db_path: str = "data/checkpoints/agent_state.db",
 ) -> list[RiskAssessedClause]:
     """Assess risk for all risk-relevant clauses from a single contract.
 
@@ -276,16 +346,17 @@ def assess_clauses(
         use_contract_search:  If False, agent uses precedent_search only.
         skip_ids:             Clause IDs to skip (already processed in a prior run).
         checkpoint_file:      Path to JSONL file; each result is appended immediately.
+        persist_db_path:      Path to SQLite database for LangGraph checkpointing.
 
     Returns:
         List of RiskAssessedClause — one per risk-relevant clause.
     """
     cfg = load_config(config_path)
 
-    index_path   = cfg["faiss_index_path"]
-    k            = cfg["similarity_top_k_low_conf"]
-    max_iter     = cfg["agent_max_iterations"]
-    num_workers  = cfg.get("agent_num_workers", 1)
+    index_path = cfg["faiss_index_path"]
+    k = cfg["similarity_top_k_low_conf"]
+    max_iter = cfg["agent_max_iterations"]
+    num_workers = cfg.get("agent_num_workers", 1)
 
     llm = make_llm(cfg)
 
@@ -297,19 +368,29 @@ def assess_clauses(
 
     doc_ids = {c.document_id for c in clauses}
     signing_parties = {
-        doc_id: extract_signing_party(doc_id, clauses)
-        for doc_id in doc_ids
+        doc_id: extract_signing_party(doc_id, clauses) for doc_id in doc_ids
     }
 
-    _skip        = skip_ids or set()
+    _skip = skip_ids or set()
     risk_clauses = [c for c in clauses if c.clause_type not in METADATA_CLAUSE_TYPES]
     skipped_meta = len(clauses) - len(risk_clauses)
     skipped_done = sum(1 for c in risk_clauses if c.clause_id in _skip)
-    pending      = [c for c in risk_clauses if c.clause_id not in _skip]
+    pending = [c for c in risk_clauses if c.clause_id not in _skip]
     logger.info(
         "Assessing %d clauses (%d metadata skipped, %d already done)",
-        len(pending), skipped_meta, skipped_done,
+        len(pending),
+        skipped_meta,
+        skipped_done,
     )
+
+    # ------------------------------------------------------------------
+    # NEW: Initialize Persistent Checkpointer
+    # ------------------------------------------------------------------
+    os.makedirs(os.path.dirname(persist_db_path), exist_ok=True)
+    import sqlite3
+
+    conn = sqlite3.connect(persist_db_path, check_same_thread=False)
+    checkpointer = SqliteSaver(conn)
 
     # ------------------------------------------------------------------
     # Phase 1 — DeBERTa batch (sequential: GPU inference is not thread-safe)
@@ -332,15 +413,18 @@ def assess_clauses(
     # With num_workers == llama.cpp -np slot count, calls run truly in parallel.
     # With num_workers == 1 (default), behaviour is identical to the old loop.
     # ------------------------------------------------------------------
-    ckpt_fh   = open(checkpoint_file, "a") if checkpoint_file else None
+    ckpt_fh = open(checkpoint_file, "a") if checkpoint_file else None
     ckpt_lock = threading.Lock() if (num_workers > 1 and ckpt_fh) else None
 
     def _assess_one(idx: int, clause: ClauseObject) -> tuple[int, RiskAssessedClause]:
         deberta_result, signing_party = deberta_cache[clause.clause_id]
         logger.info(
             "[%d/%d] %s | DeBERTa=%s (%.2f) → agent (worker %s)",
-            idx + 1, len(pending), clause.clause_type,
-            deberta_result["label"], deberta_result["confidence"],
+            idx + 1,
+            len(pending),
+            clause.clause_type,
+            deberta_result["label"],
+            deberta_result["confidence"],
             threading.current_thread().name,
         )
         assessed = _agent_path(
@@ -354,17 +438,27 @@ def assess_clauses(
             k=k,
             use_contract_search=use_contract_search,
             free_override=free_override,
+            checkpointer=checkpointer,
         )
         if ckpt_fh:
-            entry = json.dumps({
-                "clause_id":   assessed.clause_id,
-                "clause_type": assessed.clause_type,
-                "risk_level":  assessed.risk_level,
-                "confidence":  assessed.confidence,
-                "agent_trace": [{"tool": t.tool, "result_count": t.result_count}
-                                for t in assessed.agent_trace],
-                "explanation": assessed.risk_explanation,
-            }) + "\n"
+            entry = (
+                json.dumps(
+                    {
+                        "clause_id": assessed.clause_id,
+                        "clause_type": assessed.clause_type,
+                        "risk_level": assessed.risk_level,
+                        "confidence": assessed.confidence,
+                        "agent_trace": [
+                            {"tool": t.tool, "result_count": t.result_count}
+                            for t in assessed.agent_trace
+                        ],
+                        "explanation": assessed.risk_explanation,
+                        "similar_clauses": assessed.similar_clauses,
+                        "cross_references": assessed.cross_references,
+                    }
+                )
+                + "\n"
+            )
             if ckpt_lock:
                 with ckpt_lock:
                     ckpt_fh.write(entry)
@@ -382,14 +476,20 @@ def assess_clauses(
             results[idx] = assessed
     else:
         logger.info("Parallel agent mode: %d workers", num_workers)
-        with ThreadPoolExecutor(max_workers=num_workers, thread_name_prefix="agent") as pool:
-            futures = {pool.submit(_assess_one, idx, clause): idx
-                       for idx, clause in enumerate(pending)}
+        with ThreadPoolExecutor(
+            max_workers=num_workers, thread_name_prefix="agent"
+        ) as pool:
+            futures = {
+                pool.submit(_assess_one, idx, clause): idx
+                for idx, clause in enumerate(pending)
+            }
             for future in as_completed(futures):
                 idx, assessed = future.result()
                 results[idx] = assessed
 
     if ckpt_fh:
         ckpt_fh.close()
+
+    conn.close()
 
     return [r for r in results if r is not None]

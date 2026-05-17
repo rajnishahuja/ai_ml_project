@@ -1,0 +1,326 @@
+/* 
+   Legal Risk Analyzer - Pastel Light Color Palette & Theme
+   Provides an elegant, clean, and highly readable look for legal risk reports.
+   Designed for web viewing and optimal print-to-PDF output.
+*/
+
+:root {
+    --bg-primary: #F8F9FA;
+    --bg-card: #FFFFFF;
+    --text-main: #2C3E50;
+    --text-muted: #5A6B7C;
+    --border-color: #E2E8F0;
+    
+    /* Beautiful Pastel Risk Colors */
+    --risk-high-bg: #FFF5F5;
+    --risk-high-border: #FEB2B2;
+    --risk-high-text: #C53030;
+    --risk-high-pill: #FED7D7;
+    
+    --risk-medium-bg: #FFFDF0;
+    --risk-medium-border: #FEEBC8;
+    --risk-medium-text: #C05621;
+    --risk-medium-pill: #FEEBC8;
+    
+    --risk-low-bg: #F0FDF4;
+    --risk-low-border: #BBF7D0;
+    --risk-low-text: #166534;
+    --risk-low-pill: #DCFCE7;
+    
+    --accent-blue-bg: #EBF8FF;
+    --accent-blue-border: #BEE3F8;
+    --accent-blue-text: #2B6CB0;
+    
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    margin: 0;
+    padding: 40px 20px;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Header Area */
+.report-header {
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+}
+
+.report-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.report-title-row h1 {
+    font-size: 2.25rem;
+    font-weight: 800;
+    margin: 0;
+    color: #1A202C;
+    letter-spacing: -0.025em;
+}
+
+.score-badge {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 12px 24px;
+    text-align: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.score-num {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.score-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+
+.metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+    font-size: 0.875rem;
+}
+
+.metadata-item strong {
+    color: var(--text-muted);
+}
+
+/* Executive Summary Block */
+.summary-section {
+    background-color: var(--bg-card);
+    border-radius: 16px;
+    padding: 30px;
+    margin-bottom: 40px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.summary-section h2 {
+    font-size: 1.5rem;
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: #1A202C;
+}
+
+/* Risk Categories */
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 40px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #1A202C;
+}
+
+/* Clause Card Design */
+.clause-card {
+    background-color: var(--bg-card);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+    page-break-inside: avoid;
+}
+
+.clause-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+}
+
+.clause-card.risk-high {
+    border-left: 6px solid var(--risk-high-border);
+}
+
+.clause-card.risk-medium {
+    border-left: 6px solid var(--risk-medium-border);
+}
+
+.clause-card.risk-low {
+    border-left: 6px solid var(--risk-low-border);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.clause-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1A202C;
+}
+
+.pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.pill.risk-high {
+    background-color: var(--risk-high-pill);
+    color: var(--risk-high-text);
+}
+
+.pill.risk-medium {
+    background-color: var(--risk-medium-pill);
+    color: var(--risk-medium-text);
+}
+
+.pill.risk-low {
+    background-color: var(--risk-low-pill);
+    color: var(--risk-low-text);
+}
+
+.card-body p {
+    margin: 8px 0;
+}
+
+.recommendation-box {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.risk-high .recommendation-box {
+    background-color: var(--risk-high-bg);
+    border: 1px solid var(--risk-high-border);
+    color: var(--risk-high-text);
+}
+
+.risk-medium .recommendation-box {
+    background-color: var(--risk-medium-bg);
+    border: 1px solid var(--risk-medium-border);
+    color: var(--risk-medium-text);
+}
+
+.risk-low .recommendation-box {
+    background-color: var(--risk-low-bg);
+    border: 1px solid var(--risk-low-border);
+    color: var(--risk-low-text);
+}
+
+/* Reference Lists & Trace */
+.trace-block {
+    margin-top: 12px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.supporting-references {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.ref-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 8px;
+}
+
+.ref-list {
+    list-style-type: none;
+    padding-left: 0;
+    margin: 0;
+    font-size: 0.8rem;
+}
+
+.ref-list li {
+    padding: 4px 0;
+    color: var(--text-muted);
+}
+
+/* Missing Protections Style */
+.missing-box {
+    background-color: #FFF5F5;
+    border: 1px solid #FEB2B2;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 40px;
+}
+
+.missing-title {
+    font-weight: 700;
+    color: #9B2C2C;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.missing-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #9B2C2C;
+    font-size: 0.9rem;
+}
+
+/* Quote block for original clause text */
+.quote-box {
+    margin-top: 12px;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    background-color: #F8F9FA;
+    border-left: 4px solid var(--text-muted);
+    border-radius: 4px;
+}
+
+.clause-quote {
+    margin: 0;
+    font-size: 0.88rem;
+    font-style: italic;
+    color: var(--text-main);
+    line-height: 1.5;
+}
+
+/* Footer info */
+.report-footer {
+    text-align: center;
+    margin-top: 60px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* Print Optimization */
+@media print {
+    body {
+        background-color: #FFFFFF;
+        padding: 0;
+    }
+    .clause-card {
+        box-shadow: none;
+        border: 1px solid #CBD5E0;
+    }
+}

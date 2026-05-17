@@ -1,0 +1,1223 @@
+[
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_Minimum_Commitment_0020",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "During the Term of this Agreement, Premier shall be required to purchase a Minimum Annual Order Volume ('MAOV') of [***] ('Units') for each twelve-month period commencing July 1, 2017, and for the six-month period commencing July 1, 2022 and ending December 31, 2022, Premier will be required to purchase [***] Units (the twelve-month periods and the six month period are each a 'Contract Period').",
+    "clause_type": "Minimum Commitment",
+    "risk_level": "LOW",
+    "risk_explanation": "The clause imposes a Minimum Annual Order Volume (MAOV) obligation on Premier Nutrition Corporation as the buyer, requiring specified purchases during defined Contract Periods within the Agreement's Term. While this creates a commercial commitment, the obligation is quantified, time-limited, and not indefinite. The precedent search returns one highly similar clause (similarity 0.953) with a confirmed MEDIUM risk rating, providing strong supporting evidence. However, the contract context confirms that Premier is not transferring IP, bearing uncapped liability, or waiving termination rights. Additionally, Premier retains the right to source similar products from other co-packers (per the Non-Compete clause), indicating balance in the arrangement. The DeBERTa pre-classification of HIGH (41% confidence) is contradicted by strong precedent and contextual evidence. Given that the risk is bounded, reciprocal in nature (as the counterparty likely has corresponding supply obligations), and consistent with standard commercial terms, the clause does not meet the threshold for HIGH risk. The risk is meaningful but limited and not one-sided. Therefore, the final assessment is LOW.",
+    "similar_clauses": [
+      {
+        "text": "During the Term of this Agreement, Premier shall be required to purchase a Minimum Annual Order Volume (\"MAOV\") of [***] (\"Units\") for the twelve-month period commencing July 1, 2018 and ending June 30, 2019.",
+        "clause_type": "Minimum Commitment",
+        "risk_level": "MEDIUM",
+        "similarity": 0.952667772769928
+      }
+    ],
+    "cross_references": [
+      {
+        "clause_type": "Document Name",
+        "clause_text": "MANUFACTURING AGREEMENT"
+      },
+      {
+        "clause_type": "Agreement Date",
+        "clause_text": "first day of July, 2017"
+      },
+      {
+        "clause_type": "Parties",
+        "clause_text": "PREMIER NUTRITION CORPORATION"
+      },
+      {
+        "clause_type": "Expiration Date",
+        "clause_text": "The term of this Agreement will commence on the Commencement Date and will continue through December 31, 2022 or until this Agreement is otherwise terminated in accordance with its provisions ('Term')."
+      },
+      {
+        "clause_type": "Price Restrictions",
+        "clause_text": "However, if (i) any increase or decrease in Unit volume under a particular PO is greater than [***] of the initial PO quantity and (ii) Premier requests such change or cancellation within the [***] period prior to the Due Date (or Production Date, as applicable) (the '[***] Period'), Heritage in its sole discretion, may charge Premier [***]."
+      },
+      {
+        "clause_type": "Audit Rights",
+        "clause_text": "Premier, shall have the right, directly or through its representative, to inspect, copy, and audit all such records upon reasonable request and during normal business hours, acknowledging that access to accounting and purchasing records will be limited to those supporting pass-through materials costs and purchases of Premier specified equipment if any."
+      },
+      {
+        "clause_type": "Warranty Duration",
+        "clause_text": "store finished Products at no cost to Premier for a period not to exceed [***] from the date of Heritage's issuance of a Certificate of Analysis ('COA')."
+      },
+      {
+        "clause_type": "License Grant",
+        "clause_text": "Premier represents and warrants that it owns or otherwise has the right to use all trademarks (the 'Trademarks') and copyrighted material (the 'Copyrights') provided by Premier to Heritage, which are provided solely for use in connection with the manufacture or packaging of the Products."
+      },
+      {
+        "clause_type": "Indemnification",
+        "clause_text": "In addition, Premier shall indemnify, defend and hold Heritage harmless from and against"
+      },
+      {
+        "clause_type": "Insurance",
+        "clause_text": "Heritage and Jasper shall maintain insurance of the following kinds and in the following amounts during the Term of this Agreement:\n\n- i. Commercial General Liability Insurance with a limit of $[***] each occurrence and $[***] in the aggregate, including Contractual, Completed-Operations and Product-Liability Coverage"
+      },
+      {
+        "clause_type": "Covenant Not To Sue",
+        "clause_text": "Such Party shall, to the extent allowed or permitted by the applicable judicial action, governmental regulation or investigation or other requirements, promptly notify the Party that furnished the Confidential Information prior to any such disclosure, and reasonably cooperate (at the request and expense of the furnishing Party) with the furnishing Party to contest or limit such disclosure."
+      },
+      {
+        "clause_type": "Renewal Term",
+        "clause_text": "This Agreement shall commence on the Effective Date and shall terminate automatically without notice on December 31, 2022, unless the Parties agree in writing to extend the term of the Agreement (the initial term and any renewal terms are referred to collectively herein as the 'Term')."
+      },
+      {
+        "clause_type": "Post-Termination Services",
+        "clause_text": "So long as Premier has satisfied its payment obligations to Heritage pursuant to Section 3, upon termination or expiration of this Agreement, any releasable Product in Heritage's possession shall be promptly delivered to Premier within [***]."
+      },
+      {
+        "clause_type": "Governing Law",
+        "clause_text": "All matters relating to this Agreement, the rights of the Parties hereunder and the construction of the terms hereof shall be governed by the laws of the State of California, without regard to conflicts of laws principles."
+      },
+      {
+        "clause_type": "Anti-Assignment",
+        "clause_text": "This Agreement is not assignable or transferable by either Party, in whole or in part, without the prior written consent of the other Party\u037e provided, however that Premier may assign this Agreement in the event that Premier is sold, merged into or with another entity, or undergoes a 'change in control'."
+      },
+      {
+        "clause_type": "Non-Compete",
+        "clause_text": "Premier reserves the right to buy Products or similar product from other co-packers, manufacturers, or third-parties."
+      }
+    ],
+    "confidence": 0.4072,
+    "extraction_confidence": 0.999,
+    "extraction_confidence_logit": 13.9074,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 1,
+        "related_clauses": null
+      },
+      {
+        "tool": "contract_search",
+        "result_count": 16,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "2",
+    "start_pos": 3698,
+    "end_pos": 4097,
+    "metadata": {
+      "content_label": "text"
+    }
+  },
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_Price_Restrictions_0019",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "However, if (i) any increase or decrease in Unit volume under a particular PO is greater than [***] of the initial PO quantity and (ii) Premier requests such change or cancellation within the [***] period prior to the Due Date (or Production Date, as applicable) (the '[***] Period'), Heritage in its sole discretion, may charge Premier [***].",
+    "clause_type": "Price Restrictions",
+    "risk_level": "HIGH",
+    "risk_explanation": "The clause imposes significant, one-sided financial risk on the signing party, PREMIER NUTRITION CORPORATION. It allows Heritage, the counterparty, to unilaterally charge Premier fees for any volume change (increase or decrease) exceeding a threshold, *if* Premier requests the change or cancellation within a narrow window prior to the Due Date or Production Date. Crucially, Heritage exercises this right in its 'sole discretion'\u2014meaning Premier has no control over whether a fee is imposed, no right to challenge the charge, and no assurance of fairness or reasonableness. The fee amount is unspecified ([***]), indicating uncapped liability. Furthermore, the clause places the burden of risk squarely on Premier, even though the request for change originates from Premier\u2019s operational needs. There are no reciprocal obligations or safeguards for Premier, and no precedent in the corpus supports this as a standard or balanced term. DeBERTa\u2019s HIGH risk classification (71% confidence) is consistent with the clause\u2019s structure and impact. Given the absence of precedent matches and the clear asymmetry in risk allocation, the clause meets the definition of HIGH risk: one-sided, uncapped liability, and no procedural protections for the signing party.",
+    "similar_clauses": [],
+    "cross_references": [
+      {
+        "clause_type": "Document Name",
+        "clause_text": "MANUFACTURING AGREEMENT"
+      },
+      {
+        "clause_type": "Agreement Date",
+        "clause_text": "first day of July, 2017"
+      },
+      {
+        "clause_type": "Parties",
+        "clause_text": "PREMIER NUTRITION CORPORATION"
+      },
+      {
+        "clause_type": "Expiration Date",
+        "clause_text": "The term of this Agreement will commence on the Commencement Date and will continue through December 31, 2022 or until this Agreement is otherwise terminated in accordance with its provisions ('Term')."
+      },
+      {
+        "clause_type": "Minimum Commitment",
+        "clause_text": "During the Term of this Agreement, Premier shall be required to purchase a Minimum Annual Order Volume ('MAOV') of [***] ('Units') for each twelve-month period commencing July 1, 2017, and for the six-month period commencing July 1, 2022 and ending December 31, 2022, Premier will be required to purchase [***] Units (the twelve-month periods and the six month period are each a 'Contract Period')."
+      },
+      {
+        "clause_type": "Audit Rights",
+        "clause_text": "Premier, shall have the right, directly or through its representative, to inspect, copy, and audit all such records upon reasonable request and during normal business hours, acknowledging that access to accounting and purchasing records will be limited to those supporting pass-through materials costs and purchases of Premier specified equipment if any."
+      },
+      {
+        "clause_type": "Warranty Duration",
+        "clause_text": "store finished Products at no cost to Premier for a period not to exceed [***] from the date of Heritage's issuance of a Certificate of Analysis ('COA')."
+      },
+      {
+        "clause_type": "License Grant",
+        "clause_text": "Premier represents and warrants that it owns or otherwise has the right to use all trademarks (the 'Trademarks') and copyrighted material (the 'Copyrights') provided by Premier to Heritage, which are provided solely for use in connection with the manufacture or packaging of the Products."
+      },
+      {
+        "clause_type": "Indemnification",
+        "clause_text": "In addition, Premier shall indemnify, defend and hold Heritage harmless from and against"
+      },
+      {
+        "clause_type": "Insurance",
+        "clause_text": "Heritage and Jasper shall maintain insurance of the following kinds and in the following amounts during the Term of this Agreement:\n\n- i. Commercial General Liability Insurance with a limit of $[***] each occurrence and $[***] in the aggregate, including Contractual, Completed-Operations and Product-Liability Coverage"
+      },
+      {
+        "clause_type": "Covenant Not To Sue",
+        "clause_text": "Such Party shall, to the extent allowed or permitted by the applicable judicial action, governmental regulation or investigation or other requirements, promptly notify the Party that furnished the Confidential Information prior to any such disclosure, and reasonably cooperate (at the request and expense of the furnishing Party) with the furnishing Party to contest or limit such disclosure."
+      },
+      {
+        "clause_type": "Renewal Term",
+        "clause_text": "This Agreement shall commence on the Effective Date and shall terminate automatically without notice on December 31, 2022, unless the Parties agree in writing to extend the term of the Agreement (the initial term and any renewal terms are referred to collectively herein as the 'Term')."
+      },
+      {
+        "clause_type": "Post-Termination Services",
+        "clause_text": "So long as Premier has satisfied its payment obligations to Heritage pursuant to Section 3, upon termination or expiration of this Agreement, any releasable Product in Heritage's possession shall be promptly delivered to Premier within [***]."
+      },
+      {
+        "clause_type": "Governing Law",
+        "clause_text": "All matters relating to this Agreement, the rights of the Parties hereunder and the construction of the terms hereof shall be governed by the laws of the State of California, without regard to conflicts of laws principles."
+      },
+      {
+        "clause_type": "Anti-Assignment",
+        "clause_text": "This Agreement is not assignable or transferable by either Party, in whole or in part, without the prior written consent of the other Party\u037e provided, however that Premier may assign this Agreement in the event that Premier is sold, merged into or with another entity, or undergoes a 'change in control'."
+      },
+      {
+        "clause_type": "Non-Compete",
+        "clause_text": "Premier reserves the right to buy Products or similar product from other co-packers, manufacturers, or third-parties."
+      }
+    ],
+    "confidence": 0.7063,
+    "extraction_confidence": 0.9665,
+    "extraction_confidence_logit": 6.7233,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 0,
+        "related_clauses": null
+      },
+      {
+        "tool": "contract_search",
+        "result_count": 16,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "3",
+    "start_pos": 8913,
+    "end_pos": 9257,
+    "metadata": {
+      "content_label": "text"
+    }
+  },
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_Audit_Rights_0032",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "Premier, shall have the right, directly or through its representative, to inspect, copy, and audit all such records upon reasonable request and during normal business hours, acknowledging that access to accounting and purchasing records will be limited to those supporting pass-through materials costs and purchases of Premier specified equipment if any.",
+    "clause_type": "Audit Rights",
+    "risk_level": "LOW",
+    "risk_explanation": "The clause grants Premier Nutrition Corporation the right to inspect, copy, and audit records related solely to pass-through materials costs and purchases of Premier-specified equipment, with access limited to normal business hours and upon reasonable request. The scope is narrow and targeted, consistent with standard audit rights in manufacturing agreements. Precedent search confirms 5 similar clauses, all classified as LOW risk, with no indication of imbalance or adverse impact. Contract context confirms Premier is the buyer/manufacturer, and the audit right supports cost verification and compliance without imposing burdens or exposing Premier to liability, IP loss, or termination risk. The clause is balanced, standard, and net-positive for the signing party.",
+    "similar_clauses": [],
+    "cross_references": [
+      {
+        "clause_type": "Document Name",
+        "clause_text": "MANUFACTURING AGREEMENT"
+      },
+      {
+        "clause_type": "Agreement Date",
+        "clause_text": "first day of July, 2017"
+      },
+      {
+        "clause_type": "Parties",
+        "clause_text": "PREMIER NUTRITION CORPORATION"
+      },
+      {
+        "clause_type": "Expiration Date",
+        "clause_text": "The term of this Agreement will commence on the Commencement Date and will continue through December 31, 2022 or until this Agreement is otherwise terminated in accordance with its provisions ('Term')."
+      },
+      {
+        "clause_type": "Minimum Commitment",
+        "clause_text": "During the Term of this Agreement, Premier shall be required to purchase a Minimum Annual Order Volume ('MAOV') of [***] ('Units') for each twelve-month period commencing July 1, 2017, and for the six-month period commencing July 1, 2022 and ending December 31, 2022, Premier will be required to purchase [***] Units (the twelve-month periods and the six month period are each a 'Contract Period')."
+      },
+      {
+        "clause_type": "Price Restrictions",
+        "clause_text": "However, if (i) any increase or decrease in Unit volume under a particular PO is greater than [***] of the initial PO quantity and (ii) Premier requests such change or cancellation within the [***] period prior to the Due Date (or Production Date, as applicable) (the '[***] Period'), Heritage in its sole discretion, may charge Premier [***]."
+      },
+      {
+        "clause_type": "Warranty Duration",
+        "clause_text": "store finished Products at no cost to Premier for a period not to exceed [***] from the date of Heritage's issuance of a Certificate of Analysis ('COA')."
+      },
+      {
+        "clause_type": "License Grant",
+        "clause_text": "Premier represents and warrants that it owns or otherwise has the right to use all trademarks (the 'Trademarks') and copyrighted material (the 'Copyrights') provided by Premier to Heritage, which are provided solely for use in connection with the manufacture or packaging of the Products."
+      },
+      {
+        "clause_type": "Indemnification",
+        "clause_text": "In addition, Premier shall indemnify, defend and hold Heritage harmless from and against"
+      },
+      {
+        "clause_type": "Insurance",
+        "clause_text": "Heritage and Jasper shall maintain insurance of the following kinds and in the following amounts during the Term of this Agreement:\n\n- i. Commercial General Liability Insurance with a limit of $[***] each occurrence and $[***] in the aggregate, including Contractual, Completed-Operations and Product-Liability Coverage"
+      },
+      {
+        "clause_type": "Covenant Not To Sue",
+        "clause_text": "Such Party shall, to the extent allowed or permitted by the applicable judicial action, governmental regulation or investigation or other requirements, promptly notify the Party that furnished the Confidential Information prior to any such disclosure, and reasonably cooperate (at the request and expense of the furnishing Party) with the furnishing Party to contest or limit such disclosure."
+      },
+      {
+        "clause_type": "Renewal Term",
+        "clause_text": "This Agreement shall commence on the Effective Date and shall terminate automatically without notice on December 31, 2022, unless the Parties agree in writing to extend the term of the Agreement (the initial term and any renewal terms are referred to collectively herein as the 'Term')."
+      },
+      {
+        "clause_type": "Post-Termination Services",
+        "clause_text": "So long as Premier has satisfied its payment obligations to Heritage pursuant to Section 3, upon termination or expiration of this Agreement, any releasable Product in Heritage's possession shall be promptly delivered to Premier within [***]."
+      },
+      {
+        "clause_type": "Governing Law",
+        "clause_text": "All matters relating to this Agreement, the rights of the Parties hereunder and the construction of the terms hereof shall be governed by the laws of the State of California, without regard to conflicts of laws principles."
+      },
+      {
+        "clause_type": "Anti-Assignment",
+        "clause_text": "This Agreement is not assignable or transferable by either Party, in whole or in part, without the prior written consent of the other Party\u037e provided, however that Premier may assign this Agreement in the event that Premier is sold, merged into or with another entity, or undergoes a 'change in control'."
+      },
+      {
+        "clause_type": "Non-Compete",
+        "clause_text": "Premier reserves the right to buy Products or similar product from other co-packers, manufacturers, or third-parties."
+      }
+    ],
+    "confidence": 0.68,
+    "extraction_confidence": 0.9991,
+    "extraction_confidence_logit": 14.0948,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 0,
+        "related_clauses": null
+      },
+      {
+        "tool": "contract_search",
+        "result_count": 16,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "5",
+    "start_pos": 16524,
+    "end_pos": 16879,
+    "metadata": {
+      "content_label": "text"
+    }
+  },
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_Warranty_Duration_0036",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "store finished Products at no cost to Premier for a period not to exceed [***] from the date of Heritage's issuance of a Certificate of Analysis ('COA').",
+    "clause_type": "Warranty Duration",
+    "risk_level": "LOW",
+    "risk_explanation": "The clause requires Heritage to store finished products at no cost to Premier Nutrition Corporation for a period not to exceed [***] days from the date of Heritage's issuance of a Certificate of Analysis (COA). From Premier's perspective, this is a net-positive obligation: it receives free storage of its finished products, which are owned by Premier (confirmed by post-termination delivery rights and lack of IP transfer to Heritage). The duration is capped and time-limited, with no open-ended or unlimited exposure. There are no reciprocal obligations or liabilities imposed on Premier. The clause is consistent with standard manufacturing and supply arrangements where the brand owner (Premier) retains control over its products and benefits from logistical support from the manufacturer (Heritage). No precedent matches were found, but DeBERTa pre-classified the clause as LOW risk (48% confidence), and contract context strongly supports this assessment. No evidence of asymmetry, one-sided risk, or adverse terms. Therefore, the clause is balanced and favorable to Premier, warranting a LOW risk rating.",
+    "similar_clauses": [],
+    "cross_references": [
+      {
+        "clause_type": "Document Name",
+        "clause_text": "MANUFACTURING AGREEMENT"
+      },
+      {
+        "clause_type": "Agreement Date",
+        "clause_text": "first day of July, 2017"
+      },
+      {
+        "clause_type": "Parties",
+        "clause_text": "PREMIER NUTRITION CORPORATION"
+      },
+      {
+        "clause_type": "Expiration Date",
+        "clause_text": "The term of this Agreement will commence on the Commencement Date and will continue through December 31, 2022 or until this Agreement is otherwise terminated in accordance with its provisions ('Term')."
+      },
+      {
+        "clause_type": "Minimum Commitment",
+        "clause_text": "During the Term of this Agreement, Premier shall be required to purchase a Minimum Annual Order Volume ('MAOV') of [***] ('Units') for each twelve-month period commencing July 1, 2017, and for the six-month period commencing July 1, 2022 and ending December 31, 2022, Premier will be required to purchase [***] Units (the twelve-month periods and the six month period are each a 'Contract Period')."
+      },
+      {
+        "clause_type": "Price Restrictions",
+        "clause_text": "However, if (i) any increase or decrease in Unit volume under a particular PO is greater than [***] of the initial PO quantity and (ii) Premier requests such change or cancellation within the [***] period prior to the Due Date (or Production Date, as applicable) (the '[***] Period'), Heritage in its sole discretion, may charge Premier [***]."
+      },
+      {
+        "clause_type": "Audit Rights",
+        "clause_text": "Premier, shall have the right, directly or through its representative, to inspect, copy, and audit all such records upon reasonable request and during normal business hours, acknowledging that access to accounting and purchasing records will be limited to those supporting pass-through materials costs and purchases of Premier specified equipment if any."
+      },
+      {
+        "clause_type": "License Grant",
+        "clause_text": "Premier represents and warrants that it owns or otherwise has the right to use all trademarks (the 'Trademarks') and copyrighted material (the 'Copyrights') provided by Premier to Heritage, which are provided solely for use in connection with the manufacture or packaging of the Products."
+      },
+      {
+        "clause_type": "Indemnification",
+        "clause_text": "In addition, Premier shall indemnify, defend and hold Heritage harmless from and against"
+      },
+      {
+        "clause_type": "Insurance",
+        "clause_text": "Heritage and Jasper shall maintain insurance of the following kinds and in the following amounts during the Term of this Agreement:\n\n- i. Commercial General Liability Insurance with a limit of $[***] each occurrence and $[***] in the aggregate, including Contractual, Completed-Operations and Product-Liability Coverage"
+      },
+      {
+        "clause_type": "Covenant Not To Sue",
+        "clause_text": "Such Party shall, to the extent allowed or permitted by the applicable judicial action, governmental regulation or investigation or other requirements, promptly notify the Party that furnished the Confidential Information prior to any such disclosure, and reasonably cooperate (at the request and expense of the furnishing Party) with the furnishing Party to contest or limit such disclosure."
+      },
+      {
+        "clause_type": "Renewal Term",
+        "clause_text": "This Agreement shall commence on the Effective Date and shall terminate automatically without notice on December 31, 2022, unless the Parties agree in writing to extend the term of the Agreement (the initial term and any renewal terms are referred to collectively herein as the 'Term')."
+      },
+      {
+        "clause_type": "Post-Termination Services",
+        "clause_text": "So long as Premier has satisfied its payment obligations to Heritage pursuant to Section 3, upon termination or expiration of this Agreement, any releasable Product in Heritage's possession shall be promptly delivered to Premier within [***]."
+      },
+      {
+        "clause_type": "Governing Law",
+        "clause_text": "All matters relating to this Agreement, the rights of the Parties hereunder and the construction of the terms hereof shall be governed by the laws of the State of California, without regard to conflicts of laws principles."
+      },
+      {
+        "clause_type": "Anti-Assignment",
+        "clause_text": "This Agreement is not assignable or transferable by either Party, in whole or in part, without the prior written consent of the other Party\u037e provided, however that Premier may assign this Agreement in the event that Premier is sold, merged into or with another entity, or undergoes a 'change in control'."
+      },
+      {
+        "clause_type": "Non-Compete",
+        "clause_text": "Premier reserves the right to buy Products or similar product from other co-packers, manufacturers, or third-parties."
+      }
+    ],
+    "confidence": 0.4828,
+    "extraction_confidence": 0.8252,
+    "extraction_confidence_logit": 3.1041,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 0,
+        "related_clauses": null
+      },
+      {
+        "tool": "contract_search",
+        "result_count": 16,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "5",
+    "start_pos": 17150,
+    "end_pos": 17304,
+    "metadata": {
+      "content_label": "text"
+    }
+  },
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_License_Grant_0024",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "Premier represents and warrants that it owns or otherwise has the right to use all trademarks (the 'Trademarks') and copyrighted material (the 'Copyrights') provided by Premier to Heritage, which are provided solely for use in connection with the manufacture or packaging of the Products.",
+    "clause_type": "License Grant",
+    "risk_level": "LOW",
+    "risk_explanation": "The clause is a standard License Grant representation from the perspective of Premier Nutrition Corporation, which is the licensor. Premier warrants that it owns or has the right to use the Trademarks and Copyrights provided to Heritage for the limited purpose of manufacturing and packaging the Products. The clause does not transfer ownership, grant exclusive rights, or impose uncapped liability. The use is strictly confined to a defined, non-transferable purpose, consistent with typical manufacturing agreements. Precedent search (5/5 matches, all LOW risk) and contract context confirm this is a standard, balanced clause with no asymmetry or adverse terms for Premier. No tool-based evidence contradicts DeBERTa\u2019s initial LOW risk assessment.",
+    "similar_clauses": [],
+    "cross_references": [
+      {
+        "clause_type": "Document Name",
+        "clause_text": "MANUFACTURING AGREEMENT"
+      },
+      {
+        "clause_type": "Agreement Date",
+        "clause_text": "first day of July, 2017"
+      },
+      {
+        "clause_type": "Parties",
+        "clause_text": "PREMIER NUTRITION CORPORATION"
+      },
+      {
+        "clause_type": "Expiration Date",
+        "clause_text": "The term of this Agreement will commence on the Commencement Date and will continue through December 31, 2022 or until this Agreement is otherwise terminated in accordance with its provisions ('Term')."
+      },
+      {
+        "clause_type": "Minimum Commitment",
+        "clause_text": "During the Term of this Agreement, Premier shall be required to purchase a Minimum Annual Order Volume ('MAOV') of [***] ('Units') for each twelve-month period commencing July 1, 2017, and for the six-month period commencing July 1, 2022 and ending December 31, 2022, Premier will be required to purchase [***] Units (the twelve-month periods and the six month period are each a 'Contract Period')."
+      },
+      {
+        "clause_type": "Price Restrictions",
+        "clause_text": "However, if (i) any increase or decrease in Unit volume under a particular PO is greater than [***] of the initial PO quantity and (ii) Premier requests such change or cancellation within the [***] period prior to the Due Date (or Production Date, as applicable) (the '[***] Period'), Heritage in its sole discretion, may charge Premier [***]."
+      },
+      {
+        "clause_type": "Audit Rights",
+        "clause_text": "Premier, shall have the right, directly or through its representative, to inspect, copy, and audit all such records upon reasonable request and during normal business hours, acknowledging that access to accounting and purchasing records will be limited to those supporting pass-through materials costs and purchases of Premier specified equipment if any."
+      },
+      {
+        "clause_type": "Warranty Duration",
+        "clause_text": "store finished Products at no cost to Premier for a period not to exceed [***] from the date of Heritage's issuance of a Certificate of Analysis ('COA')."
+      },
+      {
+        "clause_type": "Indemnification",
+        "clause_text": "In addition, Premier shall indemnify, defend and hold Heritage harmless from and against"
+      },
+      {
+        "clause_type": "Insurance",
+        "clause_text": "Heritage and Jasper shall maintain insurance of the following kinds and in the following amounts during the Term of this Agreement:\n\n- i. Commercial General Liability Insurance with a limit of $[***] each occurrence and $[***] in the aggregate, including Contractual, Completed-Operations and Product-Liability Coverage"
+      },
+      {
+        "clause_type": "Covenant Not To Sue",
+        "clause_text": "Such Party shall, to the extent allowed or permitted by the applicable judicial action, governmental regulation or investigation or other requirements, promptly notify the Party that furnished the Confidential Information prior to any such disclosure, and reasonably cooperate (at the request and expense of the furnishing Party) with the furnishing Party to contest or limit such disclosure."
+      },
+      {
+        "clause_type": "Renewal Term",
+        "clause_text": "This Agreement shall commence on the Effective Date and shall terminate automatically without notice on December 31, 2022, unless the Parties agree in writing to extend the term of the Agreement (the initial term and any renewal terms are referred to collectively herein as the 'Term')."
+      },
+      {
+        "clause_type": "Post-Termination Services",
+        "clause_text": "So long as Premier has satisfied its payment obligations to Heritage pursuant to Section 3, upon termination or expiration of this Agreement, any releasable Product in Heritage's possession shall be promptly delivered to Premier within [***]."
+      },
+      {
+        "clause_type": "Governing Law",
+        "clause_text": "All matters relating to this Agreement, the rights of the Parties hereunder and the construction of the terms hereof shall be governed by the laws of the State of California, without regard to conflicts of laws principles."
+      },
+      {
+        "clause_type": "Anti-Assignment",
+        "clause_text": "This Agreement is not assignable or transferable by either Party, in whole or in part, without the prior written consent of the other Party\u037e provided, however that Premier may assign this Agreement in the event that Premier is sold, merged into or with another entity, or undergoes a 'change in control'."
+      },
+      {
+        "clause_type": "Non-Compete",
+        "clause_text": "Premier reserves the right to buy Products or similar product from other co-packers, manufacturers, or third-parties."
+      }
+    ],
+    "confidence": 0.8507,
+    "extraction_confidence": 0.8484,
+    "extraction_confidence_logit": 3.444,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 0,
+        "related_clauses": null
+      },
+      {
+        "tool": "contract_search",
+        "result_count": 16,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "6-4",
+    "start_pos": 19031,
+    "end_pos": 19319,
+    "metadata": {
+      "content_label": "text"
+    }
+  },
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_Indemnification_0040",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "In addition, Premier shall indemnify, defend and hold Heritage harmless from and against",
+    "clause_type": "Indemnification",
+    "risk_level": "HIGH",
+    "risk_explanation": "The clause imposes a one-sided indemnification obligation on Premier Nutrition Corporation, requiring it to indemnify, defend, and hold Heritage harmless from and against claims. This obligation is broad in scope and lacks any reciprocal protection for Premier. Key risk factors include: (1) no cap on liability, (2) absence of any indemnity obligation from Heritage to Premier, (3) Premier\u2019s lack of unilateral termination rights, and (4) the clause\u2019s placement within a manufacturing agreement where the manufacturer (Heritage) is typically protected from third-party claims arising from the client\u2019s product or materials. The precedent search confirms 5 similar clauses, all classified as HIGH risk, with full consensus. Contract context reinforces the imbalance: no mutual indemnity, no liability caps, and limited exit options for Premier. Given the one-sided nature, uncapped exposure, and lack of countervailing protections, this constitutes a significant disadvantage to the signing party.",
+    "similar_clauses": [],
+    "cross_references": [
+      {
+        "clause_type": "Document Name",
+        "clause_text": "MANUFACTURING AGREEMENT"
+      },
+      {
+        "clause_type": "Agreement Date",
+        "clause_text": "first day of July, 2017"
+      },
+      {
+        "clause_type": "Parties",
+        "clause_text": "PREMIER NUTRITION CORPORATION"
+      },
+      {
+        "clause_type": "Expiration Date",
+        "clause_text": "The term of this Agreement will commence on the Commencement Date and will continue through December 31, 2022 or until this Agreement is otherwise terminated in accordance with its provisions ('Term')."
+      },
+      {
+        "clause_type": "Minimum Commitment",
+        "clause_text": "During the Term of this Agreement, Premier shall be required to purchase a Minimum Annual Order Volume ('MAOV') of [***] ('Units') for each twelve-month period commencing July 1, 2017, and for the six-month period commencing July 1, 2022 and ending December 31, 2022, Premier will be required to purchase [***] Units (the twelve-month periods and the six month period are each a 'Contract Period')."
+      },
+      {
+        "clause_type": "Price Restrictions",
+        "clause_text": "However, if (i) any increase or decrease in Unit volume under a particular PO is greater than [***] of the initial PO quantity and (ii) Premier requests such change or cancellation within the [***] period prior to the Due Date (or Production Date, as applicable) (the '[***] Period'), Heritage in its sole discretion, may charge Premier [***]."
+      },
+      {
+        "clause_type": "Audit Rights",
+        "clause_text": "Premier, shall have the right, directly or through its representative, to inspect, copy, and audit all such records upon reasonable request and during normal business hours, acknowledging that access to accounting and purchasing records will be limited to those supporting pass-through materials costs and purchases of Premier specified equipment if any."
+      },
+      {
+        "clause_type": "Warranty Duration",
+        "clause_text": "store finished Products at no cost to Premier for a period not to exceed [***] from the date of Heritage's issuance of a Certificate of Analysis ('COA')."
+      },
+      {
+        "clause_type": "License Grant",
+        "clause_text": "Premier represents and warrants that it owns or otherwise has the right to use all trademarks (the 'Trademarks') and copyrighted material (the 'Copyrights') provided by Premier to Heritage, which are provided solely for use in connection with the manufacture or packaging of the Products."
+      },
+      {
+        "clause_type": "Insurance",
+        "clause_text": "Heritage and Jasper shall maintain insurance of the following kinds and in the following amounts during the Term of this Agreement:\n\n- i. Commercial General Liability Insurance with a limit of $[***] each occurrence and $[***] in the aggregate, including Contractual, Completed-Operations and Product-Liability Coverage"
+      },
+      {
+        "clause_type": "Covenant Not To Sue",
+        "clause_text": "Such Party shall, to the extent allowed or permitted by the applicable judicial action, governmental regulation or investigation or other requirements, promptly notify the Party that furnished the Confidential Information prior to any such disclosure, and reasonably cooperate (at the request and expense of the furnishing Party) with the furnishing Party to contest or limit such disclosure."
+      },
+      {
+        "clause_type": "Renewal Term",
+        "clause_text": "This Agreement shall commence on the Effective Date and shall terminate automatically without notice on December 31, 2022, unless the Parties agree in writing to extend the term of the Agreement (the initial term and any renewal terms are referred to collectively herein as the 'Term')."
+      },
+      {
+        "clause_type": "Post-Termination Services",
+        "clause_text": "So long as Premier has satisfied its payment obligations to Heritage pursuant to Section 3, upon termination or expiration of this Agreement, any releasable Product in Heritage's possession shall be promptly delivered to Premier within [***]."
+      },
+      {
+        "clause_type": "Governing Law",
+        "clause_text": "All matters relating to this Agreement, the rights of the Parties hereunder and the construction of the terms hereof shall be governed by the laws of the State of California, without regard to conflicts of laws principles."
+      },
+      {
+        "clause_type": "Anti-Assignment",
+        "clause_text": "This Agreement is not assignable or transferable by either Party, in whole or in part, without the prior written consent of the other Party\u037e provided, however that Premier may assign this Agreement in the event that Premier is sold, merged into or with another entity, or undergoes a 'change in control'."
+      },
+      {
+        "clause_type": "Non-Compete",
+        "clause_text": "Premier reserves the right to buy Products or similar product from other co-packers, manufacturers, or third-parties."
+      }
+    ],
+    "confidence": 0.7462,
+    "extraction_confidence": 0.9959,
+    "extraction_confidence_logit": 10.9619,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 0,
+        "related_clauses": null
+      },
+      {
+        "tool": "contract_search",
+        "result_count": 16,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "7",
+    "start_pos": 21872,
+    "end_pos": 21961,
+    "metadata": {
+      "content_label": "text"
+    }
+  },
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_Insurance_0037",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "Heritage and Jasper shall maintain insurance of the following kinds and in the following amounts during the Term of this Agreement:\n\n- i. Commercial General Liability Insurance with a limit of $[***] each occurrence and $[***] in the aggregate, including Contractual, Completed-Operations and Product-Liability Coverage",
+    "clause_type": "Insurance",
+    "risk_level": "LOW",
+    "risk_explanation": "The clause requires Heritage and Jasper (the service providers) to maintain commercial general liability insurance during the term of the agreement, with specified coverage limits. From the perspective of the signing party, PREMIER NUTRITION CORPORATION (the buyer/recipient of services), this clause imposes no direct obligation, liability, or risk. Instead, it serves as a protective mechanism by ensuring that the service providers carry insurance, thereby mitigating potential third-party claims that could otherwise expose Premier to financial or legal exposure. The obligation is one-sided in favor of Premier, and the clause is standard in manufacturing and service agreements. There is no asymmetry, no uncapped liability, no IP transfer, and no termination or penalty risk for Premier. The clause is balanced and net-positive for the signing party.",
+    "similar_clauses": [],
+    "cross_references": [
+      {
+        "clause_type": "Document Name",
+        "clause_text": "MANUFACTURING AGREEMENT"
+      },
+      {
+        "clause_type": "Agreement Date",
+        "clause_text": "first day of July, 2017"
+      },
+      {
+        "clause_type": "Parties",
+        "clause_text": "PREMIER NUTRITION CORPORATION"
+      },
+      {
+        "clause_type": "Expiration Date",
+        "clause_text": "The term of this Agreement will commence on the Commencement Date and will continue through December 31, 2022 or until this Agreement is otherwise terminated in accordance with its provisions ('Term')."
+      },
+      {
+        "clause_type": "Minimum Commitment",
+        "clause_text": "During the Term of this Agreement, Premier shall be required to purchase a Minimum Annual Order Volume ('MAOV') of [***] ('Units') for each twelve-month period commencing July 1, 2017, and for the six-month period commencing July 1, 2022 and ending December 31, 2022, Premier will be required to purchase [***] Units (the twelve-month periods and the six month period are each a 'Contract Period')."
+      },
+      {
+        "clause_type": "Price Restrictions",
+        "clause_text": "However, if (i) any increase or decrease in Unit volume under a particular PO is greater than [***] of the initial PO quantity and (ii) Premier requests such change or cancellation within the [***] period prior to the Due Date (or Production Date, as applicable) (the '[***] Period'), Heritage in its sole discretion, may charge Premier [***]."
+      },
+      {
+        "clause_type": "Audit Rights",
+        "clause_text": "Premier, shall have the right, directly or through its representative, to inspect, copy, and audit all such records upon reasonable request and during normal business hours, acknowledging that access to accounting and purchasing records will be limited to those supporting pass-through materials costs and purchases of Premier specified equipment if any."
+      },
+      {
+        "clause_type": "Warranty Duration",
+        "clause_text": "store finished Products at no cost to Premier for a period not to exceed [***] from the date of Heritage's issuance of a Certificate of Analysis ('COA')."
+      },
+      {
+        "clause_type": "License Grant",
+        "clause_text": "Premier represents and warrants that it owns or otherwise has the right to use all trademarks (the 'Trademarks') and copyrighted material (the 'Copyrights') provided by Premier to Heritage, which are provided solely for use in connection with the manufacture or packaging of the Products."
+      },
+      {
+        "clause_type": "Indemnification",
+        "clause_text": "In addition, Premier shall indemnify, defend and hold Heritage harmless from and against"
+      },
+      {
+        "clause_type": "Covenant Not To Sue",
+        "clause_text": "Such Party shall, to the extent allowed or permitted by the applicable judicial action, governmental regulation or investigation or other requirements, promptly notify the Party that furnished the Confidential Information prior to any such disclosure, and reasonably cooperate (at the request and expense of the furnishing Party) with the furnishing Party to contest or limit such disclosure."
+      },
+      {
+        "clause_type": "Renewal Term",
+        "clause_text": "This Agreement shall commence on the Effective Date and shall terminate automatically without notice on December 31, 2022, unless the Parties agree in writing to extend the term of the Agreement (the initial term and any renewal terms are referred to collectively herein as the 'Term')."
+      },
+      {
+        "clause_type": "Post-Termination Services",
+        "clause_text": "So long as Premier has satisfied its payment obligations to Heritage pursuant to Section 3, upon termination or expiration of this Agreement, any releasable Product in Heritage's possession shall be promptly delivered to Premier within [***]."
+      },
+      {
+        "clause_type": "Governing Law",
+        "clause_text": "All matters relating to this Agreement, the rights of the Parties hereunder and the construction of the terms hereof shall be governed by the laws of the State of California, without regard to conflicts of laws principles."
+      },
+      {
+        "clause_type": "Anti-Assignment",
+        "clause_text": "This Agreement is not assignable or transferable by either Party, in whole or in part, without the prior written consent of the other Party\u037e provided, however that Premier may assign this Agreement in the event that Premier is sold, merged into or with another entity, or undergoes a 'change in control'."
+      },
+      {
+        "clause_type": "Non-Compete",
+        "clause_text": "Premier reserves the right to buy Products or similar product from other co-packers, manufacturers, or third-parties."
+      }
+    ],
+    "confidence": 0.4829,
+    "extraction_confidence": 0.9981,
+    "extraction_confidence_logit": 12.4806,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 0,
+        "related_clauses": null
+      },
+      {
+        "tool": "contract_search",
+        "result_count": 16,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "7",
+    "start_pos": 24309,
+    "end_pos": 24629,
+    "metadata": {
+      "content_label": "text"
+    }
+  },
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_Covenant_Not_To_Sue_0038",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "Such Party shall, to the extent allowed or permitted by the applicable judicial action, governmental regulation or investigation or other requirements, promptly notify the Party that furnished the Confidential Information prior to any such disclosure, and reasonably cooperate (at the request and expense of the furnishing Party) with the furnishing Party to contest or limit such disclosure.",
+    "clause_type": "Covenant Not To Sue",
+    "risk_level": "LOW",
+    "risk_explanation": "The clause is a Covenant Not To Sue with a cooperation obligation triggered by third-party disclosure requests (e.g., subpoenas, regulatory demands). From the perspective of PREMIER NUTRITION CORPORATION, which is the furnisher of Confidential Information (e.g., formulations, trademarks, branding), the obligation requires: (1) prompt notification to Heritage (the recipient) prior to any disclosure, and (2) reasonable cooperation\u2014on request and at Heritage\u2019s expense\u2014to contest or limit such disclosure. The obligation is conditional ('to the extent allowed or permitted') and imposes no financial or operational burden on Premier, as cooperation is at the requesting party\u2019s expense. Precedent analysis confirms 5 similar clauses across manufacturing and IP agreements, all labeled LOW risk, with consistent terms and balanced structure. Contract context confirms Premier is the IP owner and furnisher, and the clause applies reciprocally in spirit\u2014though not explicitly mutual, the burden is minimal and standard. No one-sided IP transfer, uncapped liability, or termination waiver exists. The clause aligns with industry norms for handling disclosure requests in confidentiality agreements.",
+    "similar_clauses": [],
+    "cross_references": [
+      {
+        "clause_type": "Document Name",
+        "clause_text": "MANUFACTURING AGREEMENT"
+      },
+      {
+        "clause_type": "Agreement Date",
+        "clause_text": "first day of July, 2017"
+      },
+      {
+        "clause_type": "Parties",
+        "clause_text": "PREMIER NUTRITION CORPORATION"
+      },
+      {
+        "clause_type": "Expiration Date",
+        "clause_text": "The term of this Agreement will commence on the Commencement Date and will continue through December 31, 2022 or until this Agreement is otherwise terminated in accordance with its provisions ('Term')."
+      },
+      {
+        "clause_type": "Minimum Commitment",
+        "clause_text": "During the Term of this Agreement, Premier shall be required to purchase a Minimum Annual Order Volume ('MAOV') of [***] ('Units') for each twelve-month period commencing July 1, 2017, and for the six-month period commencing July 1, 2022 and ending December 31, 2022, Premier will be required to purchase [***] Units (the twelve-month periods and the six month period are each a 'Contract Period')."
+      },
+      {
+        "clause_type": "Price Restrictions",
+        "clause_text": "However, if (i) any increase or decrease in Unit volume under a particular PO is greater than [***] of the initial PO quantity and (ii) Premier requests such change or cancellation within the [***] period prior to the Due Date (or Production Date, as applicable) (the '[***] Period'), Heritage in its sole discretion, may charge Premier [***]."
+      },
+      {
+        "clause_type": "Audit Rights",
+        "clause_text": "Premier, shall have the right, directly or through its representative, to inspect, copy, and audit all such records upon reasonable request and during normal business hours, acknowledging that access to accounting and purchasing records will be limited to those supporting pass-through materials costs and purchases of Premier specified equipment if any."
+      },
+      {
+        "clause_type": "Warranty Duration",
+        "clause_text": "store finished Products at no cost to Premier for a period not to exceed [***] from the date of Heritage's issuance of a Certificate of Analysis ('COA')."
+      },
+      {
+        "clause_type": "License Grant",
+        "clause_text": "Premier represents and warrants that it owns or otherwise has the right to use all trademarks (the 'Trademarks') and copyrighted material (the 'Copyrights') provided by Premier to Heritage, which are provided solely for use in connection with the manufacture or packaging of the Products."
+      },
+      {
+        "clause_type": "Indemnification",
+        "clause_text": "In addition, Premier shall indemnify, defend and hold Heritage harmless from and against"
+      },
+      {
+        "clause_type": "Insurance",
+        "clause_text": "Heritage and Jasper shall maintain insurance of the following kinds and in the following amounts during the Term of this Agreement:\n\n- i. Commercial General Liability Insurance with a limit of $[***] each occurrence and $[***] in the aggregate, including Contractual, Completed-Operations and Product-Liability Coverage"
+      },
+      {
+        "clause_type": "Renewal Term",
+        "clause_text": "This Agreement shall commence on the Effective Date and shall terminate automatically without notice on December 31, 2022, unless the Parties agree in writing to extend the term of the Agreement (the initial term and any renewal terms are referred to collectively herein as the 'Term')."
+      },
+      {
+        "clause_type": "Post-Termination Services",
+        "clause_text": "So long as Premier has satisfied its payment obligations to Heritage pursuant to Section 3, upon termination or expiration of this Agreement, any releasable Product in Heritage's possession shall be promptly delivered to Premier within [***]."
+      },
+      {
+        "clause_type": "Governing Law",
+        "clause_text": "All matters relating to this Agreement, the rights of the Parties hereunder and the construction of the terms hereof shall be governed by the laws of the State of California, without regard to conflicts of laws principles."
+      },
+      {
+        "clause_type": "Anti-Assignment",
+        "clause_text": "This Agreement is not assignable or transferable by either Party, in whole or in part, without the prior written consent of the other Party\u037e provided, however that Premier may assign this Agreement in the event that Premier is sold, merged into or with another entity, or undergoes a 'change in control'."
+      },
+      {
+        "clause_type": "Non-Compete",
+        "clause_text": "Premier reserves the right to buy Products or similar product from other co-packers, manufacturers, or third-parties."
+      }
+    ],
+    "confidence": 0.6932,
+    "extraction_confidence": 0.9758,
+    "extraction_confidence_logit": 7.393,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 0,
+        "related_clauses": null
+      },
+      {
+        "tool": "contract_search",
+        "result_count": 16,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "8",
+    "start_pos": 28662,
+    "end_pos": 29055,
+    "metadata": {
+      "content_label": "text"
+    }
+  },
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_Renewal_Term_0005",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "This Agreement shall commence on the Effective Date and shall terminate automatically without notice on December 31, 2022, unless the Parties agree in writing to extend the term of the Agreement (the initial term and any renewal terms are referred to collectively herein as the 'Term').",
+    "clause_type": "Renewal Term",
+    "risk_level": "LOW",
+    "risk_explanation": "The clause establishes a clear, finite term ending on December 31, 2022, with automatic termination unless both parties agree in writing to extend. This structure is standard and balanced: it provides certainty of termination, avoids open-ended obligations, and requires mutual consent for renewal\u2014protecting the signing party (PREMIER NUTRITION CORPORATION) from unintended or unilateral extensions. The precedent search confirms that 4 out of 5 similar clauses are classified as LOW risk, all sharing the same core features: fixed end date, automatic termination, and mutual written agreement for renewal. The single HIGH-risk precedent differs materially by allowing indefinite renewal unless terminated under specific conditions\u2014this does not apply here. Although DeBERTa initially classified the clause as MEDIUM (57% confidence), the precedent evidence is strong, consistent, and directly supportive of a LOW risk assessment. No conflicting evidence overrides this consensus. Therefore, the clause is assessed as LOW risk.",
+    "similar_clauses": [
+      {
+        "text": "If this Agreement is renewed for the First Additional Term, then the First Additional Term shall commence on July 23, 2016, and the Agreement shall expire and terminate automatically without further notice on July 22, 2019.",
+        "clause_type": "Renewal Term",
+        "risk_level": "LOW",
+        "similarity": 0.9055806398391724
+      },
+      {
+        "text": "The term of this Agreement shall be for one (1) year commencing on the Effective Date and automatically renewing annually thereafter, unless either party provides a thirty-day notice of written termination one to the other (\"Term\").",
+        "clause_type": "Renewal Term",
+        "risk_level": "LOW",
+        "similarity": 0.8594129085540771
+      },
+      {
+        "text": "The term of this Agreement shall be for one (1) year commencing on the Effective Date and automatically renewing annually thereafter, unless either party provides a thirty-day notice of written termination one to the other (\"Term\").",
+        "clause_type": "Notice Period To Terminate Renewal",
+        "risk_level": "LOW",
+        "similarity": 0.8594129085540771
+      },
+      {
+        "text": "The initial term of this Agreement shall           commence on the Effective Date and extend for three (3) years           thereafter (\"INITIAL TERM\"), with an automatic renewal for an           indefinite period of time (\"EXTENDED TERM\"), unless terminated by the           parties according to Sections 16.2. or 16.3. herein.",
+        "clause_type": "Renewal Term",
+        "risk_level": "HIGH",
+        "similarity": 0.8541808128356934
+      },
+      {
+        "text": "The term of this Agreement is three years from and including the date of this Agreement (the \"Initial Term\"), with automatic renewal for additional successive one-year terms (each a \"Renewal Term\" and together wit the Initial Term, the \"Term\") unless no later than [* * *] days prior to the end of the Initial Term, or any Renewal Term either party notifies the other that it wishes to terminate this Agreement effective the end of the Initial Term or that Renewal Term, as applicable.",
+        "clause_type": "Notice Period To Terminate Renewal",
+        "risk_level": "MEDIUM",
+        "similarity": 0.8539368510246277
+      }
+    ],
+    "cross_references": [],
+    "confidence": 0.5682,
+    "extraction_confidence": 0.8867,
+    "extraction_confidence_logit": 4.114,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 5,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "9",
+    "start_pos": 30703,
+    "end_pos": 30990,
+    "metadata": {
+      "content_label": "text"
+    }
+  },
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_Post-Termination_Ser_0031",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "So long as Premier has satisfied its payment obligations to Heritage pursuant to Section 3, upon termination or expiration of this Agreement, any releasable Product in Heritage's possession shall be promptly delivered to Premier within [***].",
+    "clause_type": "Post-Termination Services",
+    "risk_level": "LOW",
+    "risk_explanation": "The clause requires Heritage to deliver any releasable Product in its possession to Premier Nutrition Corporation upon termination or expiration of the Agreement, provided Premier has satisfied its payment obligations under Section 3. This obligation is time-bound (delivery within [***]) and conditional on Premier\u2019s performance, specifically payment compliance. The clause is symmetric in structure to standard post-termination delivery terms observed in 5 similar precedent clauses from manufacturing and supply agreements, all of which were assessed as LOW risk. These precedents uniformly reflect balanced, industry-standard terms where the receiving party (here, Premier) is entitled to retrieval of its products upon fulfilling its financial obligations. No one-sided burdens, uncapped liabilities, or irreversible IP transfers are present. The conditionality on payment performance protects Heritage from delivering products without compensation, and the timeframe ensures prompt delivery. No asymmetry or adverse terms favoring Heritage are evident. Given the strong consensus across precedent (5/5 LOW), and no conflicting evidence from tool-based analysis, the risk level remains consistent with standard practice.",
+    "similar_clauses": [],
+    "cross_references": [
+      {
+        "clause_type": "Document Name",
+        "clause_text": "MANUFACTURING AGREEMENT"
+      },
+      {
+        "clause_type": "Agreement Date",
+        "clause_text": "first day of July, 2017"
+      },
+      {
+        "clause_type": "Parties",
+        "clause_text": "PREMIER NUTRITION CORPORATION"
+      },
+      {
+        "clause_type": "Expiration Date",
+        "clause_text": "The term of this Agreement will commence on the Commencement Date and will continue through December 31, 2022 or until this Agreement is otherwise terminated in accordance with its provisions ('Term')."
+      },
+      {
+        "clause_type": "Minimum Commitment",
+        "clause_text": "During the Term of this Agreement, Premier shall be required to purchase a Minimum Annual Order Volume ('MAOV') of [***] ('Units') for each twelve-month period commencing July 1, 2017, and for the six-month period commencing July 1, 2022 and ending December 31, 2022, Premier will be required to purchase [***] Units (the twelve-month periods and the six month period are each a 'Contract Period')."
+      },
+      {
+        "clause_type": "Price Restrictions",
+        "clause_text": "However, if (i) any increase or decrease in Unit volume under a particular PO is greater than [***] of the initial PO quantity and (ii) Premier requests such change or cancellation within the [***] period prior to the Due Date (or Production Date, as applicable) (the '[***] Period'), Heritage in its sole discretion, may charge Premier [***]."
+      },
+      {
+        "clause_type": "Audit Rights",
+        "clause_text": "Premier, shall have the right, directly or through its representative, to inspect, copy, and audit all such records upon reasonable request and during normal business hours, acknowledging that access to accounting and purchasing records will be limited to those supporting pass-through materials costs and purchases of Premier specified equipment if any."
+      },
+      {
+        "clause_type": "Warranty Duration",
+        "clause_text": "store finished Products at no cost to Premier for a period not to exceed [***] from the date of Heritage's issuance of a Certificate of Analysis ('COA')."
+      },
+      {
+        "clause_type": "License Grant",
+        "clause_text": "Premier represents and warrants that it owns or otherwise has the right to use all trademarks (the 'Trademarks') and copyrighted material (the 'Copyrights') provided by Premier to Heritage, which are provided solely for use in connection with the manufacture or packaging of the Products."
+      },
+      {
+        "clause_type": "Indemnification",
+        "clause_text": "In addition, Premier shall indemnify, defend and hold Heritage harmless from and against"
+      },
+      {
+        "clause_type": "Insurance",
+        "clause_text": "Heritage and Jasper shall maintain insurance of the following kinds and in the following amounts during the Term of this Agreement:\n\n- i. Commercial General Liability Insurance with a limit of $[***] each occurrence and $[***] in the aggregate, including Contractual, Completed-Operations and Product-Liability Coverage"
+      },
+      {
+        "clause_type": "Covenant Not To Sue",
+        "clause_text": "Such Party shall, to the extent allowed or permitted by the applicable judicial action, governmental regulation or investigation or other requirements, promptly notify the Party that furnished the Confidential Information prior to any such disclosure, and reasonably cooperate (at the request and expense of the furnishing Party) with the furnishing Party to contest or limit such disclosure."
+      },
+      {
+        "clause_type": "Renewal Term",
+        "clause_text": "This Agreement shall commence on the Effective Date and shall terminate automatically without notice on December 31, 2022, unless the Parties agree in writing to extend the term of the Agreement (the initial term and any renewal terms are referred to collectively herein as the 'Term')."
+      },
+      {
+        "clause_type": "Governing Law",
+        "clause_text": "All matters relating to this Agreement, the rights of the Parties hereunder and the construction of the terms hereof shall be governed by the laws of the State of California, without regard to conflicts of laws principles."
+      },
+      {
+        "clause_type": "Anti-Assignment",
+        "clause_text": "This Agreement is not assignable or transferable by either Party, in whole or in part, without the prior written consent of the other Party\u037e provided, however that Premier may assign this Agreement in the event that Premier is sold, merged into or with another entity, or undergoes a 'change in control'."
+      },
+      {
+        "clause_type": "Non-Compete",
+        "clause_text": "Premier reserves the right to buy Products or similar product from other co-packers, manufacturers, or third-parties."
+      }
+    ],
+    "confidence": 0.6658,
+    "extraction_confidence": 0.9943,
+    "extraction_confidence_logit": 10.3309,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 0,
+        "related_clauses": null
+      },
+      {
+        "tool": "contract_search",
+        "result_count": 16,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "10",
+    "start_pos": 32276,
+    "end_pos": 32519,
+    "metadata": {
+      "content_label": "text"
+    }
+  },
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_Governing_Law_0007",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "All matters relating to this Agreement, the rights of the Parties hereunder and the construction of the terms hereof shall be governed by the laws of the State of California, without regard to conflicts of laws principles.",
+    "clause_type": "Governing Law",
+    "risk_level": "LOW",
+    "risk_explanation": "The clause specifies that all matters relating to the Agreement, including the rights of the parties and the construction of terms, shall be governed by the laws of the State of California, without regard to conflict of laws principles. This is a standard, widely used governing law provision. Precedent analysis confirms that 5 similar clauses\u2014identical in language and structure\u2014were uniformly classified as LOW risk. These precedents demonstrate that such clauses are neutral, non-discriminatory, and do not impose one-sided obligations, liability, or restrictions on the signing party. The DeBERTa model also classified this clause as LOW risk with 91% confidence, and there is no conflicting evidence from the tools. Given the consistency of precedent and model output, the risk assessment is confirmed as LOW.",
+    "similar_clauses": [
+      {
+        "text": "This Agreement and all acts and transactions pursuant          ------------- hereto and the rights and obligations of the parties hereto shall be governed, construed and interpreted in accordance with the laws of the State of California, without giving effect to principles of conflicts of law.",
+        "clause_type": "Governing Law",
+        "risk_level": "LOW",
+        "similarity": 0.8740090727806091
+      },
+      {
+        "text": "This Agreement, and all matters arising out of or relating to this Agreement, shall be governed by the laws of the State of California.",
+        "clause_type": "Governing Law",
+        "risk_level": "LOW",
+        "similarity": 0.8730952143669128
+      },
+      {
+        "text": "This Agreement shall be governed by, and its provisions enforced in accordance with, the laws of California without regard to its principles of conflicts of laws.",
+        "clause_type": "Governing Law",
+        "risk_level": "LOW",
+        "similarity": 0.8490796089172363
+      },
+      {
+        "text": "The provisions of this Agreement shall be governed by and construed in accordance with the laws of the State of California (excluding any conflict of law rule or principle that would refer to the laws of another jurisdiction).",
+        "clause_type": "Governing Law",
+        "risk_level": "LOW",
+        "similarity": 0.8332822918891907
+      },
+      {
+        "text": "This Agreement shall be governed, construed and interpreted in accordance with the laws of the State of California (without respect to principles of conflicts of law).",
+        "clause_type": "Governing Law",
+        "risk_level": "LOW",
+        "similarity": 0.8314043879508972
+      }
+    ],
+    "cross_references": [],
+    "confidence": 0.9145,
+    "extraction_confidence": 0.9992,
+    "extraction_confidence_logit": 14.2891,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 5,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "10",
+    "start_pos": 34016,
+    "end_pos": 34239,
+    "metadata": {
+      "content_label": "text"
+    }
+  },
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_Anti-Assignment_0017",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "This Agreement is not assignable or transferable by either Party, in whole or in part, without the prior written consent of the other Party\u037e provided, however that Premier may assign this Agreement in the event that Premier is sold, merged into or with another entity, or undergoes a 'change in control'.",
+    "clause_type": "Anti-Assignment",
+    "risk_level": "LOW",
+    "risk_explanation": "The clause is an Anti-Assignment provision that restricts assignment by either party without prior written consent. However, it includes a clear and standard carve-out allowing Premier Nutrition Corporation to assign the Agreement in the event of a sale, merger, or change in control. This exception is consistent with industry norms and is present in 4 out of 5 similar precedents, all of which were classified as LOW risk. The restriction is mutual and does not impose one-sided burdens on Premier. The contract context confirms no asymmetry in obligations, and no other clauses suggest adverse consequences for Premier. Although DeBERTa initially labeled the clause MEDIUM (65% confidence), the precedent evidence is strong, consistent, and directly supports a LOW risk classification. Therefore, the final assessment overrides the model\u2019s initial label based on convergent external validation.",
+    "similar_clauses": [
+      {
+        "text": "This Agreement shall not be assignable by either party to any third party without the written consent of the other party hereto; except that either party may assign this Agreement without the other party's consent to an entity that acquires substantially all of the business or assets of the assigning party within the Field, in each case whether by merger, transfer of assets, or otherwise.",
+        "clause_type": "Anti-Assignment",
+        "risk_level": "LOW",
+        "similarity": 0.8003094792366028
+      },
+      {
+        "text": "Neither Party may assign or transfer this Agreement or any rights or obligations hereunder without the prior written consent of the other Party, except that a Party may make such an assignment without the other Party's consent to its Affiliates or to a Third Party successor of, or transferee to, assets of such Party to which this Agreement relates, whether in a merger, sale of stock, sale of assets or other transaction.",
+        "clause_type": "Anti-Assignment",
+        "risk_level": "LOW",
+        "similarity": 0.7950215935707092
+      },
+      {
+        "text": "This Agreement shall not be assignable by either Party, except with the written\n\n\n\n\n\nconsent of the other Party hereto; provided, however, that either Party may assign this Agreement without the other Party's consent to an acquiring party in connection with the transfer or sale of all or substantially all of the business of such Party to which this Agreement relates to such acquiring party, whether by merger, sale of stock, sale of assets or otherwise, provided that in the event of such a sale or transfer (whether this Agreement is actually assigned or is assumed by the acquiring party by operation of law (e.g,. in the context of a reverse triangular merger)).",
+        "clause_type": "Anti-Assignment",
+        "risk_level": "LOW",
+        "similarity": 0.7912333011627197
+      },
+      {
+        "text": "This Agreement may not be assigned, delegated, or otherwise transferred, in whole or in part, by operation of law or otherwise, by a Party without the other Party's express prior written consent.",
+        "clause_type": "Anti-Assignment",
+        "risk_level": "MEDIUM",
+        "similarity": 0.781842827796936
+      },
+      {
+        "text": "Neither Party may transfer or assign any of its rights or obligations under this Agreement without the prior written consent of the other Party, except that either Party may assign this Agreement to any entity controlled by it, its parents, subsidiaries, or affiliates, or to any purchaser of the business to which this Agreement relates subject to the other Parties consent which will not be unreasonably withheld or delayed.",
+        "clause_type": "Anti-Assignment",
+        "risk_level": "MEDIUM",
+        "similarity": 0.7760622501373291
+      }
+    ],
+    "cross_references": [
+      {
+        "clause_type": "Document Name",
+        "clause_text": "MANUFACTURING AGREEMENT"
+      },
+      {
+        "clause_type": "Agreement Date",
+        "clause_text": "first day of July, 2017"
+      },
+      {
+        "clause_type": "Parties",
+        "clause_text": "PREMIER NUTRITION CORPORATION"
+      },
+      {
+        "clause_type": "Expiration Date",
+        "clause_text": "The term of this Agreement will commence on the Commencement Date and will continue through December 31, 2022 or until this Agreement is otherwise terminated in accordance with its provisions ('Term')."
+      },
+      {
+        "clause_type": "Minimum Commitment",
+        "clause_text": "During the Term of this Agreement, Premier shall be required to purchase a Minimum Annual Order Volume ('MAOV') of [***] ('Units') for each twelve-month period commencing July 1, 2017, and for the six-month period commencing July 1, 2022 and ending December 31, 2022, Premier will be required to purchase [***] Units (the twelve-month periods and the six month period are each a 'Contract Period')."
+      },
+      {
+        "clause_type": "Price Restrictions",
+        "clause_text": "However, if (i) any increase or decrease in Unit volume under a particular PO is greater than [***] of the initial PO quantity and (ii) Premier requests such change or cancellation within the [***] period prior to the Due Date (or Production Date, as applicable) (the '[***] Period'), Heritage in its sole discretion, may charge Premier [***]."
+      },
+      {
+        "clause_type": "Audit Rights",
+        "clause_text": "Premier, shall have the right, directly or through its representative, to inspect, copy, and audit all such records upon reasonable request and during normal business hours, acknowledging that access to accounting and purchasing records will be limited to those supporting pass-through materials costs and purchases of Premier specified equipment if any."
+      },
+      {
+        "clause_type": "Warranty Duration",
+        "clause_text": "store finished Products at no cost to Premier for a period not to exceed [***] from the date of Heritage's issuance of a Certificate of Analysis ('COA')."
+      },
+      {
+        "clause_type": "License Grant",
+        "clause_text": "Premier represents and warrants that it owns or otherwise has the right to use all trademarks (the 'Trademarks') and copyrighted material (the 'Copyrights') provided by Premier to Heritage, which are provided solely for use in connection with the manufacture or packaging of the Products."
+      },
+      {
+        "clause_type": "Indemnification",
+        "clause_text": "In addition, Premier shall indemnify, defend and hold Heritage harmless from and against"
+      },
+      {
+        "clause_type": "Insurance",
+        "clause_text": "Heritage and Jasper shall maintain insurance of the following kinds and in the following amounts during the Term of this Agreement:\n\n- i. Commercial General Liability Insurance with a limit of $[***] each occurrence and $[***] in the aggregate, including Contractual, Completed-Operations and Product-Liability Coverage"
+      },
+      {
+        "clause_type": "Covenant Not To Sue",
+        "clause_text": "Such Party shall, to the extent allowed or permitted by the applicable judicial action, governmental regulation or investigation or other requirements, promptly notify the Party that furnished the Confidential Information prior to any such disclosure, and reasonably cooperate (at the request and expense of the furnishing Party) with the furnishing Party to contest or limit such disclosure."
+      },
+      {
+        "clause_type": "Renewal Term",
+        "clause_text": "This Agreement shall commence on the Effective Date and shall terminate automatically without notice on December 31, 2022, unless the Parties agree in writing to extend the term of the Agreement (the initial term and any renewal terms are referred to collectively herein as the 'Term')."
+      },
+      {
+        "clause_type": "Post-Termination Services",
+        "clause_text": "So long as Premier has satisfied its payment obligations to Heritage pursuant to Section 3, upon termination or expiration of this Agreement, any releasable Product in Heritage's possession shall be promptly delivered to Premier within [***]."
+      },
+      {
+        "clause_type": "Governing Law",
+        "clause_text": "All matters relating to this Agreement, the rights of the Parties hereunder and the construction of the terms hereof shall be governed by the laws of the State of California, without regard to conflicts of laws principles."
+      },
+      {
+        "clause_type": "Non-Compete",
+        "clause_text": "Premier reserves the right to buy Products or similar product from other co-packers, manufacturers, or third-parties."
+      }
+    ],
+    "confidence": 0.6466,
+    "extraction_confidence": 0.9993,
+    "extraction_confidence_logit": 14.5006,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 5,
+        "related_clauses": null
+      },
+      {
+        "tool": "contract_search",
+        "result_count": 16,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "11",
+    "start_pos": 37190,
+    "end_pos": 37495,
+    "metadata": {
+      "content_label": "text"
+    }
+  },
+  {
+    "clause_id": "BellringBrandsInc_20_1324b9_Non-Compete_0009",
+    "document_id": "BellringBrandsInc_20190920_S-1_EX-10.12_11817081_EX-10.12_Manufacturing Agreement1",
+    "clause_text": "Premier reserves the right to buy Products or similar product from other co-packers, manufacturers, or third-parties.",
+    "clause_type": "Non-Compete",
+    "risk_level": "LOW",
+    "risk_explanation": "The clause states that 'Premier reserves the right to buy Products or similar product from other co-packers, manufacturers, or third-parties.' From the perspective of Premier Nutrition Corporation (the signing party), this is not a restrictive covenant but rather a **reservation of rights** that enhances operational flexibility. It explicitly protects Premier\u2019s ability to source products from alternative suppliers, which is a net-positive and commercially advantageous position. This clause does not impose any obligation, restriction, or liability on Premier. Instead, it reinforces Premier\u2019s autonomy in supply chain decisions, even in the context of a minimum commitment to Heritage. The clause is consistent with standard commercial practices where a buyer retains the right to diversify suppliers. No precedent exists to suggest this is a high-risk provision, and the contract context confirms it is not a one-sided restriction. Therefore, the clause is balanced and favorable to the signing party.",
+    "similar_clauses": [],
+    "cross_references": [
+      {
+        "clause_type": "Document Name",
+        "clause_text": "MANUFACTURING AGREEMENT"
+      },
+      {
+        "clause_type": "Agreement Date",
+        "clause_text": "first day of July, 2017"
+      },
+      {
+        "clause_type": "Parties",
+        "clause_text": "PREMIER NUTRITION CORPORATION"
+      },
+      {
+        "clause_type": "Expiration Date",
+        "clause_text": "The term of this Agreement will commence on the Commencement Date and will continue through December 31, 2022 or until this Agreement is otherwise terminated in accordance with its provisions ('Term')."
+      },
+      {
+        "clause_type": "Minimum Commitment",
+        "clause_text": "During the Term of this Agreement, Premier shall be required to purchase a Minimum Annual Order Volume ('MAOV') of [***] ('Units') for each twelve-month period commencing July 1, 2017, and for the six-month period commencing July 1, 2022 and ending December 31, 2022, Premier will be required to purchase [***] Units (the twelve-month periods and the six month period are each a 'Contract Period')."
+      },
+      {
+        "clause_type": "Price Restrictions",
+        "clause_text": "However, if (i) any increase or decrease in Unit volume under a particular PO is greater than [***] of the initial PO quantity and (ii) Premier requests such change or cancellation within the [***] period prior to the Due Date (or Production Date, as applicable) (the '[***] Period'), Heritage in its sole discretion, may charge Premier [***]."
+      },
+      {
+        "clause_type": "Audit Rights",
+        "clause_text": "Premier, shall have the right, directly or through its representative, to inspect, copy, and audit all such records upon reasonable request and during normal business hours, acknowledging that access to accounting and purchasing records will be limited to those supporting pass-through materials costs and purchases of Premier specified equipment if any."
+      },
+      {
+        "clause_type": "Warranty Duration",
+        "clause_text": "store finished Products at no cost to Premier for a period not to exceed [***] from the date of Heritage's issuance of a Certificate of Analysis ('COA')."
+      },
+      {
+        "clause_type": "License Grant",
+        "clause_text": "Premier represents and warrants that it owns or otherwise has the right to use all trademarks (the 'Trademarks') and copyrighted material (the 'Copyrights') provided by Premier to Heritage, which are provided solely for use in connection with the manufacture or packaging of the Products."
+      },
+      {
+        "clause_type": "Indemnification",
+        "clause_text": "In addition, Premier shall indemnify, defend and hold Heritage harmless from and against"
+      },
+      {
+        "clause_type": "Insurance",
+        "clause_text": "Heritage and Jasper shall maintain insurance of the following kinds and in the following amounts during the Term of this Agreement:\n\n- i. Commercial General Liability Insurance with a limit of $[***] each occurrence and $[***] in the aggregate, including Contractual, Completed-Operations and Product-Liability Coverage"
+      },
+      {
+        "clause_type": "Covenant Not To Sue",
+        "clause_text": "Such Party shall, to the extent allowed or permitted by the applicable judicial action, governmental regulation or investigation or other requirements, promptly notify the Party that furnished the Confidential Information prior to any such disclosure, and reasonably cooperate (at the request and expense of the furnishing Party) with the furnishing Party to contest or limit such disclosure."
+      },
+      {
+        "clause_type": "Renewal Term",
+        "clause_text": "This Agreement shall commence on the Effective Date and shall terminate automatically without notice on December 31, 2022, unless the Parties agree in writing to extend the term of the Agreement (the initial term and any renewal terms are referred to collectively herein as the 'Term')."
+      },
+      {
+        "clause_type": "Post-Termination Services",
+        "clause_text": "So long as Premier has satisfied its payment obligations to Heritage pursuant to Section 3, upon termination or expiration of this Agreement, any releasable Product in Heritage's possession shall be promptly delivered to Premier within [***]."
+      },
+      {
+        "clause_type": "Governing Law",
+        "clause_text": "All matters relating to this Agreement, the rights of the Parties hereunder and the construction of the terms hereof shall be governed by the laws of the State of California, without regard to conflicts of laws principles."
+      },
+      {
+        "clause_type": "Anti-Assignment",
+        "clause_text": "This Agreement is not assignable or transferable by either Party, in whole or in part, without the prior written consent of the other Party\u037e provided, however that Premier may assign this Agreement in the event that Premier is sold, merged into or with another entity, or undergoes a 'change in control'."
+      }
+    ],
+    "confidence": 0.4246,
+    "extraction_confidence": 0.9851,
+    "extraction_confidence_logit": 8.3782,
+    "content_label": "text",
+    "agent_trace": [
+      {
+        "tool": "precedent_search",
+        "result_count": 0,
+        "related_clauses": null
+      },
+      {
+        "tool": "contract_search",
+        "result_count": 16,
+        "related_clauses": null
+      }
+    ],
+    "page_no": "11",
+    "start_pos": 38167,
+    "end_pos": 38285,
+    "metadata": {
+      "content_label": "text"
+    }
+  }
+]
