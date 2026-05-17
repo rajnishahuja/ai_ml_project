@@ -40,7 +40,7 @@ ML pipeline that analyzes legal contracts and flags risky clauses using the CUAD
   - **E2E eval COMPLETE (2026-05-17, Qwen3-30B, full 452 rows, no-CS constrained):**
     | Embedding model (FAISS) | DeBERTa-only | Agent macro F1 | Delta | HIGH F1 |
     |---|---|---|---|---|
-    | `all-MiniLM-L6-v2` | 0.6118 | 0.6257 | +0.016 | 0.634 |
+    | `all-MiniLM-L6-v2` | 0.6097 | 0.6257 | +0.016 | 0.634 |
     | `nlpaueb/legal-bert-base-uncased` | 0.6097 | **0.6407** | **+0.031** | **0.650** |
   - Agent delta doubled; HIGH F1 is the headline win (MiniLM precision@5 HIGH was 0.045 → LegalBERT 0.424).
 

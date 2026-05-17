@@ -798,7 +798,7 @@ at 0.90+, so 0.82 is optimal (vs 0.75 for MiniLM).
 
 | Embedding model (FAISS) | DeBERTa-only | Agent macro F1 | Delta | LOW F1 | MED F1 | HIGH F1 | Override rate |
 |---|---|---|---|---|---|---|---|
-| `all-MiniLM-L6-v2` | 0.6118 | 0.6257 | +0.016 | 0.705 | 0.538 | 0.634 | 6% (28/452) |
+| `all-MiniLM-L6-v2` | 0.6097 | 0.6257 | +0.016 | 0.705 | 0.538 | 0.634 | 6% (28/452) |
 | `nlpaueb/legal-bert-base-uncased` | 0.6097 | **0.6407** | **+0.031** | **0.710** | 0.560 | **0.650** | 18% (81/452) |
 
 ### Key findings
